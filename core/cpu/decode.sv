@@ -1,4 +1,5 @@
 `default_nettype none
+
 `include "include.vh"
 
 module decode (
@@ -7,43 +8,53 @@ module decode (
 
 	input wire [31:0] instr_code,
 
-	output wire [6:0] opcode,
-	output wire [2:0] op_ctrl,
-	output wire op_switch,// to switch (0&1), ADD&SUB , SRLI&SRAI, SRL&SRA
-	// output wire op_imm,
-
+	output reg [6:0] opcode,
+	output reg [2:0] op_ctrl,
+	output reg op_switch,// to switch (0&1), ADD&SUB , SRLI&SRAI, SRL&SRA
 
 	output wire [4:0] rs1_addr,
 	output wire [4:0] rs2_addr,
-	output reg [4:0] w_addr,
-	output reg we,
+	output reg [31:0] imm,//is it better not expanding？
+	output reg [4:0] waddr,
+	output reg we
 
-	output wire [31:0] imm,//is it better not expanding？
-	output wire [4:0] shamt
 );
 
 
-assign opcode = instr_code[6:0];
-assign op_ctrl = instr_code[14:12];
-assign op_switch = (opcode == `OP_ALUI & instr_code[30]) | (opcode == `OP_ALU & instr_code[30] & (op_ctrl == 3'b000 |op_ctrl==3'b101 ));
-// assign op_imm = (opcode == `OP_ALUI | opcode == `OP)
-assign shamt = instr_code[24:20] ;
 assign rs1_addr = instr_code[19:15] ;
 assign rs2_addr = instr_code[24:20] ;
+// assign imm = 	(opcode == `OP_LUI | opcode == `OP_AUIPC) ? {instr_code[31:12],12'b0}:
+// 				(opcode == `OP_JAL) ? {{12{instr_code[31]}},instr_code[19:12],instr_code[20],instr_code[30:21],1'b0}:
+// 				(opcode == `OP_JALR| opcode == `OP_LOAD|opcode == `OP_ALUI)? {{21{instr_code[31]}},instr_code[30:20]}:
+// 				(opcode == `OP_BRANCH)?{{20{instr_code[31]}},instr_code[7],instr_code[30:25],instr_code[11:8],1'b0}:
+// 				(opcode == `OP_STORE )?{{21{instr_code[31]}},instr_code[30:25],instr_code[11:7]}:
+// 				32'b0;
 
-assign w_addr = instr_code[11:7] ;
-assign imm = 	(opcode == `OP_LUI | opcode == `OP_AUIPC) ? {instr_code[31:12],12'b0}:
-				(opcode == `OP_JAL) ? {{12{instr_code[31]}},instr_code[19:12],instr_code[20],instr_code[30:21],1'b0}:
-				(opcode == `OP_JALR| opcode == `OP_LOAD|opcode == `OP_ALUI)? {{21{instr_code[31]}},instr_code[30:20]}:
-				(opcode == `OP_STORE )?{{21{instr_code[31]}},instr_code[30:25],instr_code[11:7]}:
-				32'b0;
-
-
-always @(posedge clk)begin
-	if(~rst_n) begin
+always @(posedge clk)begin 
+	if(~rst_n)begin
+		opcode <= 0;
+		waddr <= 0;
+		op_ctrl <= 0;
+		op_switch <= 0;
+		imm <= 0;
 		we <= 0;
 	end else begin
-		we <= opcode == `OP_LUI || opcode == `OP_ALU || opcode == `OP_ALUI || opcode == `OP_LOAD;
+		opcode <= instr_code[6:0];
+		waddr <= instr_code[11:7] ;
+		op_ctrl <= instr_code[14:12];
+		op_switch <= (opcode == `OP_ALUI && opcode == `OP_ALUI) || instr_code[30];
+		case (instr_code[6:0]) //instr_code[6:0] == opcode
+			`OP_LUI:			imm <= {instr_code[31:12],12'b0};
+			`OP_AUIPC:		imm <= {instr_code[31:12],12'b0};
+			`OP_JAL:			imm <= {{12{instr_code[31]}},instr_code[19:12],instr_code[20],instr_code[30:21],1'b0};
+			`OP_JALR:		imm <= {{21{instr_code[31]}},instr_code[30:20]};
+			`OP_BRANCH:		imm <= {{20{instr_code[31]}},instr_code[7],instr_code[30:25],instr_code[11:8],1'b0};
+			`OP_LOAD:		imm <= {{21{instr_code[31]}},instr_code[30:20]};
+			`OP_STORE:		imm <= {{21{instr_code[31]}},instr_code[30:25],instr_code[11:7]};
+			`OP_ALUI:		imm <= {{21{instr_code[31]}},instr_code[30:20]};		
+			default : 		imm <= 32'h0;
+		endcase
+		we <= (instr_code[6:0] == `OP_LUI)||(instr_code[6:0] == `OP_JAL)||(instr_code[6:0] == `OP_JALR)||(instr_code[6:0] == `OP_ALUI)||(instr_code[6:0] == `OP_ALU);
 	end
 end
 

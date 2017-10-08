@@ -12,6 +12,12 @@
 `define OP_ALU		7'b0110011
 `define OP_MULDIV	7'b0110011
 
+`define B_EQ 		3'b000
+`define B_NE 		3'b001
+`define B_LT 		3'b100
+`define B_GE 		3'b101
+`define B_LTU 		3'b110
+`define B_GEU 		3'b111
 
 `define ALU_ADD 	3'b000 // ALU_SUB
 `define ALU_SLL 	3'b001

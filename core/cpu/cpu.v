@@ -2,7 +2,7 @@
 module cpu(
 	input wire clk,
 	input wire rst_n,
-
+	input wire run,
 	// fetch
 	output wire [31:0] pc, //instruction address
 	input wire [31:0] instruction_code,
@@ -35,12 +35,12 @@ module cpu(
 );
 
 
-	wire [31:0] instr_code;
 cpu_top cpu_top (
 	.clk        (clk        ),
 	.rst_n      (rst_n      ),
+	.run        (run),
 	.pc         (pc         ),
-	.instr_code (instr_code ),
+	.instr_code (instruction_code ),
 	.axi_awvalid(axi_awvalid),
 	.axi_awready(axi_awready),
 	.axi_awaddr (axi_awaddr ),
