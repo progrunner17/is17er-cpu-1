@@ -2,6 +2,7 @@
 (* lexerが利用する変数、関数、型などの定義 *)
 open Parser
 open Type
+exception Error of string
 }
 
 (* 正規表現の略記 *)
@@ -86,11 +87,10 @@ rule token = parse
 | lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
     { IDENT(lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
 | _
-    { failwith
-        (Printf.sprintf "unknown token %s near characters %d-%d"
-           (Lexing.lexeme lexbuf)
-           (Lexing.lexeme_start lexbuf)
-           (Lexing.lexeme_end lexbuf)) }
+    { failwith (Printf.sprintf "Lex error: Unknown token %s (%s - %s)"
+        (Lexing.lexeme lexbuf)
+        (H.show_pos lexbuf.lex_start_p)
+        (H.show_pos lexbuf.lex_curr_p)) }
 and comment = parse
 | "*)"
     { () }
@@ -98,6 +98,8 @@ and comment = parse
     { comment lexbuf;
       comment lexbuf }
 | eof
-    { Format.eprintf "warning: unterminated comment@." }
+    { Format.eprintf "Lex warning: Unterminated comment@." }
+| newline
+    { Lexing.new_line lexbuf; comment lexbuf }
 | _
     { comment lexbuf }

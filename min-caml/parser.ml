@@ -712,9 +712,9 @@ let yyact = [|
     Obj.repr(
 # 140 "parser.mly"
     ( failwith
-        (Printf.sprintf "parse error near characters %d-%d"
-           (Parsing.symbol_start ())
-           (Parsing.symbol_end ())) )
+        (Printf.sprintf "Parse error at %s - %s"
+           (H.show_pos (Parsing.symbol_start_pos ()))
+           (H.show_pos (Parsing.symbol_end_pos ()))) )
 # 719 "parser.ml"
                : Syntax.t))
 ; (fun __caml_parser_env ->

@@ -1,6 +1,12 @@
 (* helpers *)
 
-type pos = Lexing.position
+open Lexing
+
+type pos = position
+
+let show_pos p = "line "^string_of_int p.pos_lnum^" column "^string_of_int (p.pos_cnum - p.pos_bol + 1)
+
+exception ParseError of string
 
 let indent = ref 0
 
