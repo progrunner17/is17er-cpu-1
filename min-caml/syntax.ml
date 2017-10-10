@@ -43,14 +43,13 @@ let rec print = function
   | Eq (e, e') -> print_string "("; print e; print_string " = "; print e'; print_string ")"
   | LE (e, e') -> print_string "("; print e; print_string " <= "; print e'; print_string ")"
   | If (e, e', e'') -> print_string "(if "; print e; print_string " then "; print e'; print_string " else "; print e''; print_string ")"
-  | Let ((x, t), e, e') -> print_string "(let "; print_string x; print_string ": "; Type.print t; print_string " = "; print e; print_string " in\n"; print e'; print_string ")"
+  | Let ((x, t), e, e') -> print_string "(let "; print_string x; print_string ":"; Type.print t; print_string " = "; print e; print_string " in "; print e'; print_string ")"
   | Var x -> print_string x
-  | LetRec (f, e) -> print_string "(let rec "; print_string (fst f.name); print_string ": "; Type.print (snd f.name);
-    List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ": "; Type.print t; print_string ")") f.args;
-    print_string " = "; print f.body; print_string " in\n"; print e; print_string ")"
+  | LetRec (f, e) -> print_string "(let rec ("; List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ":"; Type.print t; print_string ")") (f.name :: f.args);
+    print_string " = "; print f.body; print_string " in "; print e; print_string ")"
   | App (e, es) -> print_string "("; print e; List.iter (fun e -> print_string " "; print e) es; print_string ")"
   | Tuple es -> print_string "("; H.commasep print es; print_string ")"
-  | LetTuple (xts, e, e') -> print_string "(let ("; H.commasep (fun (x, t) -> print_string x; print_string ": "; Type.print t) xts; print_string ") = "; print e; print_string " in\n"; print e'; print_string ")"
+  | LetTuple (xts, e, e') -> print_string "(let ("; H.commasep (fun (x, t) -> print_string x; print_string ":"; Type.print t) xts; print_string ") = "; print e; print_string " in "; print e'; print_string ")"
   | Array (e, e') -> print_string "Array.make "; print e; print_string " "; print e'
   | Get (e, e') -> print e; print_string ".("; print e'; print_string ")"
   | Put (e, e', e'') -> print_string "("; print e; print_string ".("; print e'; print_string ") <- "; print e''; print_string ")"

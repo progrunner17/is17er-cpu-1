@@ -26,32 +26,38 @@ type t = (* K正規化後の式 (caml2html: knormal_t) *)
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
+let complex = function
+  | Let (_, _, _) | LetRec (_, _) | LetTuple (_, _, _) -> true
+  | _ -> false
+
 let rec print = function
   | Unit -> print_string "()"
   | Int n -> print_int n
   | Float a -> print_float a
-  | Neg x -> print_string "(- "; print_string x; print_string ")"
-  | Add (x, x') -> print_string "("; print_string x; print_string " + "; print_string x'; print_string ")"
-  | Sub (x, x') -> print_string "("; print_string x; print_string " - "; print_string x'; print_string ")"
-  | FNeg x -> print_string "(-. "; print_string x; print_string ")"
-  | FAdd (x, x') -> print_string "("; print_string x; print_string " +. "; print_string x'; print_string ")"
-  | FSub (x, x') -> print_string "("; print_string x; print_string " -. "; print_string x'; print_string ")"
-  | FMul (x, x') -> print_string "("; print_string x; print_string " *. "; print_string x'; print_string ")"
-  | FDiv (x, x') -> print_string "("; print_string x; print_string " /. "; print_string x'; print_string ")"
-  | IfEq (x, x', e, e') -> print_string "(if "; print_string x; print_string " = "; print_string x'; print_string " then "; print e; print_string " else "; print e'; print_string ")"
-  | IfLE (x, x', e, e') -> print_string "(if "; print_string x; print_string " <= "; print_string x'; print_string " then "; print e; print_string " else "; print e'; print_string ")"
-  | Let ((x, t), e, e') -> print_string "(let "; print_string x; print_string ": "; Type.print t; print_string " = "; print e; print_string " in\n"; print e'; print_string ")"
+  | Neg x -> print_string "- "; print_string x
+  | Add (x, x') -> print_string x; print_string " + "; print_string x'
+  | Sub (x, x') -> print_string x; print_string " - "; print_string x'
+  | FNeg x -> print_string "-. "; print_string x
+  | FAdd (x, x') -> print_string x; print_string " +. "; print_string x'
+  | FSub (x, x') -> print_string x; print_string " -. "; print_string x'
+  | FMul (x, x') -> print_string x; print_string " *. "; print_string x'
+  | FDiv (x, x') -> print_string x; print_string " /. "; print_string x'
+  | IfEq (x, x', e, e') -> print_string "if "; print_string x; print_string " = "; print_string x'; print_string " then"; H.down_right (); print e; H.down_left (); print_string "else "; H.down_right (); print e'; H.left ()
+  | IfLE (x, x', e, e') -> print_string "if "; print_string x; print_string " <= "; print_string x'; print_string " then"; H.down_right (); print e; H.down_left (); print_string "else "; H.down_right (); print e'; H.left ()
+  | Let ((x, t), e, e') -> if complex e then
+      (print_string "let "; print_string x; print_string ":"; Type.print t; print_string " ="; H.down_right (); print e; H.down_left (); print_string "in"; H.down_right (); print e'; H.left ())
+    else
+      (print_string "let "; print_string x; print_string ":"; Type.print t; print_string " = "; print e; print_string " in"; H.down (); print e')
   | Var x -> print_string x
-  | LetRec (f, e) -> print_string "(let rec "; print_string (fst f.name); print_string ": "; Type.print (snd f.name);
-    List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ": "; Type.print t; print_string ")") f.args;
-    print_string " = "; print f.body; print_string " in\n"; print e; print_string ")"
-  | App (x, xs) -> print_string "("; print_string x; List.iter (fun x -> print_string " "; print_string x) xs; print_string ")"
+  | LetRec (f, e) -> print_string "let rec"; List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ":"; Type.print t; print_string ")") (f.name :: f.args); print_string " ="; H.down_right (); print f.body; H.down_left (); print_string "in"; H.down_right (); print e; H.left ()
+  | LetRec (f, e) -> print_string "let rec"; List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ":"; Type.print t; print_string ")") (f.name :: f.args); print_string " ="; H.down_right (); print f.body; H.down_left (); print_string "in"; H.down_right (); print e; H.left ()
+  | App (x, xs) -> print_string x; List.iter (fun x -> print_string " "; print_string x) xs
   | Tuple xs -> print_string "("; H.commasep print_string xs; print_string ")"
-  | LetTuple (xts, x, e) -> print_string "(let ("; H.commasep (fun (x, t) -> print_string x; print_string ": "; Type.print t) xts; print_string ") = "; print_string x; print_string " in\n"; print e; print_string ")"
+  | LetTuple (xts, x, e) -> print_string "let ("; H.commasep (fun (x, t) -> print_string x; print_string ":"; Type.print t) xts; print_string ") = "; print_string x; print_string " in"; H.down (); print e
   | Get (x, x') -> print_string x; print_string ".("; print_string x'; print_string ")"
-  | Put (x, x', x'') -> print_string "("; print_string x; print_string ".("; print_string x'; print_string ") <- "; print_string x''; print_string ")"
-  | ExtArray x -> print_string "ExtArray<"; print_string x; print_string ">"
-  | ExtFunApp (x, xs) -> print_string "(ExtFun<"; print_string x; print_string ">"; List.iter (fun x -> print_string " "; print_string x) xs; print_string ")"
+  | Put (x, x', x'') -> print_string x; print_string ".("; print_string x'; print_string ") <- "; print_string x''
+  | ExtArray x -> print_string "*"; print_string x; print_string "*"
+  | ExtFunApp (x, xs) -> print_string "*"; print_string x; print_string "*"; List.iter (fun x -> print_string " "; print_string x) xs
 
 let rec fv = function (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
