@@ -1,5 +1,5 @@
 # Sumii's Makefile for Min-Caml (for GNU Make)
-# 
+#
 # ack.mlなどのテストプログラムをtest/に用意してmake do_testを実行すると、
 # min-camlとocamlでコンパイル・実行した結果を自動で比較します。
 
@@ -9,8 +9,8 @@ CC = gcc
 CFLAGS = -g -O2 -Wall
 OCAMLLDFLAGS=-warn-error -31
 
-default: debug-code top $(RESULT) do_test
 $(RESULT): debug-code top
+default: debug-code top $(RESULT) do_test
 ## [自分（住井）用の注]
 ## ・OCamlMakefileや古いGNU Makeのバグ(?)で上のような定義が必要(??)
 ## ・OCamlMakefileではdebug-codeとnative-codeのそれぞれで
