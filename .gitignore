@@ -1,2 +1,6 @@
 vivado*
 .Xil/
+.DS_Store
+*.cmi
+*.cmo
+
