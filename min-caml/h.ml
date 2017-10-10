@@ -1,5 +1,7 @@
 (* helpers *)
 
+type pos = Lexing.position
+
 let indent = ref 0
 
 let down () = print_newline (); print_string (String.make !indent ' ')

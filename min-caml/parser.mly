@@ -5,37 +5,37 @@ let addtyp x = (x, Type.gentyp ())
 %}
 
 /* (* 字句を表すデータ型の定義 (caml2html: parser_token) *) */
-%token <bool> BOOL
-%token <int> INT
-%token <float> FLOAT
-%token NOT
-%token MINUS
-%token PLUS
-%token MINUS_DOT
-%token PLUS_DOT
-%token AST_DOT
-%token SLASH_DOT
-%token EQUAL
-%token LESS_GREATER
-%token LESS_EQUAL
-%token GREATER_EQUAL
-%token LESS
-%token GREATER
-%token IF
-%token THEN
-%token ELSE
-%token <Id.t> IDENT
-%token LET
-%token IN
-%token REC
-%token COMMA
-%token ARRAY_CREATE
-%token DOT
-%token LESS_MINUS
-%token SEMICOLON
-%token LPAREN
-%token RPAREN
-%token EOF
+%token <H.pos * bool> BOOL
+%token <H.pos * int> INT
+%token <H.pos * float> FLOAT
+%token <H.pos> NOT
+%token <H.pos> MINUS
+%token <H.pos> PLUS
+%token <H.pos> MINUS_DOT
+%token <H.pos> PLUS_DOT
+%token <H.pos> AST_DOT
+%token <H.pos> SLASH_DOT
+%token <H.pos> EQUAL
+%token <H.pos> LESS_GREATER
+%token <H.pos> LESS_EQUAL
+%token <H.pos> GREATER_EQUAL
+%token <H.pos> LESS
+%token <H.pos> GREATER
+%token <H.pos> IF
+%token <H.pos> THEN
+%token <H.pos> ELSE
+%token <H.pos * Id.t> IDENT
+%token <H.pos> LET
+%token <H.pos> IN
+%token <H.pos> REC
+%token <H.pos> COMMA
+%token <H.pos> ARRAY_CREATE
+%token <H.pos> DOT
+%token <H.pos> LESS_MINUS
+%token <H.pos> SEMICOLON
+%token <H.pos> LPAREN
+%token <H.pos> RPAREN
+%token <H.pos> EOF
 
 /* (* 優先順位とassociativityの定義（低い方から高い方へ） (caml2html: parser_prior) *) */
 %nonassoc IN
@@ -64,13 +64,13 @@ simple_exp: /* (* 括弧をつけなくても関数の引数になれる式 (caml2html: parser_simp
 | LPAREN RPAREN
     { Unit }
 | BOOL
-    { Bool($1) }
+    { Bool(snd $1) }
 | INT
-    { Int($1) }
+    { Int(snd $1) }
 | FLOAT
-    { Float($1) }
+    { Float(snd $1) }
 | IDENT
-    { Var($1) }
+    { Var(snd $1) }
 | simple_exp DOT LPAREN exp RPAREN
     { Get($1, $4) }
 
@@ -117,7 +117,7 @@ exp: /* (* 一般の式 (caml2html: parser_exp) *) */
     { FDiv($1, $3) }
 | LET IDENT EQUAL exp IN exp
     %prec prec_let
-    { Let(addtyp $2, $4, $6) }
+    { Let(addtyp (snd $2), $4, $6) }
 | LET REC fundef IN exp
     %prec prec_let
     { LetRec($3, $5) }
@@ -144,13 +144,13 @@ exp: /* (* 一般の式 (caml2html: parser_exp) *) */
 
 fundef:
 | IDENT formal_args EQUAL exp
-    { { name = addtyp $1; args = $2; body = $4 } }
+    { { name = addtyp (snd $1); args = $2; body = $4 } }
 
 formal_args:
 | IDENT formal_args
-    { addtyp $1 :: $2 }
+    { addtyp (snd $1) :: $2 }
 | IDENT
-    { [addtyp $1] }
+    { [addtyp (snd $1)] }
 
 actual_args:
 | actual_args simple_exp
@@ -168,6 +168,6 @@ elems:
 
 pat:
 | pat COMMA IDENT
-    { $1 @ [addtyp $3] }
+    { $1 @ [addtyp (snd $3)] }
 | IDENT COMMA IDENT
-    { [addtyp $1; addtyp $3] }
+    { [addtyp (snd $1); addtyp (snd $3)] }
