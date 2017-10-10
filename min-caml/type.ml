@@ -16,6 +16,6 @@ let rec print = function
   | Int -> print_string "int"
   | Float -> print_string "float"
   | Fun (ts, t) -> print_string "("; List.iter (fun t -> print t; print_string "->") ts; print t; print_string ")"
-  | Tuple ts -> print_string "("; H.commasep print ts; print_string ")"
-  | Array t -> print t; print_string " Array.t"
+  | Tuple ts -> print_string "("; H.sep "," print ts; print_string ")"
+  | Array t -> print_string "["; print t; print_string "]"
   | Var rot -> (match !rot with Some t -> print_string "*"; print t; print_string "*" | None -> print_string "*?*")

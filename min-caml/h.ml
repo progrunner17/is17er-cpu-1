@@ -8,6 +8,6 @@ let left () = indent := !indent - 2
 let down_right () = right (); down ()
 let down_left () = left (); down ()
 
-let commasep print xs = match xs with
+let sep s print xs = match xs with
 | [] -> ()
-| x :: xs' -> print x; List.iter (fun x -> print_string ", "; print x) xs'
+| x :: xs' -> print x; List.iter (fun x -> print_string s; print x) xs'

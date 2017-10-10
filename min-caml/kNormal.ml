@@ -45,15 +45,14 @@ let rec print = function
   | IfEq (x, x', e, e') -> print_string "if "; print_string x; print_string " = "; print_string x'; print_string " then"; H.down_right (); print e; H.down_left (); print_string "else "; H.down_right (); print e'; H.left ()
   | IfLE (x, x', e, e') -> print_string "if "; print_string x; print_string " <= "; print_string x'; print_string " then"; H.down_right (); print e; H.down_left (); print_string "else "; H.down_right (); print e'; H.left ()
   | Let ((x, t), e, e') -> if complex e then
-      (print_string "let "; print_string x; print_string ":"; Type.print t; print_string " ="; H.down_right (); print e; H.down_left (); print_string "in"; H.down_right (); print e'; H.left ())
+      (print_string "let "; print_string x; print_string ":"; Type.print t; print_string " ="; H.down_right (); print e; print_string " in"; H.down_left (); print e')
     else
       (print_string "let "; print_string x; print_string ":"; Type.print t; print_string " = "; print e; print_string " in"; H.down (); print e')
   | Var x -> print_string x
-  | LetRec (f, e) -> print_string "let rec"; List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ":"; Type.print t; print_string ")") (f.name :: f.args); print_string " ="; H.down_right (); print f.body; H.down_left (); print_string "in"; H.down_right (); print e; H.left ()
-  | LetRec (f, e) -> print_string "let rec"; List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ":"; Type.print t; print_string ")") (f.name :: f.args); print_string " ="; H.down_right (); print f.body; H.down_left (); print_string "in"; H.down_right (); print e; H.left ()
+  | LetRec (f, e) -> print_string "let rec"; List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ":"; Type.print t; print_string ")") (f.name :: f.args); print_string " ="; H.down_right (); print f.body; print_string " in"; H.down_left (); print e
   | App (x, xs) -> print_string x; List.iter (fun x -> print_string " "; print_string x) xs
-  | Tuple xs -> print_string "("; H.commasep print_string xs; print_string ")"
-  | LetTuple (xts, x, e) -> print_string "let ("; H.commasep (fun (x, t) -> print_string x; print_string ":"; Type.print t) xts; print_string ") = "; print_string x; print_string " in"; H.down (); print e
+  | Tuple xs -> print_string "("; H.sep ", " print_string xs; print_string ")"
+  | LetTuple (xts, x, e) -> print_string "let ("; H.sep ", " (fun (x, t) -> print_string x; print_string ":"; Type.print t) xts; print_string ") = "; print_string x; print_string " in"; H.down (); print e
   | Get (x, x') -> print_string x; print_string ".("; print_string x'; print_string ")"
   | Put (x, x', x'') -> print_string x; print_string ".("; print_string x'; print_string ") <- "; print_string x''
   | ExtArray x -> print_string "*"; print_string x; print_string "*"

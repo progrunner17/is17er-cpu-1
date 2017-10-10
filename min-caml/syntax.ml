@@ -48,8 +48,8 @@ let rec print = function
   | LetRec (f, e) -> print_string "(let rec ("; List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ":"; Type.print t; print_string ")") (f.name :: f.args);
     print_string " = "; print f.body; print_string " in "; print e; print_string ")"
   | App (e, es) -> print_string "("; print e; List.iter (fun e -> print_string " "; print e) es; print_string ")"
-  | Tuple es -> print_string "("; H.commasep print es; print_string ")"
-  | LetTuple (xts, e, e') -> print_string "(let ("; H.commasep (fun (x, t) -> print_string x; print_string ":"; Type.print t) xts; print_string ") = "; print e; print_string " in "; print e'; print_string ")"
+  | Tuple es -> print_string "("; H.sep ", " print es; print_string ")"
+  | LetTuple (xts, e, e') -> print_string "(let ("; H.sep ", " (fun (x, t) -> print_string x; print_string ":"; Type.print t) xts; print_string ") = "; print e; print_string " in "; print e'; print_string ")"
   | Array (e, e') -> print_string "Array.make "; print e; print_string " "; print e'
   | Get (e, e') -> print e; print_string ".("; print e'; print_string ")"
   | Put (e, e', e'') -> print_string "("; print e; print_string ".("; print e'; print_string ") <- "; print e''; print_string ")"
