@@ -19,7 +19,7 @@ default: debug-code top $(RESULT) do_test
 clean:: nobackup
 
 # ↓もし実装を改造したら、それに合わせて変える
-SOURCES = float.c type.ml id.ml m.ml s.ml \
+SOURCES = float.c h.ml type.ml id.ml m.ml s.ml \
 syntax.ml parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
 alpha.mli alpha.ml beta.mli beta.ml assoc.mli assoc.ml \
 inline.mli inline.ml constFold.mli constFold.ml elim.mli elim.ml \
@@ -51,7 +51,7 @@ test/%.ans: test/%.ml
 test/%.cmp: test/%.res test/%.ans
 	diff $^ > $@
 
-min-caml.html: main.mli main.ml id.ml m.ml s.ml \
+min-caml.html: main.mli main.ml h.ml id.ml m.ml s.ml \
 		syntax.ml type.ml parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
 		alpha.mli alpha.ml beta.mli beta.ml assoc.mli assoc.ml \
 		inline.mli inline.ml constFold.mli constFold.ml elim.mli elim.ml \

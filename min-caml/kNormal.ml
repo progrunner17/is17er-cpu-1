@@ -26,6 +26,33 @@ type t = (* K正規化後の式 (caml2html: knormal_t) *)
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
+let rec print = function
+  | Unit -> print_string "()"
+  | Int n -> print_int n
+  | Float a -> print_float a
+  | Neg x -> print_string "(- "; print_string x; print_string ")"
+  | Add (x, x') -> print_string "("; print_string x; print_string " + "; print_string x'; print_string ")"
+  | Sub (x, x') -> print_string "("; print_string x; print_string " - "; print_string x'; print_string ")"
+  | FNeg x -> print_string "(-. "; print_string x; print_string ")"
+  | FAdd (x, x') -> print_string "("; print_string x; print_string " +. "; print_string x'; print_string ")"
+  | FSub (x, x') -> print_string "("; print_string x; print_string " -. "; print_string x'; print_string ")"
+  | FMul (x, x') -> print_string "("; print_string x; print_string " *. "; print_string x'; print_string ")"
+  | FDiv (x, x') -> print_string "("; print_string x; print_string " /. "; print_string x'; print_string ")"
+  | IfEq (x, x', e, e') -> print_string "(if "; print_string x; print_string " = "; print_string x'; print_string " then "; print e; print_string " else "; print e'; print_string ")"
+  | IfLE (x, x', e, e') -> print_string "(if "; print_string x; print_string " <= "; print_string x'; print_string " then "; print e; print_string " else "; print e'; print_string ")"
+  | Let ((x, t), e, e') -> print_string "(let "; print_string x; print_string ": "; Type.print t; print_string " = "; print e; print_string " in\n"; print e'; print_string ")"
+  | Var x -> print_string x
+  | LetRec (f, e) -> print_string "(let rec "; print_string (fst f.name); print_string ": "; Type.print (snd f.name);
+    List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ": "; Type.print t; print_string ")") f.args;
+    print_string " = "; print f.body; print_string " in\n"; print e; print_string ")"
+  | App (x, xs) -> print_string "("; print_string x; List.iter (fun x -> print_string " "; print_string x) xs; print_string ")"
+  | Tuple xs -> print_string "("; H.commasep print_string xs; print_string ")"
+  | LetTuple (xts, x, e) -> print_string "(let ("; H.commasep (fun (x, t) -> print_string x; print_string ": "; Type.print t) xts; print_string ") = "; print_string x; print_string " in\n"; print e; print_string ")"
+  | Get (x, x') -> print_string x; print_string ".("; print_string x'; print_string ")"
+  | Put (x, x', x'') -> print_string "("; print_string x; print_string ".("; print_string x'; print_string ") <- "; print_string x''; print_string ")"
+  | ExtArray x -> print_string "ExtArray<"; print_string x; print_string ">"
+  | ExtFunApp (x, xs) -> print_string "(ExtFun<"; print_string x; print_string ">"; List.iter (fun x -> print_string " "; print_string x) xs; print_string ")"
+
 let rec fv = function (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
   | Neg(x) | FNeg(x) -> S.singleton x
