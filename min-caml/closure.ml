@@ -12,15 +12,15 @@ and body =
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
-  | IfEq of Id.t * Id.t * t * t
-  | IfLE of Id.t * Id.t * t * t
-  | Let of (Id.t * Type.t) * t * t
+  | IfEq of H.range * Id.t * Id.t * t * t
+  | IfLE of H.range * Id.t * Id.t * t * t
+  | Let of H.range * (Id.t * Type.t) * t * t
   | Var of Id.t
-  | MakeCls of (Id.t * Type.t) * closure * t
+  | MakeCls of H.range * (Id.t * Type.t) * closure * t
   | AppCls of Id.t * Id.t list
   | AppDir of Id.l * Id.t list
   | Tuple of Id.t list
-  | LetTuple of (Id.t * Type.t) list * Id.t * t
+  | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.l
@@ -32,7 +32,7 @@ type fundef = { range : H.range;
 type prog = Prog of fundef list * t
 
 let complex (range, body) = match body with
-  | Let (_, _, _) | LetTuple (_, _, _) -> true
+  | Let (_, _, _, _) | LetTuple (_, _, _, _) -> true
   | _ -> false
 
 let rec show (range, body) = "["^H.show_range range^"] "^match body with
@@ -47,22 +47,22 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
   | FSub (x, x') -> x^" -. "^x'
   | FMul (x, x') -> x^" *. "^x'
   | FDiv (x, x') -> x^" /. "^x'
-  | IfEq (x, x', e, e') ->
-    let s1 = "if "^x^" = "^x'^" then"^H.down_right () in
+  | IfEq (range', x, x', e, e') ->
+    let s1 = "if ["^H.show_range range'^"] "^x^" = "^x'^" then"^H.down_right () in
     let s2 = s1^show e in
     let s3 = s2^H.down_left () in
     let s4 = s3^"else "^H.down_right () in
     let s5 = s4^show e' in
     s5^H.left ()
-  | IfLE (x, x', e, e') ->
-    let s1 = "if "^x^" <= "^x'^" then"^H.down_right () in
+  | IfLE (range', x, x', e, e') ->
+    let s1 = "if ["^H.show_range range'^"] "^x^" <= "^x'^" then"^H.down_right () in
     let s2 = s1^show e in
     let s3 = s2^H.down_left () in
     let s4 = s3^"else "^H.down_right () in
     let s5 = s4^show e' in
     s5^H.left ()
-  | Let ((x, t), e, e') -> if complex e then
-      let s1 = "let "^x^":"^Type.show t^" ="^H.down_right () in
+  | Let (range', (x, t), e, e') -> if complex e then
+      let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" ="^H.down_right () in
       let s2 = s1^show e^" in" in
       let s3 = s2^H.down_left () in
       s3^show e'
@@ -71,12 +71,14 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
       let s2 = s1^H.down () in
       s2^show e'
   | Var x -> x
-  | MakeCls ((x, t), {entry = Id.L y; actual_fv = lxs}, e) -> show e
+  | MakeCls (range', (f, t), {entry = Id.L y; actual_fv = lxs}, e) ->
+    let s1 = "let_fun ["^H.show_range range'^"] (*"^f^"*:"^Type.show t^") "^y^(if lxs = [] then " = " else " <"^String.concat ", " lxs^"> = ") in
+    s1^show e
   | AppCls (x, xs) -> x^H.sep "" (fun x -> " "^x) xs
   | AppDir (Id.L x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs
   | Tuple xs -> "("^String.concat ", " xs^")"
-  | LetTuple (xts, x, e) ->
-    let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^x^" in"^H.down () in
+  | LetTuple (range', xts, x, e) ->
+    let s1 = "let ["^H.show_range range'^"] ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^x^" in"^H.down () in
     s1^show e
   | Get (x, x') -> x^".("^x'^")"
   | Put (x, x', x'') -> x^".("^x'^") <- "^x''
@@ -94,13 +96,13 @@ let rec fv (_, body) = match body with
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
   | Neg(x) | FNeg(x) -> S.singleton x
   | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
-  | IfEq(x, y, e1, e2)| IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
-  | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
+  | IfEq(_, x, y, e1, e2)| IfLE(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
+  | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
-  | MakeCls((x, t), { entry = l; actual_fv = ys }, e) -> S.remove x (S.union (S.of_list ys) (fv e))
+  | MakeCls(_, (x, t), { entry = l; actual_fv = ys }, e) -> S.remove x (S.union (S.of_list ys) (fv e))
   | AppCls(x, ys) -> S.of_list (x :: ys)
   | AppDir(_, xs) | Tuple(xs) -> S.of_list xs
-  | LetTuple(xts, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xts)))
+  | LetTuple(_, xts, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xts)))
   | Put(x, y, z) -> S.of_list [x; y; z]
 
 let toplevel : fundef list ref = ref []
@@ -117,11 +119,11 @@ let rec g env known (range, body) = match body with (* ¥¯¥í¡¼¥¸¥ãÊÑ´¹¥ë¡¼¥Á¥óËÜÂ
   | KNormal.FSub(x, y) -> range, FSub(x, y)
   | KNormal.FMul(x, y) -> range, FMul(x, y)
   | KNormal.FDiv(x, y) -> range, FDiv(x, y)
-  | KNormal.IfEq(x, y, e1, e2) -> range, IfEq(x, y, g env known e1, g env known e2)
-  | KNormal.IfLE(x, y, e1, e2) -> range, IfLE(x, y, g env known e1, g env known e2)
-  | KNormal.Let((x, t), e1, e2) -> range, Let((x, t), g env known e1, g (M.add x t env) known e2)
+  | KNormal.IfEq(range', x, y, e1, e2) -> range, IfEq(range', x, y, g env known e1, g env known e2)
+  | KNormal.IfLE(range', x, y, e1, e2) -> range, IfLE(range', x, y, g env known e1, g env known e2)
+  | KNormal.Let(range', (x, t), e1, e2) -> range, Let(range', (x, t), g env known e1, g (M.add x t env) known e2)
   | KNormal.Var(x) -> range, Var(x)
-  | KNormal.LetRec({ KNormal.name = (x, t); KNormal.args = yts; KNormal.body = e1 }, e2) -> (* ´Ø¿ôÄêµÁ¤Î¾ì¹ç (caml2html: closure_letrec) *)
+  | KNormal.LetRec(range', { KNormal.name = (x, t); KNormal.args = yts; KNormal.body = e1 }, e2) -> (* ´Ø¿ôÄêµÁ¤Î¾ì¹ç (caml2html: closure_letrec) *)
       (* ´Ø¿ôÄêµÁlet rec x y1 ... yn = e1 in e2¤Î¾ì¹ç¤Ï¡¢
          x¤Ë¼«Í³ÊÑ¿ô¤¬¤Ê¤¤(closure¤ò²ð¤µ¤ºdirect¤Ë¸Æ¤Ó½Ð¤»¤ë)
          ¤È²¾Äê¤·¡¢known¤ËÄÉ²Ã¤·¤Æe1¤ò¥¯¥í¡¼¥¸¥ãÊÑ´¹¤·¤Æ¤ß¤ë *)
@@ -143,10 +145,10 @@ let rec g env known (range, body) = match body with (* ¥¯¥í¡¼¥¸¥ãÊÑ´¹¥ë¡¼¥Á¥óËÜÂ
          known, e1') in
       let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* ¼«Í³ÊÑ¿ô¤Î¥ê¥¹¥È *)
       let zts = List.map (fun z -> (z, M.find z env')) zs in (* ¤³¤³¤Ç¼«Í³ÊÑ¿ôz¤Î·¿¤ò°ú¤¯¤¿¤á¤Ë°ú¿ôenv¤¬É¬Í× *)
-      toplevel := { range = range; name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel; (* ¥È¥Ã¥×¥ì¥Ù¥ë´Ø¿ô¤òÄÉ²Ã *)
+      toplevel := { range = range'; name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel; (* ¥È¥Ã¥×¥ì¥Ù¥ë´Ø¿ô¤òÄÉ²Ã *)
       let e2' = g env' known' e2 in
       if S.mem x (fv e2') then (* x¤¬ÊÑ¿ô¤È¤·¤Æe2'¤Ë½Ð¸½¤¹¤ë¤« *)
-        range, MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* ½Ð¸½¤·¤Æ¤¤¤¿¤éºï½ü¤·¤Ê¤¤ *)
+        range, MakeCls(range', (x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* ½Ð¸½¤·¤Æ¤¤¤¿¤éºï½ü¤·¤Ê¤¤ *)
       else
         (Printf.printf "Eliminating closure(s) %s\n" x;
          e2') (* ½Ð¸½¤·¤Ê¤±¤ì¤ÐMakeCls¤òºï½ü *)
@@ -155,7 +157,7 @@ let rec g env known (range, body) = match body with (* ¥¯¥í¡¼¥¸¥ãÊÑ´¹¥ë¡¼¥Á¥óËÜÂ
       range, AppDir(Id.L(x), ys)
   | KNormal.App(f, xs) -> range, AppCls(f, xs)
   | KNormal.Tuple(xs) -> range, Tuple(xs)
-  | KNormal.LetTuple(xts, y, e) -> range, LetTuple(xts, y, g (M.add_list xts env) known e)
+  | KNormal.LetTuple(range', xts, y, e) -> range, LetTuple(range', xts, y, g (M.add_list xts env) known e)
   | KNormal.Get(x, y) -> range, Get(x, y)
   | KNormal.Put(x, y, z) -> range, Put(x, y, z)
   | KNormal.ExtArray(x) -> range, ExtArray(Id.L(x))

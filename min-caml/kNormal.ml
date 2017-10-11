@@ -13,14 +13,14 @@ and body =
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
-  | IfEq of Id.t * Id.t * t * t (* 比較 + 分岐 (caml2html: knormal_branch) *)
-  | IfLE of Id.t * Id.t * t * t (* 比較 + 分岐 *)
-  | Let of (Id.t * Type.t) * t * t
+  | IfEq of H.range * Id.t * Id.t * t * t (* 比較 + 分岐 (caml2html: knormal_branch) *)
+  | IfLE of H.range * Id.t * Id.t * t * t (* 比較 + 分岐 *)
+  | Let of H.range * (Id.t * Type.t) * t * t
   | Var of Id.t
-  | LetRec of fundef * t
+  | LetRec of H.range * fundef * t
   | App of Id.t * Id.t list
   | Tuple of Id.t list
-  | LetTuple of (Id.t * Type.t) list * Id.t * t
+  | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t
@@ -28,7 +28,7 @@ and body =
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 let complex (range, body) = match body with
-  | Let (_, _, _) | LetRec (_, _) | LetTuple (_, _, _) -> true
+  | Let (_, _, _, _) | LetRec (_, _, _) | LetTuple (_, _, _, _) -> true
   | _ -> false
 
 let rec show (range, body) = "["^H.show_range range^"] "^match body with
@@ -43,22 +43,22 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
   | FSub (x, x') -> x^" -. "^x'
   | FMul (x, x') -> x^" *. "^x'
   | FDiv (x, x') -> x^" /. "^x'
-  | IfEq (x, x', e, e') ->
-    let s1 = "if "^x^" = "^x'^" then"^H.down_right () in
+  | IfEq (range', x, x', e, e') ->
+    let s1 = "if ["^H.show_range range'^"] "^x^" = "^x'^" then"^H.down_right () in
     let s2 = s1^show e in
     let s3 = s2^H.down_left () in
     let s4 = s3^"else "^H.down_right () in
     let s5 = s4^show e' in
     s5^H.left ()
-  | IfLE (x, x', e, e') ->
-    let s1 = "if "^x^" <= "^x'^" then"^H.down_right () in
+  | IfLE (range', x, x', e, e') ->
+    let s1 = "if ["^H.show_range range'^"] "^x^" <= "^x'^" then"^H.down_right () in
     let s2 = s1^show e in
     let s3 = s2^H.down_left () in
     let s4 = s3^"else "^H.down_right () in
     let s5 = s4^show e' in
     s5^H.left ()
-  | Let ((x, t), e, e') -> if complex e then
-      let s1 = "let "^x^":"^Type.show t^" ="^H.down_right () in
+  | Let (range', (x, t), e, e') -> if complex e then
+      let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" ="^H.down_right () in
       let s2 = s1^show e^" in" in
       let s3 = s2^H.down_left () in
       s3^show e'
@@ -67,15 +67,15 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
       let s2 = s1^H.down () in
       s2^show e'
   | Var x -> x
-  | LetRec (f, e) ->
-    let s1 = "let rec"^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" ="^H.down_right () in
+  | LetRec (range', f, e) ->
+    let s1 = "let rec ["^H.show_range range'^"] "^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" ="^H.down_right () in
     let s2 = s1^show f.body^" in" in
     let s3 = s2^H.down_left () in
     s3^show e
   | App (x, xs) -> x^H.sep "" (fun x -> " "^x) xs
   | Tuple xs -> "("^String.concat ", " xs^")"
-  | LetTuple (xts, x, e) ->
-    let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^x^" in"^H.down () in
+  | LetTuple (range', xts, x, e) ->
+    let s1 = "let ["^H.show_range range'^"] ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^x^" in"^H.down () in
     s1^show e
   | Get (x, x') -> x^".("^x'^")"
   | Put (x, x', x'') -> x^".("^x'^") <- "^x''
@@ -86,24 +86,24 @@ let rec fv (_, body) = match body with (* 式に出現する（自由な）変数 (caml2html:
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
   | Neg(x) | FNeg(x) -> S.singleton x
   | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
-  | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
-  | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
+  | IfEq(_, x, y, e1, e2) | IfLE(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
+  | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
-  | LetRec({ name = (x, t); args = yts; body = e1 }, e2) ->
+  | LetRec(_, { name = (x, t); args = yts; body = e1 }, e2) ->
       let zs = S.diff (fv e1) (S.of_list (List.map fst yts)) in
       S.diff (S.union zs (fv e2)) (S.singleton x)
   | App(x, ys) -> S.of_list (x :: ys)
   | Tuple(xs) | ExtFunApp(_, xs) -> S.of_list xs
   | Put(x, y, z) -> S.of_list [x; y; z]
-  | LetTuple(xs, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xs)))
+  | LetTuple(_, xs, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xs)))
 
-let insert_let range ((_, body) as e, t) k = (* letを挿入する補助関数 (caml2html: knormal_insert) *)
+let insert_let range ((range', body) as e, t) k = (* letを挿入する補助関数 (caml2html: knormal_insert) *)
   match body with
   | Var(x) -> k x
   | _ ->
       let x = Id.gentmp t in
       let e', t' = k x in
-      (range, Let((x, t), e, e')), t'
+      (range, Let(range', (x, t), e, e')), t'
 
 let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html: knormal_g) *)
   | Syntax.Unit -> (range, Unit), Type.Unit
@@ -144,35 +144,35 @@ let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html:
   | Syntax.Eq _ | Syntax.LE _ as cmp ->
       g env (range, Syntax.If((range, cmp), (range, Syntax.Bool(true)), (range, Syntax.Bool(false))))
   | Syntax.If((_, Syntax.Not(e1)), e2, e3) -> g env (range, Syntax.If(e1, e3, e2)) (* notによる分岐を変換 (caml2html: knormal_not) *)
-  | Syntax.If((_, Syntax.Eq(e1, e2)), e3, e4) ->
+  | Syntax.If((range', Syntax.Eq(e1, e2)), e3, e4) ->
       insert_let range (g env e1)
         (fun x -> insert_let range (g env e2)
             (fun y ->
               let e3', t3 = g env e3 in
               let e4', t4 = g env e4 in
-              (range, IfEq(x, y, e3', e4')), t3))
-  | Syntax.If((_, Syntax.LE(e1, e2)), e3, e4) ->
+              (range, IfEq(range', x, y, e3', e4')), t3))
+  | Syntax.If((range', Syntax.LE(e1, e2)), e3, e4) ->
       insert_let range (g env e1)
         (fun x -> insert_let range (g env e2)
             (fun y ->
               let e3', t3 = g env e3 in
               let e4', t4 = g env e4 in
-              (range, IfLE(x, y, e3', e4')), t3))
+              (range, IfLE(range', x, y, e3', e4')), t3))
   | Syntax.If(e1, e2, e3) -> g env (range, Syntax.If((range, Syntax.Eq(e1, (range, Syntax.Bool(false)))), e3, e2)) (* 比較のない分岐を変換 (caml2html: knormal_if) *)
-  | Syntax.Let((x, t), e1, e2) ->
+  | Syntax.Let(range', (x, t), e1, e2) ->
       let e1', t1 = g env e1 in
       let e2', t2 = g (M.add x t env) e2 in
-      (range, Let((x, t), e1', e2')), t2
+      (range, Let(range', (x, t), e1', e2')), t2
   | Syntax.Var(x) when M.mem x env -> (range, Var(x)), M.find x env
   | Syntax.Var(x) -> (* 外部配列の参照 (caml2html: knormal_extarray) *)
       (match M.find x !Typing.extenv with
       | Type.Array(_) as t -> (range, ExtArray x), t
       | _ -> failwith (Printf.sprintf "external variable %s does not have an array type" x))
-  | Syntax.LetRec({ Syntax.name = (x, t); Syntax.args = yts; Syntax.body = e1 }, e2) ->
+  | Syntax.LetRec(range', { Syntax.name = (x, t); Syntax.args = yts; Syntax.body = e1 }, e2) ->
       let env' = M.add x t env in
       let e2', t2 = g env' e2 in
       let e1', t1 = g (M.add_list yts env') e1 in
-      (range, LetRec({ name = (x, t); args = yts; body = e1' }, e2')), t2
+      (range, LetRec(range', { name = (x, t); args = yts; body = e1' }, e2')), t2
   | Syntax.App((_, Syntax.Var(f)), e2s) when not (M.mem f env) -> (* 外部関数の呼び出し (caml2html: knormal_extfunapp) *)
       (match M.find f !Typing.extenv with
       | Type.Fun(_, t) ->
@@ -203,11 +203,11 @@ let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html:
             insert_let range g_e
               (fun x -> bind (xs @ [x]) (ts @ [t]) es) in
       bind [] [] es
-  | Syntax.LetTuple(xts, e1, e2) ->
+  | Syntax.LetTuple(range', xts, e1, e2) ->
       insert_let range (g env e1)
         (fun y ->
           let e2', t2 = g (M.add_list xts env) e2 in
-          (range, LetTuple(xts, y, e2')), t2)
+          (range, LetTuple(range', xts, y, e2')), t2)
   | Syntax.Array(e1, e2) ->
       insert_let range (g env e1)
         (fun x ->

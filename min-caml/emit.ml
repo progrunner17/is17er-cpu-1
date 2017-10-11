@@ -33,11 +33,11 @@ let reg r =
   then String.sub r 1 (String.length r - 1)
   else r
 
-let load_label r label =
+let load_label range r label =
   let r' = reg r in
   Printf.sprintf
-    "\tlis\t%s, ha16(%s)\n\taddi\t%s, %s, lo16(%s)\n"
-    r' label r' r' label
+    "\tlis\t%s, ha16(%s)%s\n\taddi\t%s, %s, lo16(%s)%s\n"
+    r' label (comment range) r' r' label (comment range)
 
 (* 関数呼び出しのために引数を並べ替える(register shuffling) (caml2html: emit_shuffle) *)
 let rec shuffle sw xys =
@@ -56,11 +56,11 @@ let rec shuffle sw xys =
 
 type dest = Tail | NonTail of Id.t (* 末尾かどうかを表すデータ型 (caml2html: emit_dest) *)
 let rec g oc (dest, (range, body)) = match body with (* 命令列のアセンブリ生成 (caml2html: emit_g) *)
-  | Ans(exp) -> g' oc (dest, exp)
-  | Let((x, t), exp, e) ->
-      g' oc (NonTail(x), exp);
+  | Ans(exp) -> g' range oc (dest, exp)
+  | Let(range', (x, t), exp, e) ->
+      g' range' oc (NonTail(x), exp);
       g oc (dest, e)
-and g' oc (dest, ((range, body) as exp)) = match (dest, body) with (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
+and g' range oc (dest, ((_, body) as exp)) = match (dest, body) with (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
   | NonTail(_), Nop -> ()
   | NonTail(x), Li(i) when -32768 <= i && i < 32768 -> Printf.fprintf oc "\tli\t%s, %d%s\n" (reg x) i (comment range)
@@ -71,10 +71,10 @@ and g' oc (dest, ((range, body) as exp)) = match (dest, body) with (* 各命令�
       Printf.fprintf oc "\tlis\t%s, %d%s\n" r n (comment range);
       Printf.fprintf oc "\tori\t%s, %s, %d%s\n" r r m (comment range)
   | NonTail(x), FLi(Id.L(l)) ->
-      let s = load_label (reg reg_tmp) l in
+      let s = load_label range (reg reg_tmp) l in
       Printf.fprintf oc "%s\tlfd\t%s, 0(%s)%s\n" s (reg x) (reg reg_tmp) (comment range)
   | NonTail(x), SetL(Id.L(y)) ->
-      let s = load_label x y in
+      let s = load_label range x y in
       Printf.fprintf oc "%s" s
   | NonTail(x), Mr(y) when x = y -> ()
   | NonTail(x), Mr(y) -> Printf.fprintf oc "\tmr\t%s, %s%s\n" (reg x) (reg y) (comment range)
@@ -117,79 +117,79 @@ and g' oc (dest, ((range, body) as exp)) = match (dest, body) with (* 各命令�
       Printf.fprintf oc "\tlfd\t%s, %d(%s)%s\n" (reg x) (offset y) (reg reg_sp) (comment range)
   (* 末尾だったら計算結果を第一レジスタにセットしてリターン (caml2html: emit_tailret) *)
   | Tail, (Nop | Stw _ | Stfd _ | Comment _ | Save _) ->
-      g' oc (NonTail(Id.gentmp Type.Unit), exp);
+      g' range oc (NonTail(Id.gentmp Type.Unit), exp);
       Printf.fprintf oc "\tblr%s\n" (comment range);
   | Tail, (Li _ | SetL _ | Mr _ | Neg _ | Add _ | Sub _ | Slw _ | Lwz _) ->
-      g' oc (NonTail(regs.(0)), exp);
+      g' range oc (NonTail(regs.(0)), exp);
       Printf.fprintf oc "\tblr%s\n" (comment range);
   | Tail, (FLi _ | FMr _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | Lfd _) ->
-      g' oc (NonTail(fregs.(0)), exp);
+      g' range oc (NonTail(fregs.(0)), exp);
       Printf.fprintf oc "\tblr%s\n" (comment range);
   | Tail, Restore(x) ->
       (match locate x with
-      | [i] -> g' oc (NonTail(regs.(0)), exp)
-      | [i; j] when i + 1 = j -> g' oc (NonTail(fregs.(0)), exp)
+      | [i] -> g' range oc (NonTail(regs.(0)), exp)
+      | [i; j] when i + 1 = j -> g' range oc (NonTail(fregs.(0)), exp)
       | _ -> assert false);
       Printf.fprintf oc "\tblr%s\n" (comment range);
-  | Tail, IfEq(x, V(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | Tail, IfEq(range', x, V(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_tail_if range oc e1 e2 "beq" "bne"
-  | Tail, IfEq(x, C(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range);
+  | Tail, IfEq(range', x, C(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range');
       g'_tail_if range oc e1 e2 "beq" "bne"
-  | Tail, IfLE(x, V(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | Tail, IfLE(range', x, V(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_tail_if range oc e1 e2 "ble" "bgt"
-  | Tail, IfLE(x, C(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range);
+  | Tail, IfLE(range', x, C(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range');
       g'_tail_if range oc e1 e2 "ble" "bgt"
-  | Tail, IfGE(x, V(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | Tail, IfGE(range', x, V(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_tail_if range oc e1 e2 "bge" "blt"
-  | Tail, IfGE(x, C(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range);
+  | Tail, IfGE(range', x, C(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range');
       g'_tail_if range oc e1 e2 "bge" "blt"
-  | Tail, IfFEq(x, y, e1, e2) ->
-      Printf.fprintf oc "\tfcmpu\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | Tail, IfFEq(range', x, y, e1, e2) ->
+      Printf.fprintf oc "\tfcmpu\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_tail_if range oc e1 e2 "beq" "bne"
-  | Tail, IfFLE(x, y, e1, e2) ->
-      Printf.fprintf oc "\tfcmpu\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | Tail, IfFLE(range', x, y, e1, e2) ->
+      Printf.fprintf oc "\tfcmpu\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_tail_if range oc e1 e2 "ble" "bgt"
-  | NonTail(z), IfEq(x, V(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | NonTail(z), IfEq(range', x, V(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_non_tail_if range oc (NonTail(z)) e1 e2 "beq" "bne"
-  | NonTail(z), IfEq(x, C(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range);
+  | NonTail(z), IfEq(range', x, C(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range');
       g'_non_tail_if range oc (NonTail(z)) e1 e2 "beq" "bne"
-  | NonTail(z), IfLE(x, V(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | NonTail(z), IfLE(range', x, V(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_non_tail_if range oc (NonTail(z)) e1 e2 "ble" "bgt"
-  | NonTail(z), IfLE(x, C(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range);
+  | NonTail(z), IfLE(range', x, C(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range');
       g'_non_tail_if range oc (NonTail(z)) e1 e2 "ble" "bgt"
-  | NonTail(z), IfGE(x, V(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | NonTail(z), IfGE(range', x, V(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpw\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_non_tail_if range oc (NonTail(z)) e1 e2 "bge" "blt"
-  | NonTail(z), IfGE(x, C(y), e1, e2) ->
-      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range);
+  | NonTail(z), IfGE(range', x, C(y), e1, e2) ->
+      Printf.fprintf oc "\tcmpwi\tcr7, %s, %d%s\n" (reg x) y (comment range');
       g'_non_tail_if range oc (NonTail(z)) e1 e2 "bge" "blt"
-  | NonTail(z), IfFEq(x, y, e1, e2) ->
-      Printf.fprintf oc "\tfcmpu\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | NonTail(z), IfFEq(range', x, y, e1, e2) ->
+      Printf.fprintf oc "\tfcmpu\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_non_tail_if range oc (NonTail(z)) e1 e2 "beq" "bne"
-  | NonTail(z), IfFLE(x, y, e1, e2) ->
-      Printf.fprintf oc "\tfcmpu\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range);
+  | NonTail(z), IfFLE(range', x, y, e1, e2) ->
+      Printf.fprintf oc "\tfcmpu\tcr7, %s, %s%s\n" (reg x) (reg y) (comment range');
       g'_non_tail_if range oc (NonTail(z)) e1 e2 "ble" "bgt"
   (* 関数呼び出しの仮想命令の実装 (caml2html: emit_call) *)
   | Tail, CallCls(x, ys, zs) -> (* 末尾呼び出し (caml2html: emit_tailcall) *)
-      g'_args oc [(x, reg_cl)] ys zs;
+      g'_args range oc [(x, reg_cl)] ys zs;
       Printf.fprintf oc "\tlwz\t%s, 0(%s)%s\n" (reg reg_sw) (reg reg_cl) (comment range);
       Printf.fprintf oc "\tmtctr\t%s\n\tbctr%s\n" (reg reg_sw) (comment range);
   | Tail, CallDir(Id.L(x), ys, zs) -> (* 末尾呼び出し *)
-      g'_args oc [] ys zs;
+      g'_args range oc [] ys zs;
       Printf.fprintf oc "\tb\t%s%s\n" x (comment range)
   | NonTail(a), CallCls(x, ys, zs) ->
       Printf.fprintf oc "\tmflr\t%s%s\n" (reg reg_tmp) (comment range);
-      g'_args oc [(x, reg_cl)] ys zs;
+      g'_args range oc [(x, reg_cl)] ys zs;
       let ss = stacksize () in
       Printf.fprintf oc "\tstw\t%s, %d(%s)%s\n" (reg reg_tmp) (ss - 4) (reg reg_sp) (comment range);
       Printf.fprintf oc "\taddi\t%s, %s, %d%s\n" (reg reg_sp) (reg reg_sp) ss (comment range);
@@ -205,7 +205,7 @@ and g' oc (dest, ((range, body) as exp)) = match (dest, body) with (* 各命令�
       Printf.fprintf oc "\tmtlr\t%s%s\n" (reg reg_tmp) (comment range)
   | (NonTail(a), CallDir(Id.L(x), ys, zs)) ->
       Printf.fprintf oc "\tmflr\t%s%s\n" (reg reg_tmp) (comment range);
-      g'_args oc [] ys zs;
+      g'_args range oc [] ys zs;
       let ss = stacksize () in
       Printf.fprintf oc "\tstw\t%s, %d(%s)%s\n" (reg reg_tmp) (ss - 4) (reg reg_sp) (comment range);
       Printf.fprintf oc "\taddi\t%s, %s, %d%s\n" (reg reg_sp) (reg reg_sp) ss (comment range);
@@ -220,7 +220,7 @@ and g' oc (dest, ((range, body) as exp)) = match (dest, body) with (* 各命令�
 and g'_tail_if range oc ((range1, _) as e1) ((range2, _) as e2) b bn =
   let b_else = Id.genid (b ^ "_else") in
   Printf.fprintf oc "\t%s\tcr7, %s%s\n" bn b_else (comment range);
-  Printf.fprintf oc "%s\n" (comment range1);
+  Printf.fprintf oc "#\t%s\n" (H.show_range range1);
   let stackset_back = !stackset in
   g oc (Tail, e1);
   Printf.fprintf oc "%s:%s\n" b_else (comment range2);
@@ -230,7 +230,7 @@ and g'_non_tail_if range oc dest ((range1, _) as e1) ((range2, _) as e2) b bn =
   let b_else = Id.genid (b ^ "_else") in
   let b_cont = Id.genid (b ^ "_cont") in
   Printf.fprintf oc "\t%s\tcr7, %s%s\n" bn b_else (comment range);
-  Printf.fprintf oc "%s\n" (comment range1);
+  Printf.fprintf oc "#\t%s\n" (H.show_range range1);
   let stackset_back = !stackset in
   g oc (dest, e1);
   let stackset1 = !stackset in
@@ -238,17 +238,17 @@ and g'_non_tail_if range oc dest ((range1, _) as e1) ((range2, _) as e2) b bn =
   Printf.fprintf oc "%s:%s\n" b_else (comment range2);
   stackset := stackset_back;
   g oc (dest, e2);
-  Printf.fprintf oc "%s:\n" b_cont;
+  Printf.fprintf oc "%s:%s\n" b_cont (comment range);
   let stackset2 = !stackset in
   stackset := S.inter stackset1 stackset2
-and g'_args oc x_reg_cl ys zs =
+and g'_args range oc x_reg_cl ys zs =
   let (i, yrs) =
     List.fold_left
       (fun (i, yrs) y -> (i + 1, (y, regs.(i)) :: yrs))
       (0, x_reg_cl)
       ys in
   List.iter
-    (fun (y, r) -> Printf.fprintf oc "\tmr\t%s, %s\n" (reg r) (reg y))
+    (fun (y, r) -> Printf.fprintf oc "\tmr\t%s, %s%s\n" (reg r) (reg y) (comment range))
     (shuffle reg_sw yrs);
   let (d, zfrs) =
     List.fold_left
@@ -256,7 +256,7 @@ and g'_args oc x_reg_cl ys zs =
       (0, [])
       zs in
   List.iter
-    (fun (z, fr) -> Printf.fprintf oc "\tfmr\t%s, %s\n" (reg fr) (reg z))
+    (fun (z, fr) -> Printf.fprintf oc "\tfmr\t%s, %s%s\n" (reg fr) (reg z) (comment range))
     (shuffle reg_fsw zfrs)
 
 let h oc { range = range; name = Id.L(x); args = _; fargs = _; body = e; ret = _ } =
@@ -272,7 +272,7 @@ let f oc (Prog(data, fundefs, e)) =
      List.iter
        (fun (Id.L(x), d) ->
          Printf.fprintf oc "\t.align 3\n";
-         Printf.fprintf oc "%s:\t # %f\n" x d;
+         Printf.fprintf oc "%s:\t# %f\n" x d;
          Printf.fprintf oc "\t.long\t%ld\n" (gethi d);
          Printf.fprintf oc "\t.long\t%ld\n" (getlo d))
        data);
@@ -280,7 +280,7 @@ let f oc (Prog(data, fundefs, e)) =
   Printf.fprintf oc "\t.globl _min_caml_start\n";
   Printf.fprintf oc "\t.align 2\n";
   List.iter (fun fundef -> h oc fundef) fundefs;
-  Printf.fprintf oc "_min_caml_start: # main entry point\n";
+  Printf.fprintf oc "_min_caml_start:\t# main entry point\n";
   Printf.fprintf oc "\tmflr\tr0\n";
   Printf.fprintf oc "\tstmw\tr30, -8(r1)\n";
   Printf.fprintf oc "\tstw\tr0, 8(r1)\n";

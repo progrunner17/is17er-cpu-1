@@ -34,15 +34,16 @@ let rec deref_term (range, body) = range, match body with
   | FMul(e1, e2) -> FMul(deref_term e1, deref_term e2)
   | FDiv(e1, e2) -> FDiv(deref_term e1, deref_term e2)
   | If(e1, e2, e3) -> If(deref_term e1, deref_term e2, deref_term e3)
-  | Let(xt, e1, e2) -> Let(deref_id_typ xt, deref_term e1, deref_term e2)
-  | LetRec({ name = xt; args = yts; body = e1 }, e2) ->
-      LetRec({ name = deref_id_typ xt;
-               args = List.map deref_id_typ yts;
-               body = deref_term e1 },
+  | Let(range, xt, e1, e2) -> Let(range, deref_id_typ xt, deref_term e1, deref_term e2)
+  | LetRec(range, { name = xt; args = yts; body = e1 }, e2) ->
+      LetRec(range,
+       { name = deref_id_typ xt;
+         args = List.map deref_id_typ yts;
+         body = deref_term e1 },
              deref_term e2)
   | App(e, es) -> App(deref_term e, List.map deref_term es)
   | Tuple(es) -> Tuple(List.map deref_term es)
-  | LetTuple(xts, e1, e2) -> LetTuple(List.map deref_id_typ xts, deref_term e1, deref_term e2)
+  | LetTuple(range, xts, e1, e2) -> LetTuple(range, List.map deref_id_typ xts, deref_term e1, deref_term e2)
   | Array(e1, e2) -> Array(deref_term e1, deref_term e2)
   | Get(e1, e2) -> Get(deref_term e1, deref_term e2)
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
@@ -112,7 +113,7 @@ let rec g env ((range, body) as e) = (* ·¿¿äÏÀ¥ë¡¼¥Á¥ó (caml2html: typing_g) *)
         let t3 = g env e3 in
         unify t2 t3;
         t2
-    | Let((x, t), e1, e2) -> (* let¤Î·¿¿äÏÀ (caml2html: typing_let) *)
+    | Let(_, (x, t), e1, e2) -> (* let¤Î·¿¿äÏÀ (caml2html: typing_let) *)
         unify t (g env e1);
         g (M.add x t env) e2
     | Var(x) when M.mem x env -> M.find x env (* ÊÑ¿ô¤Î·¿¿äÏÀ (caml2html: typing_var) *)
@@ -122,7 +123,7 @@ let rec g env ((range, body) as e) = (* ·¿¿äÏÀ¥ë¡¼¥Á¥ó (caml2html: typing_g) *)
         let t = Type.gentyp () in
         extenv := M.add x t !extenv;
         t
-    | LetRec({ name = (x, t); args = yts; body = e1 }, e2) -> (* let rec¤Î·¿¿äÏÀ (caml2html: typing_letrec) *)
+    | LetRec(_, { name = (x, t); args = yts; body = e1 }, e2) -> (* let rec¤Î·¿¿äÏÀ (caml2html: typing_letrec) *)
         let env = M.add x t env in
         unify t (Type.Fun(List.map snd yts, g (M.add_list yts env) e1));
         g env e2
@@ -131,7 +132,7 @@ let rec g env ((range, body) as e) = (* ·¿¿äÏÀ¥ë¡¼¥Á¥ó (caml2html: typing_g) *)
         unify (g env e) (Type.Fun(List.map (g env) es, t));
         t
     | Tuple(es) -> Type.Tuple(List.map (g env) es)
-    | LetTuple(xts, e1, e2) ->
+    | LetTuple(_, xts, e1, e2) ->
         unify (Type.Tuple(List.map snd xts)) (g env e1);
         g (M.add_list xts env) e2
     | Array(e1, e2) -> (* must be a primitive for "polymorphic" typing *)

@@ -1,16 +1,16 @@
 	.text
 	.globl _min_caml_start
 	.align 2
-ack.15:	# 1:1 - 5:21
-	cmpwi	cr7, r2, 0	# 2:3 - 4:30
+ack.15:	# 1:1 - 4:30
+	cmpwi	cr7, r2, 0	# 2:6-12
 	bgt	cr7, ble_else.34	# 2:3 - 4:30
-	# 2:18-23
+#	2:18-23
 	addi	r2, r5, 1	# 2:18-23
 	blr	# 2:18-23
 ble_else.34:	# 3:3 - 4:30
-	cmpwi	cr7, r5, 0	# 3:3 - 4:30
+	cmpwi	cr7, r5, 0	# 3:6-12
 	bgt	cr7, ble_else.35	# 3:3 - 4:30
-	# 3:18-31
+#	3:18-31
 	subi	r2, r2, 1	# 3:22-29
 	li	r5, 1	# 3:30-31
 	b	ack.15	# 3:18-31
@@ -28,7 +28,7 @@ ble_else.35:	# 4:3-30
 	mtlr	r31	# 4:15-30
 	lwz	r2, 0(r3)	# 4:3-30
 	b	ack.15	# 4:3-30
-_min_caml_start: # main entry point
+_min_caml_start:	# main entry point
 	mflr	r0
 	stmw	r30, -8(r1)
 	stw	r0, 8(r1)

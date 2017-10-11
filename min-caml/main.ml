@@ -12,7 +12,7 @@ let lexbuf outchan l = (* バッファをコンパイルしてチャンネルへ出力する (caml2htm
   Id.counter := 0;
   Typing.extenv := M.empty;
   Emit.f outchan
-    (RegAlloc.f
+    ((fun x -> Printf.printf "[RegAlloc.f]\n%s\n\n" (Asm.show_prog x)) <| RegAlloc.f
        ((fun x -> Printf.printf "[Simm.f]\n%s\n\n" (Asm.show_prog x)) <| Simm.f
           ((fun x -> Printf.printf "[Virtual.f]\n%s\n\n" (Asm.show_prog x)) <| Virtual.f
              ((fun x -> Printf.printf "[Closure.f]\n%s\n\n" (Closure.show_prog x)) <| Closure.f

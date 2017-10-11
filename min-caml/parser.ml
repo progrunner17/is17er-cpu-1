@@ -623,7 +623,7 @@ let yyact = [|
     let _6 = (Parsing.peek_val __caml_parser_env 0 : Syntax.t) in
     Obj.repr(
 # 127 "parser.mly"
-    ( Let(addtyp _2, _4, _6) )
+    ( Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4), addtyp _2, _4, _6) )
 # 628 "parser.ml"
                : 'body))
 ; (fun __caml_parser_env ->
@@ -631,7 +631,7 @@ let yyact = [|
     let _5 = (Parsing.peek_val __caml_parser_env 0 : Syntax.t) in
     Obj.repr(
 # 130 "parser.mly"
-    ( LetRec(_3, _5) )
+    ( LetRec(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 3), _3, _5) )
 # 636 "parser.ml"
                : 'body))
 ; (fun __caml_parser_env ->
@@ -655,7 +655,7 @@ let yyact = [|
     let _8 = (Parsing.peek_val __caml_parser_env 0 : Syntax.t) in
     Obj.repr(
 # 138 "parser.mly"
-    ( LetTuple(_3, _6, _8) )
+    ( LetTuple(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 6), _3, _6, _8) )
 # 660 "parser.ml"
                : 'body))
 ; (fun __caml_parser_env ->
@@ -672,7 +672,7 @@ let yyact = [|
     let _3 = (Parsing.peek_val __caml_parser_env 0 : Syntax.t) in
     Obj.repr(
 # 142 "parser.mly"
-    ( Let((Id.gentmp Type.Unit, Type.Unit), _1, _3) )
+    ( Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 1), (Id.gentmp Type.Unit, Type.Unit), _1, _3) )
 # 677 "parser.ml"
                : 'body))
 ; (fun __caml_parser_env ->

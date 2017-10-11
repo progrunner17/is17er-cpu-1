@@ -11,8 +11,8 @@ let rec target' src (dest, t) (_, body) = match body with
   | FMr(x) when x = src && is_reg dest ->
       assert (t = Type.Float);
       false, [dest]
-  | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfGE(_, _, e1, e2)
-  | IfFEq(_, _, e1, e2) | IfFLE(_, _, e1, e2) ->
+  | IfEq(_, _, _, e1, e2) | IfLE(_, _, _, e1, e2) | IfGE(_, _, _, e1, e2)
+  | IfFEq(_, _, _, e1, e2) | IfFLE(_, _, _, e1, e2) ->
       let c1, rs1 = target src (dest, t) e1 in
       let c2, rs2 = target src (dest, t) e2 in
       c1 && c2, rs1 @ rs2
@@ -26,7 +26,7 @@ let rec target' src (dest, t) (_, body) = match body with
   | _ -> false, []
 and target src dest (_, body) = match body with (* register targeting (caml2html: regalloc_target) *)
   | Ans(exp) -> target' src dest exp
-  | Let(xt, exp, e) ->
+  | Let(_, xt, exp, e) ->
       let c1, rs1 = target' src xt exp in
       if c1 then true, rs1 else
       let c2, rs2 = target src dest e in
@@ -94,11 +94,11 @@ let find' x' regenv =
   | c -> c
 
 let rec g dest cont regenv (range, body) = match body with (* 命令列のレジスタ割り当て (caml2html: regalloc_g) *)
-  | Ans(exp) -> g'_and_restore range dest cont regenv exp
-  | Let((x, t) as xt, exp, e) ->
+  | Ans(exp) -> g'_and_restore range range dest cont regenv exp
+  | Let(range', ((x, t) as xt), exp, e) ->
       assert (not (M.mem x regenv));
-      let cont' = concat range e dest cont in
-      let (e1', regenv1) = g'_and_restore range xt cont' regenv exp in
+      let cont' = concat range range' e dest cont in
+      let (e1', regenv1) = g'_and_restore range range' xt cont' regenv exp in
       (match alloc dest cont' regenv1 x t with
       | Spill(y) ->
           let r = M.find y regenv1 in
@@ -106,14 +106,14 @@ let rec g dest cont regenv (range, body) = match body with (* 命令列のレジ
           let save = range,
             try Save(M.find y regenv, y)
             with Not_found -> Nop in
-          (seq(range, save, concat range e1' (r, t) e2'), regenv2)
+          (seq(range, range', save, concat range range' e1' (r, t) e2'), regenv2)
       | Alloc(r) ->
           let (e2', regenv2) = g dest cont (add x r regenv1) e in
-          (concat range e1' (r, t) e2', regenv2))
-and g'_and_restore range dest cont regenv exp = (* 使用される変数をスタックからレジスタへRestore (caml2html: regalloc_unspill) *)
+          (concat range range' e1' (r, t) e2', regenv2))
+and g'_and_restore range range' dest cont regenv exp = (* 使用される変数をスタックからレジスタへRestore (caml2html: regalloc_unspill) *)
   try g' dest cont regenv exp
   with NoReg(x, t) ->
-    (g dest cont regenv (range, Let((x, t), (range, Restore(x)), (range, Ans(exp)))))
+    (g dest cont regenv (range, Let(range', (x, t), (range', Restore(x)), (fst exp, Ans(exp)))))
 and g' dest cont regenv (range, body) = match body with (* 各命令のレジスタ割り当て (caml2html: regalloc_gprime) *)
   | Nop | Li _ | SetL _ | Comment _ | Restore _ | FLi _ as exp -> ((range, Ans(range, exp)), regenv)
   | Mr(x) -> ((range, Ans(range, Mr(find x Type.Int regenv))), regenv)
@@ -131,11 +131,11 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
   | FDiv(x, y) -> ((range, Ans(range, FDiv(find x Type.Float regenv, find y Type.Float regenv))), regenv)
   | Lfd(x, y') -> ((range, Ans(range, Lfd(find x Type.Int regenv, find' y' regenv))), regenv)
   | Stfd(x, y, z') -> ((range, Ans(range, Stfd(find x Type.Float regenv, find y Type.Int regenv, find' z' regenv))), regenv)
-  | IfEq(x, y', e1, e2) as exp -> g'_if range dest cont regenv exp (fun e1' e2' -> IfEq(find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
-  | IfLE(x, y', e1, e2) as exp -> g'_if range dest cont regenv exp (fun e1' e2' -> IfLE(find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
-  | IfGE(x, y', e1, e2) as exp -> g'_if range dest cont regenv exp (fun e1' e2' -> IfGE(find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
-  | IfFEq(x, y, e1, e2) as exp -> g'_if range dest cont regenv exp (fun e1' e2' -> IfFEq(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
-  | IfFLE(x, y, e1, e2) as exp -> g'_if range dest cont regenv exp (fun e1' e2' -> IfFLE(find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+  | IfEq(range', x, y', e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfEq(range', find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
+  | IfLE(range', x, y', e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfLE(range', find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
+  | IfGE(range', x, y', e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfGE(range', find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
+  | IfFEq(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfFEq(range', find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+  | IfFLE(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfFLE(range', find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
   | CallCls(x, ys, zs) as exp ->
       if List.length ys > Array.length regs - 2 || List.length zs > Array.length fregs - 1 then
         failwith (Format.sprintf "cannot allocate registers for arugments to %s" x)
@@ -147,7 +147,7 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
       else
         g'_call range dest cont regenv exp (fun ys zs -> CallDir(Id.L(x), ys, zs)) ys zs
   | Save(x, y) -> assert false
-and g'_if range dest cont regenv exp constr e1 e2 = (* ifのレジスタ割り当て (caml2html: regalloc_if) *)
+and g'_if range range' dest cont regenv exp constr e1 e2 = (* ifのレジスタ割り当て (caml2html: regalloc_if) *)
   let (e1', regenv1) = g dest cont regenv e1 in
   let (e2', regenv2) = g dest cont regenv e2 in
   let regenv' = (* 両方に共通のレジスタ変数だけ利用 *)
@@ -165,7 +165,7 @@ and g'_if range dest cont regenv exp constr e1 e2 = (* ifのレジスタ割り�
   (List.fold_left
      (fun e x ->
        if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
-       seq(range, (range, Save(M.find x regenv, x)), e)) (* そうでない変数は分岐直前にセーブ *)
+       seq(range, range', (range, Save(M.find x regenv, x)), e)) (* そうでない変数は分岐直前にセーブ *)
      (range, Ans(range, constr e1' e2'))
      (fv cont),
    regenv')
@@ -173,7 +173,7 @@ and g'_call range dest cont regenv exp constr ys zs = (* 関数呼び出しの�
   (List.fold_left
      (fun e x ->
        if x = fst dest || not (M.mem x regenv) then e else
-       seq(range, (range, Save(M.find x regenv, x)), e))
+       seq(range, range, (range, Save(M.find x regenv, x)), e))
      (range, Ans(range, constr
             (List.map (fun y -> find y Type.Int regenv) ys)
             (List.map (fun z -> find z Type.Float regenv) zs)))
@@ -211,7 +211,6 @@ let h { range = range; name = Id.L(x); args = ys; fargs = zs; body = e; ret = t 
   { range = range; name = Id.L(x); args = arg_regs; fargs = farg_regs; body = e'; ret = t }
 
 let f (Prog(data, fundefs, e)) = (* プログラム全体のレジスタ割り当て (caml2html: regalloc_f) *)
-  Printf.printf "Register allocation: may take some time (up to a few minutes, depending on the size of functions)\n";
   let fundefs' = List.map h fundefs in
   let e', regenv' = g (Id.gentmp Type.Unit, Type.Unit) (None, Ans(None, Nop)) M.empty e in
   Prog(data, fundefs', e')

@@ -16,12 +16,12 @@ and body =
   | Eq of t * t
   | LE of t * t
   | If of t * t * t
-  | Let of (Id.t * Type.t) * t * t
+  | Let of H.range * (Id.t * Type.t) * t * t
   | Var of Id.t
-  | LetRec of fundef * t
+  | LetRec of H.range * fundef * t
   | App of t * t list
   | Tuple of t list
-  | LetTuple of (Id.t * Type.t) list * t * t
+  | LetTuple of H.range * (Id.t * Type.t) list * t * t
   | Array of t * t
   | Get of t * t
   | Put of t * t * t
@@ -44,12 +44,12 @@ let rec show (_, body) = match body with
   | Eq (e, e') -> "("^show e^" = "^show e'^")"
   | LE (e, e') -> "("^show e^" <= "^show e'^")"
   | If (e, e', e'') -> "(if "^show e^" then "^show e'^" else "^show e''^")"
-  | Let ((x, t), e, e') -> "(let "^x^":"^Type.show t^" = "^show e^" in "^show e'^")"
+  | Let (_, (x, t), e, e') -> "(let "^x^":"^Type.show t^" = "^show e^" in "^show e'^")"
   | Var x -> x
-  | LetRec (f, e) -> "(let rec ("^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" = "^show f.body^" in "^show e^")"
+  | LetRec (_, f, e) -> "(let rec ("^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" = "^show f.body^" in "^show e^")"
   | App (e, es) -> "("^show e^H.sep "" (fun e -> " "^show e) es^")"
   | Tuple es -> "("^H.sep ", " show es^")"
-  | LetTuple (xts, e, e') -> "(let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^show e^" in "^show e'^")"
+  | LetTuple (_, xts, e, e') -> "(let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^show e^" in "^show e'^")"
   | Array (e, e') -> "Array.make "^show e^" "^show e'
   | Get (e, e') -> show e^".("^show e'^")"
   | Put (e, e', e'') -> "("^show e^".("^show e'^") <- "^show e''^")"

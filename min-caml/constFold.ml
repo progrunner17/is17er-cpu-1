@@ -24,25 +24,25 @@ let rec g env ((range, body) as e) = match body with (* 定数畳み込みルーチン本体
   | FSub(x, y) when memf x env && memf y env -> range, Float(findf x env -. findf y env)
   | FMul(x, y) when memf x env && memf y env -> range, Float(findf x env *. findf y env)
   | FDiv(x, y) when memf x env && memf y env -> range, Float(findf x env /. findf y env)
-  | IfEq(x, y, e1, e2) when memi x env && memi y env -> if findi x env = findi y env then g env e1 else g env e2
-  | IfEq(x, y, e1, e2) when memf x env && memf y env -> if findf x env = findf y env then g env e1 else g env e2
-  | IfEq(x, y, e1, e2) -> range, IfEq(x, y, g env e1, g env e2)
-  | IfLE(x, y, e1, e2) when memi x env && memi y env -> if findi x env <= findi y env then g env e1 else g env e2
-  | IfLE(x, y, e1, e2) when memf x env && memf y env -> if findf x env <= findf y env then g env e1 else g env e2
-  | IfLE(x, y, e1, e2) -> range, IfLE(x, y, g env e1, g env e2)
-  | Let((x, t), e1, e2) -> (* letのケース (caml2html: constfold_let) *)
+  | IfEq(_, x, y, e1, e2) when memi x env && memi y env -> if findi x env = findi y env then g env e1 else g env e2
+  | IfEq(_, x, y, e1, e2) when memf x env && memf y env -> if findf x env = findf y env then g env e1 else g env e2
+  | IfEq(range', x, y, e1, e2) -> range, IfEq(range', x, y, g env e1, g env e2)
+  | IfLE(_, x, y, e1, e2) when memi x env && memi y env -> if findi x env <= findi y env then g env e1 else g env e2
+  | IfLE(_, x, y, e1, e2) when memf x env && memf y env -> if findf x env <= findf y env then g env e1 else g env e2
+  | IfLE(range', x, y, e1, e2) -> range, IfLE(range', x, y, g env e1, g env e2)
+  | Let(range', (x, t), e1, e2) -> (* letのケース (caml2html: constfold_let) *)
       let e1' = g env e1 in
       let e2' = g (M.add x e1' env) e2 in
-      range, Let((x, t), e1', e2')
-  | LetRec({ name = x; args = ys; body = e1 }, e2) ->
-      range, LetRec({ name = x; args = ys; body = g env e1 }, g env e2)
-  | LetTuple(xts, y, e) when memt y env ->
+      range, Let(range', (x, t), e1', e2')
+  | LetRec(range', { name = x; args = ys; body = e1 }, e2) ->
+      range, LetRec(range', { name = x; args = ys; body = g env e1 }, g env e2)
+  | LetTuple(range', xts, y, e) when memt y env ->
       List.fold_left2
-        (fun e' xt z -> range, Let(xt, (range, Var(z)), e'))
+        (fun e' xt z -> range, Let(range', xt, (range, Var(z)), e'))
         (g env e)
         xts
         (findt y env)
-  | LetTuple(xts, y, e) -> range, LetTuple(xts, y, g env e)
+  | LetTuple(range', xts, y, e) -> range, LetTuple(range', xts, y, g env e)
   | _ -> e
 
 let f = g M.empty
