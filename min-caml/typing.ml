@@ -3,7 +3,6 @@
 open Syntax
 
 exception Unify of Type.t * Type.t
-exception Error of t * Type.t * Type.t
 
 let extenv = ref M.empty
 

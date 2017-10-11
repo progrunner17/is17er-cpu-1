@@ -37,7 +37,7 @@ let _ = parse_error;;
 (* parserが利用する変数、関数、型などの定義 *)
 open Syntax
 let addtyp x = (x, Type.gentyp ())
-let symbol_range () = (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
+let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
 # 42 "parser.ml"
 let yytransl_const = [|
   260 (* NOT *);

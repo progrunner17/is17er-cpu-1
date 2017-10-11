@@ -86,7 +86,7 @@ rule token = parse
 | lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
     { IDENT(Lexing.lexeme lexbuf) }
 | _
-    { Printf.printf "Lex error: Unknown token %s at %s" (Lexing.lexeme lexbuf) (H.show_range (lexbuf.lex_start_p, lexbuf.lex_curr_p));
+    { Printf.printf "Lex error: Unknown token %s at %s\n" (Lexing.lexeme lexbuf) (H.show_range' (lexbuf.Lexing.lex_start_p, lexbuf.Lexing.lex_curr_p));
       exit 1 }
 and comment = parse
 | "*)"

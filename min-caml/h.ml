@@ -3,13 +3,16 @@
 open Lexing
 
 type pos = position
-type range = pos * pos
+type range = (pos * pos) option
 
-let show_pos pos = Printf.sprintf "line %d column %d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
-let show_range (pos, pos') = if pos.pos_lnum = pos'.pos_lnum then
-		Printf.sprintf "line %d column %d-%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) (pos'.pos_cnum - pos'.pos_bol + 1)
-	else
-		Printf.sprintf "line %d column %d - line %d column %d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) pos'.pos_lnum (pos'.pos_cnum - pos'.pos_bol + 1)
+let show_pos pos = Printf.sprintf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+let show_range' (pos, pos') = if pos.pos_lnum = pos'.pos_lnum then
+    Printf.sprintf "%d:%d-%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) (pos'.pos_cnum - pos'.pos_bol + 1)
+  else
+    Printf.sprintf "%d:%d - %d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) pos'.pos_lnum (pos'.pos_cnum - pos'.pos_bol + 1)
+let show_range range = match range with
+| Some poss -> show_range' poss
+| None -> "nowhere"
 
 let indent = ref 0
 

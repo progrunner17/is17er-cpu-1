@@ -871,7 +871,7 @@ and __ocaml_lex_token_rec lexbuf __ocaml_lex_state =
 
   | 36 ->
 # 89 "lexer.mll"
-    ( Printf.printf "Lex error: Unknown token %s at %s" (Lexing.lexeme lexbuf) (H.show_range (lexbuf.lex_start_p, lexbuf.lex_curr_p));
+    ( Printf.printf "Lex error: Unknown token %s at %s\n" (Lexing.lexeme lexbuf) (H.show_range' (lexbuf.Lexing.lex_start_p, lexbuf.Lexing.lex_curr_p));
       exit 1 )
 # 877 "lexer.ml"
 

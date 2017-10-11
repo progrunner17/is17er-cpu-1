@@ -1,5 +1,6 @@
 type closure = { entry : Id.l; actual_fv : Id.t list }
-type t =
+type t = H.range * body
+and body =
   | Unit
   | Int of int
   | Float of float
@@ -23,11 +24,14 @@ type t =
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.l
-type fundef = { name : Id.l * Type.t;
+type fundef = { range : H.range;
+                name : Id.l * Type.t;
                 args : (Id.t * Type.t) list;
                 formal_fv : (Id.t * Type.t) list;
                 body : t }
 type prog = Prog of fundef list * t
+
+val show_prog : prog -> string
 
 val fv : t -> S.t
 val f : KNormal.t -> prog
