@@ -44,7 +44,7 @@ let rec fv = function
 
 let toplevel : fundef list ref = ref []
 
-let rec g env known = function (* クロージャ変換ルーチン本体 (caml2html: closure_g) *)
+let rec g env known (_, body) = match body with (* クロージャ変換ルーチン本体 (caml2html: closure_g) *)
   | KNormal.Unit -> Unit
   | KNormal.Int(i) -> Int(i)
   | KNormal.Float(d) -> Float(d)
@@ -75,8 +75,8 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2html: closure
       let known', e1' =
         if S.is_empty zs then known', e1' else
         (* 駄目だったら状態(toplevelの値)を戻して、クロージャ変換をやり直す *)
-        (Format.eprintf "free variable(s) %s found in function %s@." (Id.pp_list (S.elements zs)) x;
-         Format.eprintf "function %s cannot be directly applied in fact@." x;
+        (Printf.printf "Free variable(s) %s found in function %s\n" (Id.pp_list (S.elements zs)) x;
+         Printf.printf "Function %s cannot be directly applied in fact\n" x;
          toplevel := toplevel_backup;
          let e1' = g (M.add_list yts env') known e1 in
          known, e1') in
@@ -87,10 +87,10 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2html: closure
       if S.mem x (fv e2') then (* xが変数としてe2'に出現するか *)
         MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* 出現していたら削除しない *)
       else
-        (Format.eprintf "eliminating closure(s) %s@." x;
+        (Printf.printf "Eliminating closure(s) %s\n" x;
          e2') (* 出現しなければMakeClsを削除 *)
   | KNormal.App(x, ys) when S.mem x known -> (* 関数適用の場合 (caml2html: closure_app) *)
-      Format.eprintf "directly applying %s@." x;
+      Printf.printf "Directly applying %s\n" x;
       AppDir(Id.L(x), ys)
   | KNormal.App(f, xs) -> AppCls(f, xs)
   | KNormal.Tuple(xs) -> Tuple(xs)

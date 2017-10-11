@@ -1,4 +1,5 @@
-type t = (* MinCamlの構文を表現するデータ型 (caml2html: syntax_t) *)
+type t = H.range * body (* MinCamlの構文を表現するデータ型 (caml2html: syntax_t) *)
+and body =
   | Unit
   | Bool of bool
   | Int of int
@@ -26,30 +27,29 @@ type t = (* MinCamlの構文を表現するデータ型 (caml2html: syntax_t) *)
   | Put of t * t * t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
-let rec print = function
-  | Unit -> print_string "()"
-  | Bool b -> print_string (if b then "true" else "false")
-  | Int n -> print_int n
-  | Float a -> print_float a
-  | Not e -> print_string "(not "; print e; print_string ")"
-  | Neg e -> print_string "(- "; print e; print_string ")"
-  | Add (e, e') -> print_string "("; print e; print_string " + "; print e'; print_string ")"
-  | Sub (e, e') -> print_string "("; print e; print_string " - "; print e'; print_string ")"
-  | FNeg e -> print_string "(-. "; print e; print_string ")"
-  | FAdd (e, e') -> print_string "("; print e; print_string " +. "; print e'; print_string ")"
-  | FSub (e, e') -> print_string "("; print e; print_string " -. "; print e'; print_string ")"
-  | FMul (e, e') -> print_string "("; print e; print_string " *. "; print e'; print_string ")"
-  | FDiv (e, e') -> print_string "("; print e; print_string " /. "; print e'; print_string ")"
-  | Eq (e, e') -> print_string "("; print e; print_string " = "; print e'; print_string ")"
-  | LE (e, e') -> print_string "("; print e; print_string " <= "; print e'; print_string ")"
-  | If (e, e', e'') -> print_string "(if "; print e; print_string " then "; print e'; print_string " else "; print e''; print_string ")"
-  | Let ((x, t), e, e') -> print_string "(let "; print_string x; print_string ":"; Type.print t; print_string " = "; print e; print_string " in "; print e'; print_string ")"
-  | Var x -> print_string x
-  | LetRec (f, e) -> print_string "(let rec ("; List.iter (fun (x, t) -> print_string " ("; print_string x; print_string ":"; Type.print t; print_string ")") (f.name :: f.args);
-    print_string " = "; print f.body; print_string " in "; print e; print_string ")"
-  | App (e, es) -> print_string "("; print e; List.iter (fun e -> print_string " "; print e) es; print_string ")"
-  | Tuple es -> print_string "("; H.sep ", " print es; print_string ")"
-  | LetTuple (xts, e, e') -> print_string "(let ("; H.sep ", " (fun (x, t) -> print_string x; print_string ":"; Type.print t) xts; print_string ") = "; print e; print_string " in "; print e'; print_string ")"
-  | Array (e, e') -> print_string "Array.make "; print e; print_string " "; print e'
-  | Get (e, e') -> print e; print_string ".("; print e'; print_string ")"
-  | Put (e, e', e'') -> print_string "("; print e; print_string ".("; print e'; print_string ") <- "; print e''; print_string ")"
+let rec show (_, body) = match body with
+  | Unit -> "()"
+  | Bool b -> if b then "true" else "false"
+  | Int n -> string_of_int n
+  | Float a -> string_of_float a
+  | Not e -> "(not "^show e^")"
+  | Neg e -> "(- " ^show e^")"
+  | Add (e, e') -> "("^show e^" + "^show e'^")"
+  | Sub (e, e') -> "("^show e^" - "^show e'^")"
+  | FNeg e -> "(-. "^show e^")"
+  | FAdd (e, e') -> "("^show e^" +. "^show e'^")"
+  | FSub (e, e') -> "("^show e^" -. "^show e'^")"
+  | FMul (e, e') -> "("^show e^" *. "^show e'^")"
+  | FDiv (e, e') -> "("^show e^" /. "^show e'^")"
+  | Eq (e, e') -> "("^show e^" = "^show e'^")"
+  | LE (e, e') -> "("^show e^" <= "^show e'^")"
+  | If (e, e', e'') -> "(if "^show e^" then "^show e'^" else "^show e''^")"
+  | Let ((x, t), e, e') -> "(let "^x^":"^Type.show t^" = "^show e^" in "^show e'^")"
+  | Var x -> x
+  | LetRec (f, e) -> "(let rec ("^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" = "^show f.body^" in "^show e^")"
+  | App (e, es) -> "("^show e^H.sep "" (fun e -> " "^show e) es^")"
+  | Tuple es -> "("^H.sep ", " show es^")"
+  | LetTuple (xts, e, e') -> "(let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^show e^" in "^show e'^")"
+  | Array (e, e') -> "Array.make "^show e^" "^show e'
+  | Get (e, e') -> show e^".("^show e'^")"
+  | Put (e, e', e'') -> "("^show e^".("^show e'^") <- "^show e''^")"

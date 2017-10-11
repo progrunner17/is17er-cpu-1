@@ -2,7 +2,6 @@
 (* lexerが利用する変数、関数、型などの定義 *)
 open Parser
 open Type
-exception Error of string
 }
 
 (* 正規表現の略記 *)
@@ -21,76 +20,74 @@ rule token = parse
     { comment lexbuf; (* ネストしたコメントのためのトリック *)
       token lexbuf }
 | '('
-    { LPAREN(lexbuf.lex_curr_p) }
+    { LPAREN }
 | ')'
-    { RPAREN(lexbuf.lex_curr_p) }
+    { RPAREN }
 | "true"
-    { BOOL(lexbuf.lex_curr_p, true) }
+    { BOOL(true) }
 | "false"
-    { BOOL(lexbuf.lex_curr_p, false) }
+    { BOOL(false) }
 | "not"
-    { NOT(lexbuf.lex_curr_p) }
+    { NOT }
 | digit+ (* 整数を字句解析するルール (caml2html: lexer_int) *)
-    { INT(lexbuf.lex_curr_p, int_of_string (Lexing.lexeme lexbuf)) }
+    { INT(int_of_string (Lexing.lexeme lexbuf)) }
 | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
-    { FLOAT(lexbuf.lex_curr_p, float_of_string (Lexing.lexeme lexbuf)) }
+    { FLOAT(float_of_string (Lexing.lexeme lexbuf)) }
 | '-' (* -.より後回しにしなくても良い? 最長一致? *)
-    { MINUS(lexbuf.lex_curr_p) }
+    { MINUS }
 | '+' (* +.より後回しにしなくても良い? 最長一致? *)
-    { PLUS(lexbuf.lex_curr_p) }
+    { PLUS }
 | "-."
-    { MINUS_DOT(lexbuf.lex_curr_p) }
+    { MINUS_DOT }
 | "+."
-    { PLUS_DOT(lexbuf.lex_curr_p) }
+    { PLUS_DOT }
 | "*."
-    { AST_DOT(lexbuf.lex_curr_p) }
+    { AST_DOT }
 | "/."
-    { SLASH_DOT(lexbuf.lex_curr_p) }
+    { SLASH_DOT }
 | '='
-    { EQUAL(lexbuf.lex_curr_p) }
+    { EQUAL }
 | "<>"
-    { LESS_GREATER(lexbuf.lex_curr_p) }
+    { LESS_GREATER }
 | "<="
-    { LESS_EQUAL(lexbuf.lex_curr_p) }
+    { LESS_EQUAL }
 | ">="
-    { GREATER_EQUAL(lexbuf.lex_curr_p) }
+    { GREATER_EQUAL }
 | '<'
-    { LESS(lexbuf.lex_curr_p) }
+    { LESS }
 | '>'
-    { GREATER(lexbuf.lex_curr_p) }
+    { GREATER }
 | "if"
-    { IF(lexbuf.lex_curr_p) }
+    { IF }
 | "then"
-    { THEN(lexbuf.lex_curr_p) }
+    { THEN }
 | "else"
-    { ELSE(lexbuf.lex_curr_p) }
+    { ELSE }
 | "let"
-    { LET(lexbuf.lex_curr_p) }
+    { LET }
 | "in"
-    { IN(lexbuf.lex_curr_p) }
+    { IN }
 | "rec"
-    { REC(lexbuf.lex_curr_p) }
+    { REC }
 | ','
-    { COMMA(lexbuf.lex_curr_p) }
+    { COMMA }
 | '_'
-    { IDENT(lexbuf.lex_curr_p, Id.gentmp Type.Unit) }
+    { IDENT(Id.gentmp Type.Unit) }
 | "Array.create" | "Array.make" (* [XX] ad hoc *)
-    { ARRAY_CREATE(lexbuf.lex_curr_p) }
+    { ARRAY_CREATE }
 | '.'
-    { DOT(lexbuf.lex_curr_p) }
+    { DOT }
 | "<-"
-    { LESS_MINUS(lexbuf.lex_curr_p) }
+    { LESS_MINUS }
 | ';'
-    { SEMICOLON(lexbuf.lex_curr_p) }
+    { SEMICOLON }
 | eof
-    { EOF(lexbuf.lex_curr_p) }
+    { EOF }
 | lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
-    { IDENT(lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
+    { IDENT(Lexing.lexeme lexbuf) }
 | _
-    { failwith (Printf.sprintf "Lex error: Unknown token %s (%s - %s)"
-        (Lexing.lexeme lexbuf)
-        (H.show_pos lexbuf.lex_start_p)
-        (H.show_pos lexbuf.lex_curr_p)) }
+    { Printf.printf "Lex error: Unknown token %s at %s" (Lexing.lexeme lexbuf) (H.show_range (lexbuf.lex_start_p, lexbuf.lex_curr_p));
+      exit 1 }
 and comment = parse
 | "*)"
     { () }
@@ -98,7 +95,7 @@ and comment = parse
     { comment lexbuf;
       comment lexbuf }
 | eof
-    { Format.eprintf "Lex warning: Unterminated comment@." }
+    { Printf.printf "Lex warning: Unterminated comment\n" }
 | newline
     { Lexing.new_line lexbuf; comment lexbuf }
 | _

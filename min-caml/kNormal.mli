@@ -1,4 +1,5 @@
-type t =
+type t = H.range * body
+and body =
   | Unit
   | Int of int
   | Float of float
@@ -24,7 +25,7 @@ type t =
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
-val print : t -> unit
+val show : t -> string
 
 val fv : t -> S.t
 val f : Syntax.t -> t

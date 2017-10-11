@@ -13,7 +13,7 @@ let rec deref_typ = function (* 型変数を中身でおきかえる関数 (caml2html: typing_
   | Type.Tuple(ts) -> Type.Tuple(List.map deref_typ ts)
   | Type.Array(t) -> Type.Array(deref_typ t)
   | Type.Var({ contents = None } as r) ->
-      Format.eprintf "uninstantiated type variable detected; assuming int@.";
+      Printf.printf "Uninstantiated type variable detected; assuming int\n";
       r := Some(Type.Int);
       Type.Int
   | Type.Var({ contents = Some(t) } as r) ->
@@ -22,7 +22,7 @@ let rec deref_typ = function (* 型変数を中身でおきかえる関数 (caml2html: typing_
       t'
   | t -> t
 let rec deref_id_typ (x, t) = (x, deref_typ t)
-let rec deref_term = function
+let rec deref_term (range, body) = range, match body with
   | Not(e) -> Not(deref_term e)
   | Neg(e) -> Neg(deref_term e)
   | Add(e1, e2) -> Add(deref_term e1, deref_term e2)
@@ -80,9 +80,9 @@ let rec unify t1 t2 = (* 型が合うように、型変数への代入をする (caml2html: typing
       r2 := Some(t1)
   | _, _ -> raise (Unify(t1, t2))
 
-let rec g env e = (* 型推論ルーチン (caml2html: typing_g) *)
+let rec g env ((range, body) as e) = (* 型推論ルーチン (caml2html: typing_g) *)
   try
-    match e with
+    match body with
     | Unit -> Type.Unit
     | Bool(_) -> Type.Bool
     | Int(_) -> Type.Int
@@ -119,7 +119,7 @@ let rec g env e = (* 型推論ルーチン (caml2html: typing_g) *)
     | Var(x) when M.mem x env -> M.find x env (* 変数の型推論 (caml2html: typing_var) *)
     | Var(x) when M.mem x !extenv -> M.find x !extenv
     | Var(x) -> (* 外部変数の型推論 (caml2html: typing_extvar) *)
-        Format.eprintf "free variable %s assumed as external@." x;
+        Printf.printf "Free variable %s assumed as external\n" x;
         let t = Type.gentyp () in
         extenv := M.add x t !extenv;
         t
@@ -148,15 +148,13 @@ let rec g env e = (* 型推論ルーチン (caml2html: typing_g) *)
         unify (Type.Array(t)) (g env e1);
         unify Type.Int (g env e2);
         Type.Unit
-  with Unify(t1, t2) -> raise (Error(deref_term e, deref_typ t1, deref_typ t2))
+  with Unify(t1, t2) -> let e' = deref_term e in
+    Printf.printf "Type unification error occurred at %s '%s': conflict between %s and %s\n"
+      (H.show_range range) (Syntax.show e') (Type.show (deref_typ t1)) (Type.show (deref_typ t2));
+    exit 1
 
 let f e =
   extenv := M.empty;
-(*
-  (match deref_typ (g M.empty e) with
-  | Type.Unit -> ()
-  | _ -> Format.eprintf "warning: final result does not have type unit@.");
-*)
   (try unify Type.Unit (g M.empty e)
   with Unify _ -> failwith "top level does not have type unit");
   extenv := M.map deref_typ !extenv;

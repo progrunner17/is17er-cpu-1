@@ -2,40 +2,41 @@
 (* parserが利用する変数、関数、型などの定義 *)
 open Syntax
 let addtyp x = (x, Type.gentyp ())
+let symbol_range () = (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
 %}
 
 /* (* 字句を表すデータ型の定義 (caml2html: parser_token) *) */
-%token <H.pos * bool> BOOL
-%token <H.pos * int> INT
-%token <H.pos * float> FLOAT
-%token <H.pos> NOT
-%token <H.pos> MINUS
-%token <H.pos> PLUS
-%token <H.pos> MINUS_DOT
-%token <H.pos> PLUS_DOT
-%token <H.pos> AST_DOT
-%token <H.pos> SLASH_DOT
-%token <H.pos> EQUAL
-%token <H.pos> LESS_GREATER
-%token <H.pos> LESS_EQUAL
-%token <H.pos> GREATER_EQUAL
-%token <H.pos> LESS
-%token <H.pos> GREATER
-%token <H.pos> IF
-%token <H.pos> THEN
-%token <H.pos> ELSE
-%token <H.pos * Id.t> IDENT
-%token <H.pos> LET
-%token <H.pos> IN
-%token <H.pos> REC
-%token <H.pos> COMMA
-%token <H.pos> ARRAY_CREATE
-%token <H.pos> DOT
-%token <H.pos> LESS_MINUS
-%token <H.pos> SEMICOLON
-%token <H.pos> LPAREN
-%token <H.pos> RPAREN
-%token <H.pos> EOF
+%token <bool> BOOL
+%token <int> INT
+%token <float> FLOAT
+%token NOT
+%token MINUS
+%token PLUS
+%token MINUS_DOT
+%token PLUS_DOT
+%token AST_DOT
+%token SLASH_DOT
+%token EQUAL
+%token LESS_GREATER
+%token LESS_EQUAL
+%token GREATER_EQUAL
+%token LESS
+%token GREATER
+%token IF
+%token THEN
+%token ELSE
+%token <Id.t> IDENT
+%token LET
+%token IN
+%token REC
+%token COMMA
+%token ARRAY_CREATE
+%token DOT
+%token LESS_MINUS
+%token SEMICOLON
+%token LPAREN
+%token RPAREN
+%token EOF
 
 /* (* 優先順位とassociativityの定義（低い方から高い方へ） (caml2html: parser_prior) *) */
 %nonassoc IN
@@ -59,23 +60,29 @@ let addtyp x = (x, Type.gentyp ())
 %%
 
 simple_exp: /* (* 括弧をつけなくても関数の引数になれる式 (caml2html: parser_simple) *) */
+| simple_body { (symbol_range (), $1) }
+
+simple_body:
 | LPAREN exp RPAREN
-    { $2 }
+    { snd $2 }
 | LPAREN RPAREN
     { Unit }
 | BOOL
-    { Bool(snd $1) }
+    { Bool($1) }
 | INT
-    { Int(snd $1) }
+    { Int($1) }
 | FLOAT
-    { Float(snd $1) }
+    { Float($1) }
 | IDENT
-    { Var(snd $1) }
+    { Var($1) }
 | simple_exp DOT LPAREN exp RPAREN
     { Get($1, $4) }
 
 exp: /* (* 一般の式 (caml2html: parser_exp) *) */
-| simple_exp
+| body { (symbol_range (), $1) }
+
+body:
+| simple_body
     { $1 }
 | NOT exp
     %prec prec_app
@@ -83,7 +90,7 @@ exp: /* (* 一般の式 (caml2html: parser_exp) *) */
 | MINUS exp
     %prec prec_unary_minus
     { match $2 with
-    | Float(f) -> Float(-.f) (* -1.23などは型エラーではないので別扱い *)
+    | (_, Float(f)) -> Float(-.f) (* -1.23などは型エラーではないので別扱い *)
     | e -> Neg(e) }
 | exp PLUS exp /* (* 足し算を構文解析するルール (caml2html: parser_add) *) */
     { Add($1, $3) }
@@ -92,11 +99,11 @@ exp: /* (* 一般の式 (caml2html: parser_exp) *) */
 | exp EQUAL exp
     { Eq($1, $3) }
 | exp LESS_GREATER exp
-    { Not(Eq($1, $3)) }
+    { Not(symbol_range (), Eq($1, $3)) }
 | exp LESS exp
-    { Not(LE($3, $1)) }
+    { Not(symbol_range (), LE($3, $1)) }
 | exp GREATER exp
-    { Not(LE($1, $3)) }
+    { Not(symbol_range (), LE($1, $3)) }
 | exp LESS_EQUAL exp
     { LE($1, $3) }
 | exp GREATER_EQUAL exp
@@ -117,7 +124,7 @@ exp: /* (* 一般の式 (caml2html: parser_exp) *) */
     { FDiv($1, $3) }
 | LET IDENT EQUAL exp IN exp
     %prec prec_let
-    { Let(addtyp (snd $2), $4, $6) }
+    { Let(addtyp $2, $4, $6) }
 | LET REC fundef IN exp
     %prec prec_let
     { LetRec($3, $5) }
@@ -137,20 +144,18 @@ exp: /* (* 一般の式 (caml2html: parser_exp) *) */
     %prec prec_app
     { Array($2, $3) }
 | error
-    { failwith
-        (Printf.sprintf "Parse error at %s - %s"
-           (H.show_pos (Parsing.symbol_start_pos ()))
-           (H.show_pos (Parsing.symbol_end_pos ()))) }
+    { Printf.printf "Parse error at %s\n" (H.show_range (symbol_range ()));
+      exit 1 }
 
 fundef:
 | IDENT formal_args EQUAL exp
-    { { name = addtyp (snd $1); args = $2; body = $4 } }
+    { { name = addtyp $1; args = $2; body = $4 } }
 
 formal_args:
 | IDENT formal_args
-    { addtyp (snd $1) :: $2 }
+    { addtyp $1 :: $2 }
 | IDENT
-    { [addtyp (snd $1)] }
+    { [addtyp $1] }
 
 actual_args:
 | actual_args simple_exp
@@ -168,6 +173,6 @@ elems:
 
 pat:
 | pat COMMA IDENT
-    { $1 @ [addtyp (snd $3)] }
+    { $1 @ [addtyp $3] }
 | IDENT COMMA IDENT
-    { [addtyp (snd $1); addtyp (snd $3)] }
+    { [addtyp $1; addtyp $3] }

@@ -1,35 +1,35 @@
 type token =
-  | BOOL of (H.pos * bool)
-  | INT of (H.pos * int)
-  | FLOAT of (H.pos * float)
-  | NOT of (H.pos)
-  | MINUS of (H.pos)
-  | PLUS of (H.pos)
-  | MINUS_DOT of (H.pos)
-  | PLUS_DOT of (H.pos)
-  | AST_DOT of (H.pos)
-  | SLASH_DOT of (H.pos)
-  | EQUAL of (H.pos)
-  | LESS_GREATER of (H.pos)
-  | LESS_EQUAL of (H.pos)
-  | GREATER_EQUAL of (H.pos)
-  | LESS of (H.pos)
-  | GREATER of (H.pos)
-  | IF of (H.pos)
-  | THEN of (H.pos)
-  | ELSE of (H.pos)
-  | IDENT of (H.pos * Id.t)
-  | LET of (H.pos)
-  | IN of (H.pos)
-  | REC of (H.pos)
-  | COMMA of (H.pos)
-  | ARRAY_CREATE of (H.pos)
-  | DOT of (H.pos)
-  | LESS_MINUS of (H.pos)
-  | SEMICOLON of (H.pos)
-  | LPAREN of (H.pos)
-  | RPAREN of (H.pos)
-  | EOF of (H.pos)
+  | BOOL of (bool)
+  | INT of (int)
+  | FLOAT of (float)
+  | NOT
+  | MINUS
+  | PLUS
+  | MINUS_DOT
+  | PLUS_DOT
+  | AST_DOT
+  | SLASH_DOT
+  | EQUAL
+  | LESS_GREATER
+  | LESS_EQUAL
+  | GREATER_EQUAL
+  | LESS
+  | GREATER
+  | IF
+  | THEN
+  | ELSE
+  | IDENT of (Id.t)
+  | LET
+  | IN
+  | REC
+  | COMMA
+  | ARRAY_CREATE
+  | DOT
+  | LESS_MINUS
+  | SEMICOLON
+  | LPAREN
+  | RPAREN
+  | EOF
 
 val exp :
   (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Syntax.t

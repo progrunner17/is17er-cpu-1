@@ -3,19 +3,20 @@
 open Lexing
 
 type pos = position
+type range = pos * pos
 
-let show_pos p = "line "^string_of_int p.pos_lnum^" column "^string_of_int (p.pos_cnum - p.pos_bol + 1)
-
-exception ParseError of string
+let show_pos pos = Printf.sprintf "line %d column %d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+let show_range (pos, pos') = if pos.pos_lnum = pos'.pos_lnum then
+		Printf.sprintf "line %d column %d-%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) (pos'.pos_cnum - pos'.pos_bol + 1)
+	else
+		Printf.sprintf "line %d column %d - line %d column %d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) pos'.pos_lnum (pos'.pos_cnum - pos'.pos_bol + 1)
 
 let indent = ref 0
 
-let down () = print_newline (); print_string (String.make !indent ' ')
-let right () = indent := !indent + 2
-let left () = indent := !indent - 2
-let down_right () = right (); down ()
-let down_left () = left (); down ()
+let down () = "\n"^String.make !indent ' '
+let right () = indent := !indent + 2; ""
+let left () = indent := !indent - 2; ""
+let down_right () = indent := !indent + 2; down ()
+let down_left () = indent := !indent - 2; down ()
 
-let sep s print xs = match xs with
-| [] -> ()
-| x :: xs' -> print x; List.iter (fun x -> print_string s; print x) xs'
+let sep s show xs = String.concat s (List.map show xs)

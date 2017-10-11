@@ -1,10 +1,10 @@
-let (<|) print x = print x; print_newline (); print_newline (); x
+let (<|) print x = print x; x
 
 let limit = ref 1000
 
 let rec iter n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
   if n = 0 then e else
-  let e' = (fun x -> print_string "[Iteration "; print_int n; print_endline "]"; KNormal.print x) <| Elim.f (ConstFold.f (Inline.f (Assoc.f (Beta.f e)))) in
+  let e' = (fun x -> Printf.printf "[Iteration %d]\n%s\n\n" n (KNormal.show x)) <| Elim.f (ConstFold.f (Inline.f (Assoc.f (Beta.f e)))) in
   if e = e' then e else
   iter (n - 1) e'
 
@@ -17,9 +17,9 @@ let lexbuf outchan l = (* バッファをコンパイルしてチャンネルへ出力する (caml2htm
           (Virtual.f
              (Closure.f
                 (iter !limit
-                   ((fun x -> print_endline "[Alpha.f]"; KNormal.print x) <| Alpha.f
-                      ((fun x -> print_endline "[KNormal.f]"; KNormal.print x) <| KNormal.f
-                         ((fun x -> print_endline "[Typing.f]"; Syntax.print x) <| Typing.f
+                   ((fun x -> Printf.printf "[Alpha.f]\n%s\n\n" (KNormal.show x)) <| Alpha.f
+                      ((fun x -> Printf.printf "[KNormal.f]\n%s\n\n" (KNormal.show x)) <| KNormal.f
+                         ((fun x -> Printf.printf "[Typing.f]\n%s\n\n" (Syntax.show x)) <| Typing.f
                             (Parser.exp Lexer.token l)))))))))
 
 let string s = lexbuf stdout (Lexing.from_string s) (* 文字列をコンパイルして標準出力に表示する (caml2html: main_string) *)
