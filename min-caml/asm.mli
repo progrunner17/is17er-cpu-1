@@ -1,8 +1,9 @@
 type id_or_imm = V of Id.t | C of int
+(* MATSUSHITA: added to t and exp H.range *)
 type t = H.range * body
 and body =
   | Ans of exp
-  | Let of H.range * (Id.t * Type.t) * exp * t
+  | Let of H.range * (Id.t * Type.t) * exp * t (* MATSUSHITA: added H.range *)
 and exp = H.range * ebody
 and ebody =
   | Nop
@@ -26,22 +27,25 @@ and ebody =
   | Stfd of Id.t * Id.t * id_or_imm
   | Comment of string
   (* virtual instructions *)
-  | IfEq of H.range * Id.t * id_or_imm * t * t
-  | IfLE of H.range * Id.t * id_or_imm * t * t
-  | IfGE of H.range * Id.t * id_or_imm * t * t
-  | IfFEq of H.range * Id.t * Id.t * t * t
-  | IfFLE of H.range * Id.t * Id.t * t * t
+  | IfEq of H.range * Id.t * id_or_imm * t * t (* MATSUSHITA: added H.range *)
+  | IfLE of H.range * Id.t * id_or_imm * t * t (* MATSUSHITA: added H.range *)
+  | IfGE of H.range * Id.t * id_or_imm * t * t (* MATSUSHITA: added H.range *)
+  | IfFEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
+  | IfFLE of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
   (* closure address, integer arguments, and float arguments *)
   | CallCls of Id.t * Id.t list * Id.t list
   | CallDir of Id.l * Id.t list * Id.t list
   | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
   | Restore of Id.t (* スタック変数から値を復元 *)
-type fundef = { range : H.range; name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
+type fundef = { (* MATSUSHITA: added H.range *) range : H.range; name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
 type prog = Prog of (Id.l * float) list * fundef list * t
 
+(* MATSUSHITA: added show_prog function *)
 val show_prog : prog -> string
 
+(* MATSUSHITA: added to arguments two H.range's *)
 val fletd : H.range * H.range * Id.t * exp * t -> t (* shorthand of Let for float *)
+(* MATSUSHITA: added to arguments two H.range's *)
 val seq : H.range * H.range * exp * t -> t (* shorthand of Let for unit *)
 
 val regs : Id.t array
@@ -57,6 +61,7 @@ val reg_tmp : Id.t
 val is_reg : Id.t -> bool
 
 val fv : t -> Id.t list
+(* MATSUSHITA: added to arguments two H.range's *)
 val concat : H.range -> H.range -> t -> Id.t * Type.t -> t -> t
 
 val align : int -> int

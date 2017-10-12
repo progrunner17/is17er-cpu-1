@@ -1,4 +1,5 @@
 type closure = { entry : Id.l; actual_fv : Id.t list }
+(* MATSUSHITA: added to t H.range *)
 type t = H.range * body (* クロージャ変換後の式 (caml2html: closure_t) *)
 and body =
   | Unit
@@ -12,29 +13,26 @@ and body =
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
-  | IfEq of H.range * Id.t * Id.t * t * t
-  | IfLE of H.range * Id.t * Id.t * t * t
-  | Let of H.range * (Id.t * Type.t) * t * t
+  | IfEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
+  | IfLE of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
+  | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
-  | MakeCls of H.range * (Id.t * Type.t) * closure * t
+  | MakeCls of H.range * (Id.t * Type.t) * closure * t (* MATSUSHITA: added H.range *)
   | AppCls of Id.t * Id.t list
   | AppDir of Id.l * Id.t list
   | Tuple of Id.t list
-  | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t
+  | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t (* MATSUSHITA: added H.range *)
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.l
-type fundef = { range : H.range;
+type fundef = { range : H.range; (* MATSUSHITA: added H.range *)
                 name : Id.l * Type.t;
                 args : (Id.t * Type.t) list;
                 formal_fv : (Id.t * Type.t) list;
                 body : t }
 type prog = Prog of fundef list * t
 
-let complex (range, body) = match body with
-  | Let (_, _, _, _) | LetTuple (_, _, _, _) -> true
-  | _ -> false
-
+(* MATSUSHITA: added show function *)
 let rec show (range, body) = "["^H.show_range range^"] "^match body with
   | Unit -> "()"
   | Int n -> string_of_int n
@@ -61,15 +59,16 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
     let s4 = s3^"else "^H.down_right () in
     let s5 = s4^show e' in
     s5^H.left ()
-  | Let (range', (x, t), e, e') -> if complex e then
+  | Let (range', (x, t), e, e') -> (
+    match body with Let (_, _, _, _) | MakeCls (_, _, _, _) | LetTuple (_, _, _, _) ->
       let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" ="^H.down_right () in
       let s2 = s1^show e^" in" in
       let s3 = s2^H.down_left () in
       s3^show e'
-    else
+    | _ ->
       let s1 = "let "^x^":"^Type.show t^" = "^show e^" in" in
       let s2 = s1^H.down () in
-      s2^show e'
+      s2^show e')
   | Var x -> x
   | MakeCls (range', (f, t), {entry = Id.L y; actual_fv = lxs}, e) ->
     let s1 = "let_fun ["^H.show_range range'^"] (*"^f^"*:"^Type.show t^") "^y^(if lxs = [] then " = " else " <"^String.concat ", " lxs^"> = ") in
@@ -84,6 +83,7 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
   | Put (x, x', x'') -> x^".("^x'^") <- "^x''
   | ExtArray (Id.L x) -> "*"^x^"*"
 
+(* MATSUSHITA: added show_prog function *)
 let show_prog (Prog (fs, e)) =
   let s1 = H.sep "" (fun {name = Id.L f, t; args = xts; formal_fv = yts; body = e} ->
     let s1 = "let_fun (*"^f^"*:"^Type.show t^") "^H.sep " " (fun (x, t) -> "("^x^":"^Type.show t^")") xts in

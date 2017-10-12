@@ -5,6 +5,7 @@ open Type
 }
 
 (* 正規表現の略記 *)
+(* MATSUSHITA: added newline *)
 let newline = ['\n']
 let space = [' ' '\t' '\r']
 let digit = ['0'-'9']
@@ -86,7 +87,8 @@ rule token = parse
 | lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
     { IDENT(Lexing.lexeme lexbuf) }
 | _
-    { Printf.printf "Lex error: Unknown token %s at %s\n" (Lexing.lexeme lexbuf) (H.show_range' (lexbuf.Lexing.lex_start_p, lexbuf.Lexing.lex_curr_p));
+    { (* MATSUSHITA: modified error message *)
+      Printf.printf "Lex error: Unknown token %s at %s\n" (Lexing.lexeme lexbuf) (H.show_range' (lexbuf.Lexing.lex_start_p, lexbuf.Lexing.lex_curr_p));
       exit 1 }
 and comment = parse
 | "*)"

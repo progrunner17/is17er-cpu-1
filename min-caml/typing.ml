@@ -149,6 +149,7 @@ let rec g env ((range, body) as e) = (* 型推論ルーチン (caml2html: typing_g) *)
         unify Type.Int (g env e2);
         Type.Unit
   with Unify(t1, t2) -> let e' = deref_term e in
+    (* MATSUSHITA: modified error message *)
     Printf.printf "Type unification error occurred at %s '%s': conflict between %s and %s\n"
       (H.show_range range) (Syntax.show e') (Type.show (deref_typ t1)) (Type.show (deref_typ t2));
     exit 1

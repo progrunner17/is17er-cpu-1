@@ -1,5 +1,6 @@
 (* give names to intermediate values (K-normalization) *)
 
+(* MATSUSHITA: added to t H.range *)
 type t = H.range * body (* KÀµµ¬²½¸å¤Î¼° (caml2html: knormal_t) *)
 and body =
   | Unit
@@ -13,24 +14,21 @@ and body =
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
-  | IfEq of H.range * Id.t * Id.t * t * t (* Èæ³Ó + Ê¬´ô (caml2html: knormal_branch) *)
-  | IfLE of H.range * Id.t * Id.t * t * t (* Èæ³Ó + Ê¬´ô *)
-  | Let of H.range * (Id.t * Type.t) * t * t
+  | IfEq of H.range * Id.t * Id.t * t * t (* Èæ³Ó + Ê¬´ô (caml2html: knormal_branch) *) (* MATSUSHITA: added H.range *)
+  | IfLE of H.range * Id.t * Id.t * t * t (* Èæ³Ó + Ê¬´ô *) (* MATSUSHITA: added H.range *)
+  | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
-  | LetRec of H.range * fundef * t
+  | LetRec of H.range * fundef * t (* MATSUSHITA: added H.range *)
   | App of Id.t * Id.t list
   | Tuple of Id.t list
-  | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t
+  | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t (* MATSUSHITA: added H.range *)
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
-let complex (range, body) = match body with
-  | Let (_, _, _, _) | LetRec (_, _, _) | LetTuple (_, _, _, _) -> true
-  | _ -> false
-
+(* MATSUSHITA: added show function *)
 let rec show (range, body) = "["^H.show_range range^"] "^match body with
   | Unit -> "()"
   | Int n -> string_of_int n
@@ -57,15 +55,16 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
     let s4 = s3^"else "^H.down_right () in
     let s5 = s4^show e' in
     s5^H.left ()
-  | Let (range', (x, t), e, e') -> if complex e then
+  | Let (range', (x, t), e, e') -> (
+    match snd e with Let (_, _, _, _) | LetRec (_, _, _) | LetTuple (_, _, _, _) ->
       let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" ="^H.down_right () in
       let s2 = s1^show e^" in" in
       let s3 = s2^H.down_left () in
       s3^show e'
-    else
+    | _ ->
       let s1 = "let "^x^":"^Type.show t^" = "^show e^" in" in
       let s2 = s1^H.down () in
-      s2^show e'
+      s2^show e')
   | Var x -> x
   | LetRec (range', f, e) ->
     let s1 = "let rec ["^H.show_range range'^"] "^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" ="^H.down_right () in

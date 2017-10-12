@@ -1,3 +1,4 @@
+(* MATSUSHITA: added to t H.range *)
 type t = H.range * body (* MinCamlの構文を表現するデータ型 (caml2html: syntax_t) *)
 and body =
   | Unit
@@ -16,12 +17,12 @@ and body =
   | Eq of t * t
   | LE of t * t
   | If of t * t * t
-  | Let of H.range * (Id.t * Type.t) * t * t
+  | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
-  | LetRec of H.range * fundef * t
+  | LetRec of H.range * fundef * t (* MATSUSHITA: added H.range *)
   | App of t * t list
   | Tuple of t list
-  | LetTuple of H.range * (Id.t * Type.t) list * t * t
+  | LetTuple of H.range * (Id.t * Type.t) list * t * t (* MATSUSHITA: added H.range *)
   | Array of t * t
   | Get of t * t
   | Put of t * t * t

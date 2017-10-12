@@ -1,11 +1,12 @@
 (* PowerPC assembly with a few virtual instructions *)
 
 type id_or_imm = V of Id.t | C of int
-type t = H.range * body (* 命令の列 (caml2html: sparcasm_t) *)
+(* MATSUSHITA: added to t and exp H.range *)
+type t = H.range * body
 and body =
   | Ans of exp
-  | Let of H.range * (Id.t * Type.t) * exp * t
-and exp = H.range * ebody (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *)
+  | Let of H.range * (Id.t * Type.t) * exp * t (* MATSUSHITA: added H.range *)
+and exp = H.range * ebody
 and ebody =
   | Nop
   | Li of int
@@ -28,22 +29,23 @@ and ebody =
   | Stfd of Id.t * Id.t * id_or_imm
   | Comment of string
   (* virtual instructions *)
-  | IfEq of H.range * Id.t * id_or_imm * t * t
-  | IfLE of H.range * Id.t * id_or_imm * t * t
-  | IfGE of H.range * Id.t * id_or_imm * t * t (* 左右対称ではないので必要 *)
-  | IfFEq of H.range * Id.t * Id.t * t * t
-  | IfFLE of H.range * Id.t * Id.t * t * t
+  | IfEq of H.range * Id.t * id_or_imm * t * t (* MATSUSHITA: added H.range *)
+  | IfLE of H.range * Id.t * id_or_imm * t * t (* MATSUSHITA: added H.range *)
+  | IfGE of H.range * Id.t * id_or_imm * t * t (* MATSUSHITA: added H.range *)
+  | IfFEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
+  | IfFLE of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
   (* closure address, integer arguments, and float arguments *)
   | CallCls of Id.t * Id.t list * Id.t list
   | CallDir of Id.l * Id.t list * Id.t list
-  | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 (caml2html: sparcasm_save) *)
-  | Restore of Id.t (* スタック変数から値を復元 (caml2html: sparcasm_restore) *)
-type fundef = { range : H.range; name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
-(* プログラム全体 = 浮動小数点数テーブル + トップレベル関数 + メインの式 (caml2html: sparcasm_prog) *)
+  | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
+  | Restore of Id.t (* スタック変数から値を復元 *)
+type fundef = { (* MATSUSHITA: added H.range *) range : H.range; name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
 type prog = Prog of (Id.l * float) list * fundef list * t
 
+(* MATSUSHITA: added show_args function *)
 let show_args prefix xs = if xs = [] then "" else " "^prefix^"("^String.concat ", " xs^")"
 
+(* MATSUSHITA: added show function *)
 let rec show (range, body) = "["^H.show_range range^"] "^match body with
   | Ans (_, ebody) -> show_ebody ebody
   | Let (range', (x, t), (range'', ebody), e) ->
@@ -109,6 +111,7 @@ and show_ebody = function
   | Save (x, y) -> "save "^x^" "^y
   | Restore x -> "restore "^x
 
+(* MATSUSHITA: added show_prog function *)
 let show_prog (Prog (table, fundefs, e)) =
   H.sep "" (fun (Id.L x, a) -> "let_float "^x^" = "^string_of_float a^" in\n") table^
   H.sep "" (fun {name = Id.L f; args = xs; fargs = ys; body = e; ret = t} ->
@@ -118,7 +121,9 @@ let show_prog (Prog (table, fundefs, e)) =
     s3^" in"^H.down_left ()) fundefs^
   show e
 
+(* MATSUSHITA: added to arguments two H.range's *)
 let fletd(range, range', x, e1, e2) = range, Let(range', (x, Type.Float), e1, e2)
+(* MATSUSHITA: added to arguments two H.range's *)
 let seq(range, range', e1, e2) = range, Let(range', (Id.gentmp Type.Unit, Type.Unit), e1, e2)
 
 let regs = (* Array.init 27 (fun i -> Printf.sprintf "_R_%d" i) *)
@@ -161,6 +166,7 @@ and fv (_, body) = match body with
       fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
 let fv e = remove_and_uniq S.empty (fv e)
 
+(* MATSUSHITA: added to arguments two H.range's *)
 let rec concat range range' (_, body) xt e2 =
   match body with
   | Ans(exp) -> range, Let(range', xt, exp, e2)

@@ -1,25 +1,29 @@
+(* MATSUSHITA: added <| oprator *)
 let (<|) print x = print x; x
 
 let limit = ref 1000
 
 let rec iter n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
   if n = 0 then e else
-  let e' = (fun x -> Printf.printf "[Iteration %d]\n%s\n\n" n (KNormal.show x)) <| Elim.f (ConstFold.f (Inline.f (Assoc.f (Beta.f e)))) in
+  let e' = Elim.f (ConstFold.f (Inline.f (Assoc.f (Beta.f e)))) in
   if e = e' then e else
+  (* MATSUSHITA: print intermediate result *)
+  let _ = Printf.printf "[Iteration %d]\n%s\n\n" n (KNormal.show e') in
   iter (n - 1) e'
 
+(* MATSUSHITA: print intermediate results *)
 let lexbuf outchan l = (* バッファをコンパイルしてチャンネルへ出力する (caml2html: main_lexbuf) *)
   Id.counter := 0;
   Typing.extenv := M.empty;
   Emit.f outchan
-    ((fun x -> Printf.printf "[RegAlloc.f]\n%s\n\n" (Asm.show_prog x)) <| RegAlloc.f
-       ((fun x -> Printf.printf "[Simm.f]\n%s\n\n" (Asm.show_prog x)) <| Simm.f
-          ((fun x -> Printf.printf "[Virtual.f]\n%s\n\n" (Asm.show_prog x)) <| Virtual.f
-             ((fun x -> Printf.printf "[Closure.f]\n%s\n\n" (Closure.show_prog x)) <| Closure.f
+    ((fun prog -> Printf.printf "[RegAlloc.f]\n%s\n\n" (Asm.show_prog prog)) <| RegAlloc.f
+       ((fun prog -> Printf.printf "[Simm.f]\n%s\n\n" (Asm.show_prog prog)) <| Simm.f
+          ((fun prog -> Printf.printf "[Virtual.f]\n%s\n\n" (Asm.show_prog prog)) <| Virtual.f
+             ((fun prog -> Printf.printf "[Closure.f]\n%s\n\n" (Closure.show_prog prog)) <| Closure.f
                 (iter !limit
-                   ((fun x -> Printf.printf "[Alpha.f]\n%s\n\n" (KNormal.show x)) <| Alpha.f
-                      ((fun x -> Printf.printf "[KNormal.f]\n%s\n\n" (KNormal.show x)) <| KNormal.f
-                         ((fun x -> Printf.printf "[Typing.f]\n%s\n\n" (Syntax.show x)) <| Typing.f
+                   ((fun e -> Printf.printf "[Alpha.f]\n%s\n\n" (KNormal.show e)) <| Alpha.f
+                      ((fun e -> Printf.printf "[KNormal.f]\n%s\n\n" (KNormal.show e)) <| KNormal.f
+                         ((fun e -> Printf.printf "[Typing.f]\n%s\n\n" (Syntax.show e)) <| Typing.f
                             (Parser.exp Lexer.token l)))))))))
 
 let string s = lexbuf stdout (Lexing.from_string s) (* 文字列をコンパイルして標準出力に表示する (caml2html: main_string) *)

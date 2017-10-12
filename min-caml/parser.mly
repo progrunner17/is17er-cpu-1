@@ -2,6 +2,7 @@
 (* parserが利用する変数、関数、型などの定義 *)
 open Syntax
 let addtyp x = (x, Type.gentyp ())
+(* MATSUSHITA: added symbol_range function *)
 let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
 %}
 
@@ -58,6 +59,8 @@ let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos 
 %start exp
 
 %%
+
+/* MATSUSHITA: added simmple_body and body, altering simple_exp and exp */
 
 simple_exp: /* (* 括弧をつけなくても関数の引数になれる式 (caml2html: parser_simple) *) */
 | simple_body { (symbol_range (), $1) }
@@ -124,10 +127,12 @@ body:
     { FDiv($1, $3) }
 | LET IDENT EQUAL exp IN exp
     %prec prec_let
-    { Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4), addtyp $2, $4, $6) }
+    { (* MATSUSHITA: added range *)
+      Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4), addtyp $2, $4, $6) }
 | LET REC fundef IN exp
     %prec prec_let
-    { LetRec(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 3), $3, $5) }
+    { (* MATSUSHITA: added range *)
+      LetRec(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 3), $3, $5) }
 | simple_exp actual_args
     %prec prec_app
     { App($1, $2) }
@@ -135,7 +140,8 @@ body:
     %prec prec_tuple
     { Tuple($1) }
 | LET LPAREN pat RPAREN EQUAL exp IN exp
-    { LetTuple(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 6), $3, $6, $8) }
+    { (* MATSUSHITA: added range *)
+      LetTuple(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 6), $3, $6, $8) }
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
     { Put($1, $4, $7) }
 | exp SEMICOLON exp
