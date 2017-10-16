@@ -47,7 +47,7 @@ let rec show (_, body) = match body with
   | If (e, e', e'') -> "(if "^show e^" then "^show e'^" else "^show e''^")"
   | Let (_, (x, t), e, e') -> "(let "^x^":"^Type.show t^" = "^show e^" in "^show e'^")"
   | Var x -> x
-  | LetRec (_, f, e) -> "(let rec ("^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" = "^show f.body^" in "^show e^")"
+  | LetRec (_, f, e) -> "(let rec"^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" = "^show f.body^" in "^show e^")"
   | App (e, es) -> "("^show e^H.sep "" (fun e -> " "^show e) es^")"
   | Tuple es -> "("^H.sep ", " show es^")"
   | LetTuple (_, xts, e, e') -> "(let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^show e^" in "^show e'^")"
