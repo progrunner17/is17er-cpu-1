@@ -33,49 +33,49 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
   | Unit -> "()"
   | Int n -> string_of_int n
   | Float a -> string_of_float a
-  | Neg x -> "- "^x
+  | Neg x -> "-"^x
   | Add (x, x') -> x^" + "^x'
   | Sub (x, x') -> x^" - "^x'
-  | FNeg x -> "-. "^x
+  | FNeg x -> "-."^x
   | FAdd (x, x') -> x^" +. "^x'
   | FSub (x, x') -> x^" -. "^x'
   | FMul (x, x') -> x^" *. "^x'
   | FDiv (x, x') -> x^" /. "^x'
   | IfEq (range', x, x', e, e') ->
-    let s1 = "if ["^H.show_range range'^"] "^x^" = "^x'^" then"^H.down_right () in
-    let s2 = s1^show e in
-    let s3 = s2^H.down_left () in
-    let s4 = s3^"else "^H.down_right () in
-    let s5 = s4^show e' in
-    s5^H.left ()
-  | IfLE (range', x, x', e, e') ->
-    let s1 = "if ["^H.show_range range'^"] "^x^" <= "^x'^" then"^H.down_right () in
-    let s2 = s1^show e in
-    let s3 = s2^H.down_left () in
-    let s4 = s3^"else "^H.down_right () in
-    let s5 = s4^show e' in
-    s5^H.left ()
-  | Let (range', (x, t), e, e') -> (
-    match snd e with Let (_, _, _, _) | LetRec (_, _, _) | LetTuple (_, _, _, _) ->
-      let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" ="^H.down_right () in
-      let s2 = s1^show e^" in" in
+      let s1 = "if ["^H.show_range range'^"] "^x^" = "^x'^" then"^H.down_right () in
+      let s2 = s1^show e in
       let s3 = s2^H.down_left () in
-      s3^show e'
-    | _ ->
-      let s1 = "let "^x^":"^Type.show t^" = "^show e^" in" in
-      let s2 = s1^H.down () in
-      s2^show e')
+      let s4 = s3^"else "^H.down_right () in
+      let s5 = s4^show e' in
+      s5^H.left ()
+  | IfLE (range', x, x', e, e') ->
+      let s1 = "if ["^H.show_range range'^"] "^x^" <= "^x'^" then"^H.down_right () in
+      let s2 = s1^show e in
+      let s3 = s2^H.down_left () in
+      let s4 = s3^"else "^H.down_right () in
+      let s5 = s4^show e' in
+      s5^H.left ()
+  | Let (range', (x, t), e, e') -> (
+      match snd e with Let _ | LetRec _ | LetTuple _ ->
+        let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" ="^H.down_right () in
+        let s2 = s1^show e^" in" in
+        let s3 = s2^H.down_left () in
+        s3^show e'
+      | _ ->
+        let s1 = "let "^x^":"^Type.show t^" = "^show e^" in" in
+        let s2 = s1^H.down () in
+        s2^show e')
   | Var x -> x
   | LetRec (range', f, e) ->
-    let s1 = "let rec ["^H.show_range range'^"] "^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" ="^H.down_right () in
-    let s2 = s1^show f.body^" in" in
-    let s3 = s2^H.down_left () in
-    s3^show e
+      let s1 = "let rec ["^H.show_range range'^"] "^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" ="^H.down_right () in
+      let s2 = s1^show f.body^" in" in
+      let s3 = s2^H.down_left () in
+      s3^show e
   | App (x, xs) -> x^H.sep "" (fun x -> " "^x) xs
   | Tuple xs -> "("^String.concat ", " xs^")"
   | LetTuple (range', xts, x, e) ->
-    let s1 = "let ["^H.show_range range'^"] ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^x^" in"^H.down () in
-    s1^show e
+      let s1 = "let ["^H.show_range range'^"] ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^x^" in"^H.down () in
+      s1^show e
   | Get (x, x') -> x^".("^x'^")"
   | Put (x, x', x'') -> x^".("^x'^") <- "^x''
   | ExtArray x -> "*"^x^"*"

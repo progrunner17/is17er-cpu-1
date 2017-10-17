@@ -59,16 +59,10 @@ let rec show (range, body) = "["^H.show_range range^"] "^match body with
     let s4 = s3^"else "^H.down_right () in
     let s5 = s4^show e' in
     s5^H.left ()
-  | Let (range', (x, t), e, e') -> (
-    match body with Let (_, _, _, _) | MakeCls (_, _, _, _) | LetTuple (_, _, _, _) ->
-      let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" ="^H.down_right () in
-      let s2 = s1^show e^" in" in
-      let s3 = s2^H.down_left () in
-      s3^show e'
-    | _ ->
-      let s1 = "let "^x^":"^Type.show t^" = "^show e^" in" in
-      let s2 = s1^H.down () in
-      s2^show e')
+  | Let (range', (x, t), e, e') ->
+    let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" = "^show e^" in" in
+    let s2 = s1^H.down () in
+    s2^show e'
   | Var x -> x
   | MakeCls (range', (f, t), {entry = Id.L y; actual_fv = lxs}, e) ->
     let s1 = "let_fun ["^H.show_range range'^"] (*"^f^"*:"^Type.show t^") "^y^(if lxs = [] then " = " else " <"^String.concat ", " lxs^"> = ") in
