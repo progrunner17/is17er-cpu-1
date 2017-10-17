@@ -121,30 +121,37 @@ void exec(struct Prog *prog,int *mem,int *reg,int *label,int pc_max){
       i1=reg[prog[pc].rs1];
       i2=prog[pc].imm;
       reg[prog[pc].rd]=(i1<i2);
+　　　pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"sltiu")==0){
       u1=reg[prog[pc].rs1];
       u2=prog[pc].imm;
       reg[prog[pc].rd]=(u1<u2);
+　　　pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"xori")==0){
       x = reg[prog[pc].rs1];
       y = prog[pc].imm;
       reg[prog[pc].rd] = (x && (!y)) || ((!x) && y);
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"ori")==0){
       x = reg[prog[pc].rs1];
       y = prog[pc].imm;
       reg[prog[pc].rd] = x || y;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"andi")==0){
       x = reg[prog[pc].rs1];
       y = prog[pc].imm;
       reg[prog[pc].rd] = x && y;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"slli")==0){
       x = reg[prog[pc].rs1];
       y = prog[pc].imm;
       reg[prog[pc].rd] = x && y;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"srli")==0){
       u1 = reg[prog[pc].rs1];
       u2 = prog[pc].imm;
       reg[prog[pc].rd] = u1 >> u2;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"srai")==0){
       i1 = reg[prog[pc].rs1];
       i2 = prog[pc].imm;
@@ -153,52 +160,72 @@ void exec(struct Prog *prog,int *mem,int *reg,int *label,int pc_max){
       x = reg[prog[pc].rs1];
       y = reg[prog[pc].rs2];
       reg[prog[pc].rd] = x+y;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"sub")==0){
       x = reg[prog[pc].rs1];
       y = reg[prog[pc].rs2];
       reg[prog[pc].rd] = x - y;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"sll")==0){
       x = reg[prog[pc].rs1];
       y = reg[prog[pc].rs2];
       reg[prog[pc].rd] = x << y;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"slt")==0){
       i1 = reg[prog[pc].rs1];
       i2 = reg[prog[pc].rs2];
       reg[prog[pc].rd] = i1 < i2;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"sltu")==0){
       u1 = reg[prog[pc].rs1];
       u2 = reg[prog[pc].rs2];
       reg[prog[pc].rd] = u1 < u2;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"xor")==0){
       x = reg[prog[pc].rs1];
       y = reg[prog[pc].rs2];
       reg[prog[pc].rd] = (x && (!y)) || ((!x) && y);
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"srl")==0){
       u1 = reg[prog[pc].rs1];
       u2 = reg[prog[pc].rs2];
       reg[prog[pc].rd] = u1 >> u2;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"sra")==0){
       i1 = reg[prog[pc].rs1];
       i2 = reg[prog[pc].rs2];
       reg[prog[pc].rd] = i1 >> i2;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"or")==0){
       x = reg[prog[pc].rs1];
       y = reg[prog[pc].rs2];
       reg[prog[pc].rd] = x || y;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"and")==0){
       x = reg[prog[pc].rs1];
       y = reg[prog[pc].rs2];
       reg[prog[pc].rd] = x && y;
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"fence")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"fence.i")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"ecall")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"ebreak")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"csrrw")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"csrrs")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"csrrc")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"csrrwi")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"csrrsi")==0){
+	     pc = pc+4;
     }else if(strcmp(prog[pc].nmc,"csrrci")==0){
+     pc = pc+4;
     }
 
     for(i=0;i<32;i++)
