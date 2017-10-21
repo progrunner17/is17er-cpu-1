@@ -1,8 +1,9 @@
 `default_nettype none
 
 
-module usrt #(parameter base_addr = 32'h0000_0000) (
+module uart_loopback #(parameter base_addr = 32'h0000_0000) (
 	input wire  clk,    // Clock
+	input wire start,
 	input wire rst_n,  // Asynchronous reset active lo
 
 	// AXI4-lite master memory interface
@@ -31,8 +32,9 @@ module usrt #(parameter base_addr = 32'h0000_0000) (
     input wire [1:0]                 axi_rresp
 );
 
-u1 #(.base_addr(base_addr)) uart_loopback  (
+uart_loopback_sv #(.base_addr(base_addr)) uart_loopback_sv  (
 	.clk        (clk        ),
+	.start      (start),
 	.rst_n      (rst_n      ),
 	.axi_awvalid(axi_awvalid),
 	.axi_awready(axi_awready),
