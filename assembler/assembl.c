@@ -2,48 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-//opcode
-#define OP_LUI 		0b0110111
-#define OP_AUIPC 	0b0010111
-#define OP_JAL		0b1101111
-#define OP_JALR		0b1100111
-#define OP_BRANCH	0b1100011
-#define OP_LOAD		0b0000011
-#define OP_STORE	0b0100011
-#define OP_ALUI		0b0010011
-#define OP_ALU		0b0110011
-#define OP_MULDIV	0b0110011
-
-
-#define ALU_ADD 	0b000 // ALU_SUB
-#define ALU_SLL 	0b001
-#define ALU_SLT 	0b010
-#define ALU_SLTU 	0b011
-#define ALU_XOR 	0b100
-#define ALU_SRX 	0b101 //ALU_SRA and ALU_SRL
-#define ALU_OR 		0b110
-#define ALU_AND 	0b111
-
-//ctrl
-#define STORE_BYTE  0b000
-#define STORE_HALF	0b001
-#define STORE_WORD	0b010
-
-#define LOAD_BYTE_S 0b000
-#define LOAD_HALF_S	0b001
-#define LOAD_WORD	0b010
-#define LOAD_BYTE_Z	0b100
-#define LOAD_HALF_Z	0b101
-
-
-#define STATE_IDLE  0
-#define STATE_FD  	1
-#define STATE_DE  	2
-#define STATE_EW  	3
-#define STATE_WF  	4
-#define STATE_STOP  5
-
-
 #define HASHSIZE 10
 
 typedef struct list List;
@@ -179,6 +137,7 @@ int sign(int imm){
     else return 0;
 }
 
+//一周プログラムを読み込んでlabelをtableに格納
 void labelcheck(FILE *fp, List table[HASHSIZE]){
     char line[30], label[30];
     int index, lnum = 1;
@@ -198,7 +157,7 @@ int main(int argc, char *argv[])
 {
     FILE *in, *out;
     char buf[20];
-    char rd[5], rs1[5], rs2[5], imm[10], label[30];
+    char rd[5], rs[5], rs1[5], rs2[5], imm[10], label[30];
     List *hash[HASHSIZE];
     int line, linep, s, lnum = 1;
 
@@ -473,11 +432,9 @@ int main(int argc, char *argv[])
 
         else if (strcmp(buf, "flw") == 0) {
             fscanf(in, "%s", rd);
-            fscanf(in, "%s(%s)", imm, rs1);
-            fprintf(out, "%d%011d%05d010%05d0000111\n", sign(atoi(imm)), binary(atoi(imm)%2048), binary(atoi(rs1+1)), binary(atoi(rd+1)));
+            fscanf(in, "%s(%s)", imm, rs);
+            fprintf(out, "%d%011d%05d010%05d0000111\n", sign(atoi(imm)), binary(atoi(imm)%2048), binary(atoi(rs+1)), binary(atoi(rd+1)));
         }
-
-
         else if (strcmp(buf, "fsw") == 0) {
             fscanf(in, "%s", rs1);
             fscanf(in, "%s(%s)", imm, rs2);
@@ -485,103 +442,106 @@ int main(int argc, char *argv[])
         }
 
 
-        else if (strcmp(buf, "fadd.s") == 0) {
+        else if (strcmp(buf, "fadd") == 0) {
             fscanf(in, "%s", rd);
             fscanf(in, "%s", rs1);
             fscanf(in, "%s", rs2);
             fprintf(out, "0000000%05d%05d000%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
         }
-        else if (strcmp(buf, "fsub.s") == 0) {
+        else if (strcmp(buf, "fsub") == 0) {
             fscanf(in, "%s", rd);
             fscanf(in, "%s", rs1);
             fscanf(in, "%s", rs2);
             fprintf(out, "0000100%05d%05d000%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
         }
-        else if (strcmp(buf, "fmul.s") == 0) {
+        else if (strcmp(buf, "fmul") == 0) {
             fscanf(in, "%s", rd);
             fscanf(in, "%s", rs1);
             fscanf(in, "%s", rs2);
             fprintf(out, "0001000%05d%05d000%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
         }
-        else if (strcmp(buf, "fdiv.s") == 0) {
+        else if (strcmp(buf, "fdiv") == 0) {
             fscanf(in, "%s", rd);
             fscanf(in, "%s", rs1);
             fscanf(in, "%s", rs2);
             fprintf(out, "0001100%05d%05d000%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
         }
-        else if (strcmp(buf, "fsqrt.s") == 0) {
+
+
+        else if (strcmp(buf, "fsqrt") == 0) {
             fscanf(in, "%s", rd);
-            fscanf(in, "%s", rs1);
-            fprintf(out, "010110000000%05d000%05d1010011\n", binary(atoi(rs1+1)), binary(atoi(rd+1)));
+            fscanf(in, "%s", rs);
+            fprintf(out, "010110000000%05d000%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rd+1)));
         }
 
 
-        else if (strcmp(buf, "fmv.s") == 0) {
-            fscanf(in, "%s", rd);
-            fscanf(in, "%s", rs1);
-            fscanf(in, "%s", rs2);
-            fprintf(out, "0010000%05d%05d000%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
-        }
-        else if (strcmp(buf, "fneg.s") == 0) {
-            fscanf(in, "%s", rd);
-            fscanf(in, "%s", rs1);
-            fscanf(in, "%s", rs2);
-            fprintf(out, "0010000%05d%05d001%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
-        }
-        else if (strcmp(buf, "fabs.s") == 0) {
-            fscanf(in, "%s", rd);
-            fscanf(in, "%s", rs1);
-            fscanf(in, "%s", rs2);
-            fprintf(out, "0010000%05d%05d010%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
-        }
+        //else if (strcmp(buf, "fmv.s") == 0) {
+        //    fscanf(in, "%s", rd);
+        //    fscanf(in, "%s", rs);
+        //    fprintf(out, "0010000%05d%05d000%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
+        //}
 
 
-        else if (strcmp(buf, "fcvt.w.s") == 0) {
+        else if (strcmp(buf, "fabs") == 0) { //FSGNJX.S
             fscanf(in, "%s", rd);
-            fscanf(in, "%s", rs1);
-            fprintf(out, "110000000000%05d000%05d1010011\n", binary(atoi(rs1+1)), binary(atoi(rd+1)));
+            fscanf(in, "%s", rs);
+            fprintf(out, "0010001%05d%05d010%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rs+1)), binary(atoi(rd+1)));
+        }
+        else if (strcmp(buf, "fneg") == 0) { //FSGNJN.S
+            fscanf(in, "%s", rd);
+            fscanf(in, "%s", rs);
+            fprintf(out, "0010001%05d%05d001%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rs+1)), binary(atoi(rd+1)));
         }
 
 
-        else if (strcmp(buf, "fmv.x.w") == 0) {
-            fscanf(in, "%s", rd);
-            fscanf(in, "%s", rs1);
-            fprintf(out, "111000000000%05d000%05d1010011\n", binary(atoi(rs1+1)), binary(atoi(rd+1)));
-        }
-
-
-        else if (strcmp(buf, "feq.s") == 0) {
+        else if (strcmp(buf, "feq") == 0) {
             fscanf(in, "%s", rd);
             fscanf(in, "%s", rs1);
             fscanf(in, "%s", rs2);
-            fprintf(out, "1010000%05d%05d010%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
+            fprintf(out, "1010001%05d%05d010%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
         }
-        else if (strcmp(buf, "flt.s") == 0) {
+        else if (strcmp(buf, "flt") == 0) {
             fscanf(in, "%s", rd);
             fscanf(in, "%s", rs1);
             fscanf(in, "%s", rs2);
-            fprintf(out, "1010000%05d%05d001%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
+            fprintf(out, "1010001%05d%05d001%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
         }
-        else if (strcmp(buf, "fle.s") == 0) {
+        else if (strcmp(buf, "fle") == 0) {
             fscanf(in, "%s", rd);
             fscanf(in, "%s", rs1);
             fscanf(in, "%s", rs2);
-            fprintf(out, "1010000%05d%05d000%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
+            fprintf(out, "1010001%05d%05d000%05d1010011\n", binary(atoi(rs2+1)), binary(atoi(rs1+1)), binary(atoi(rd+1)));
         }
 
 
-        else if (strcmp(buf, "fcvt.s.w") == 0) {
+        else if (strcmp(buf, "itof") == 0) { //FCVT.S.W, RM = 000
             fscanf(in, "%s", rd);
-            fscanf(in, "%s", rs1);
-            fprintf(out, "110100000000%05d000%05d1010011\n", binary(atoi(rs1+1)), binary(atoi(rd+1)));
+            fscanf(in, "%s", rs);
+            fprintf(out, "110100000000%05d000%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rd+1)));
         }
-
-
-        else if (strcmp(buf, "fmv.w.x") == 0) {
+        else if (strcmp(buf, "floor") == 0) { //FCVT.S.W, RM = 010
             fscanf(in, "%s", rd);
-            fscanf(in, "%s", rs1);
-            fprintf(out, "111100000000%05d000%05d1010011\n", binary(atoi(rs1+1)), binary(atoi(rd+1)));
+            fscanf(in, "%s", rs);
+            fprintf(out, "110100000000%05d010%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rd+1)));
         }
+        else if (strcmp(buf, "ftoi") == 0) { //FCVT.W.S, RM = 000
+            fscanf(in, "%s", rd);
+            fscanf(in, "%s", rs);
+            fprintf(out, "110000000000%05d000%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rd+1)));
+        }
+
+
+        else if (strcmp(buf, "mvftoi") == 0) { //FMV.X.W
+            fscanf(in, "%s", rd);
+            fscanf(in, "%s", rs);
+            fprintf(out, "111000000000%05d000%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rd+1)));
+        }
+        else if (strcmp(buf, "mvitof") == 0) { //FMV.W.X
+            fscanf(in, "%s", rd);
+            fscanf(in, "%s", rs);
+            fprintf(out, "111100000000%05d000%05d1010011\n", binary(atoi(rs+1)), binary(atoi(rd+1)));
+        }
+
         else{
             lnum--;
         }
