@@ -204,7 +204,7 @@ let h { range = range; name = Id.L(x); args = ys; fargs = zs; body = e; ret = t 
       zs in
   let a =
     match t with
-    | Type.Unit -> Id.gentmp Type.Unit
+    | Type.Unit -> Id.genunit ()
     | Type.Float -> fregs.(0)
     | _ -> regs.(0) in
   let (e', regenv') = g (a, t) (range, Ans(range, Mr(a))) regenv e in
@@ -212,5 +212,5 @@ let h { range = range; name = Id.L(x); args = ys; fargs = zs; body = e; ret = t 
 
 let f (Prog(data, fundefs, e)) = (* プログラム全体のレジスタ割り当て (caml2html: regalloc_f) *)
   let fundefs' = List.map h fundefs in
-  let e', regenv' = g (Id.gentmp Type.Unit, Type.Unit) (None, Ans(None, Nop)) M.empty e in
+  let e', regenv' = g (Id.genunit (), Type.Unit) (None, Ans(None, Nop)) M.empty e in
   Prog(data, fundefs', e')

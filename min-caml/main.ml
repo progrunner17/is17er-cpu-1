@@ -22,10 +22,10 @@ let rec iter n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
   iter (n - 1) e'
 
 (* MATSUSHITA: print intermediate results *)
-let lexbuf outchan l = (* バッファをコンパイルしてチャンネルへ出力する (caml2html: main_lexbuf) *)
+let lexbuf outchan buf lines = (* バッファをコンパイルしてチャンネルへ出力する (caml2html: main_lexbuf) *)
   Id.counter := 0;
   Typing.extenv := M.empty;
-  Emit.f outchan
+  Emit.f outchan lines
     ((fun prog -> Printf.printf "[RegAlloc.f]\n%s\n\n" (Asm.show_prog prog)) <| RegAlloc.f
       ((fun prog -> Printf.printf "[Simm.f]\n%s\n\n" (Asm.show_prog prog)) <| Simm.f
         ((fun prog -> Printf.printf "[Virtual.f]\n%s\n\n" (Asm.show_prog prog)) <| Virtual.f
@@ -34,16 +34,20 @@ let lexbuf outchan l = (* バッファをコンパイルしてチャンネルへ出力する (caml2htm
               ((fun e -> Printf.printf "[Alpha.f]\n%s\n\n" (KNormal.show e)) <| Alpha.f
                 ((fun e -> Printf.printf "[KNormal.f]\n%s\n\n" (KNormal.show e)) <| KNormal.f
                   ((fun e -> Printf.printf "[Typing.f]\n%s\n\n" (Syntax.show e)) <| Typing.f
-                    (Parser.exp Lexer.token l)))))))))
-
-let string s = lexbuf stdout (Lexing.from_string s) (* 文字列をコンパイルして標準出力に表示する (caml2html: main_string) *)
+                    (Parser.exp Lexer.token buf)))))))))
 
 let file f = (* ファイルをコンパイルしてファイルに出力する (caml2html: main_file) *)
   let inchan = open_in (f ^ ".ml") in
   let outchan = open_out (f ^ ".s") in
+  let rec go () = try
+      let line = input_line inchan in
+      line :: go ()
+    with End_of_file -> [] in
+  let lines = Array.of_list (go ()) in
+  let _ = seek_in inchan 0 in
   let buf = Lexing.from_channel inchan in
   try
-    lexbuf outchan buf;
+    lexbuf outchan buf lines;
     close_in inchan;
     close_out outchan;
   with e -> close_in inchan; close_out outchan; raise e

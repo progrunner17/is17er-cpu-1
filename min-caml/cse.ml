@@ -9,6 +9,8 @@ module MB =
       let compare = compare
     end)
 
+(* MATSUSHITA added functions subst, get_ffs, effect and check *)
+
 (* y を y' へと置換する *)
 let rec subst y y' (range, body) =
   let q x = if x = y then y' else x in
@@ -57,11 +59,16 @@ let rec effect ffs (_, body) = match body with
   | Get _ | Put _ | ExtFunApp _ -> true
   | _ -> false
 
+(* 式が共通部分式削除にふさわしいかどうか *)
+let check (_, body) = match body with
+  | Unit | Int _  | Float _ -> true
+  | _ -> false
+
 let rec g ffs mb (range, body) = match body with
   | IfEq (range', x, x', e, e') -> range, IfEq (range', x, x', g ffs mb e, g ffs mb e')
   | IfLE (range', x, x', e, e') -> range, IfLE (range', x, x', g ffs mb e, g ffs mb e')
   | Let (range', (x, t), e, e') ->
-    if effect ffs e then range, Let (range', (x, t), e, g ffs mb e') else
+    if not (check e) || effect ffs e then range, Let (range', (x, t), e, g ffs mb e') else
     if MB.mem (snd e) mb then let x' = MB.find (snd e) mb in g ffs mb (subst x x' e') else
     range, Let (range', (x, t), e, g ffs (MB.add (snd e) x mb) e')
   | LetRec (range', f, e) -> range, LetRec(range', { f with body = g ffs mb f.body }, g ffs mb e)

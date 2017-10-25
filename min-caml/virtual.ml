@@ -41,7 +41,7 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
           let (l, _) = List.find (fun (_, d') -> d = d') !data in
           l
         with Not_found ->
-          let l = Id.L(Id.genid "l") in
+          let l = Id.L(Id.gentmpfloat ()) in
           data := (l, d) :: !data;
           l in
       range, Ans(range, FLi(l))

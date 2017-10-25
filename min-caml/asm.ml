@@ -58,8 +58,8 @@ and show_i = function
 and show_ebody = function
   | Nop -> "nop"
   | Li n -> "li "^string_of_int n
-  | FLi (Id.L x) -> "fli *"^x^"*"
-  | SetL (Id.L x) -> "setl *"^x^"*"
+  | FLi (Id.L x) -> "fli "^x
+  | SetL (Id.L x) -> "setl "^x
   | Mr x -> "mr "^x
   | Neg x -> "neg "^x
   | Add (x, i) -> "add "^x^" "^show_i i
@@ -106,16 +106,16 @@ and show_ebody = function
     let s3 = s2^"else"^H.down_right () in
     let s4 = s3^show e' in
     s4^H.left ()
-  | CallCls (f, xs, ys) -> "call "^f^show_args "int" xs^show_args "float" ys
-  | CallDir (Id.L f, xs, ys) -> "call *"^f^"*"^show_args "int" xs^show_args "float" ys
+  | CallCls (f, xs, ys) -> "call cls("^f^")"^show_args "int" xs^show_args "float" ys
+  | CallDir (Id.L f, xs, ys) -> "call "^f^show_args "int" xs^show_args "float" ys
   | Save (x, y) -> "save "^x^" "^y
   | Restore x -> "restore "^x
 
 (* MATSUSHITA: added show_prog function *)
 let show_prog (Prog (table, fundefs, e)) =
   H.sep "" (fun (Id.L x, a) -> "let_float "^x^" = "^string_of_float a^" in\n") table^
-  H.sep "" (fun {name = Id.L f; args = xs; fargs = ys; body = e; ret = t} ->
-    let s1 = "let_fun *"^f^"*"^show_args "int" xs^show_args "float" ys^" ="^H.down_right () in
+  H.sep "" (fun { range = range; name = Id.L f; args = xs; fargs = ys; body = e; ret = t} ->
+    let s1 = "let_fun ["^H.show_range range^"] "^f^show_args "int" xs^show_args "float" ys^" ="^H.down_right () in
     let s2 = s1^show e in
     let s3 = s2^H.down ()^":"^Type.show t in
     s3^" in"^H.down_left ()) fundefs^
@@ -124,7 +124,7 @@ let show_prog (Prog (table, fundefs, e)) =
 (* MATSUSHITA: added to arguments two H.range's *)
 let fletd(range, range', x, e1, e2) = range, Let(range', (x, Type.Float), e1, e2)
 (* MATSUSHITA: added to arguments two H.range's *)
-let seq(range, range', e1, e2) = range, Let(range', (Id.gentmp Type.Unit, Type.Unit), e1, e2)
+let seq(range, range', e1, e2) = range, Let(range', (Id.genunit (), Type.Unit), e1, e2)
 
 let regs = (* Array.init 27 (fun i -> Printf.sprintf "_R_%d" i) *)
   [| "%r2"; "%r5"; "%r6"; "%r7"; "%r8"; "%r9"; "%r10";

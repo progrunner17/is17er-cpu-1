@@ -100,7 +100,7 @@ let insert_let range ((range', body) as e, t) k = (* let¤òÁŞÆş¤¹¤ëÊä½õ´Ø¿ô (caml
   match body with
   | Var(x) -> k x
   | _ ->
-      let x = Id.gentmp t in
+      let x = Id.gentmprange range' in
       let e', t' = k x in
       (range, Let(range', (x, t), e, e')), t'
 
