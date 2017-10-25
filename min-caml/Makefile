@@ -4,6 +4,7 @@
 # min-camlとocamlでコンパイル・実行した結果を自動で比較します。
 
 RESULT = min-caml
+LIBS = str
 NCSUFFIX = .opt
 CC = gcc
 CFLAGS = -g -O2 -Wall

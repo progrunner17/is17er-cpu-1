@@ -41,7 +41,7 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
           let (l, _) = List.find (fun (_, d') -> d = d') !data in
           l
         with Not_found ->
-          let l = Id.L(Id.gentmpfloat ()) in
+          let l = Id.L(Id.genid "floatconst") in
           data := (l, d) :: !data;
           l in
       range, Ans(range, FLi(l))
@@ -79,13 +79,13 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
         expand
           (List.map (fun y -> (y, M.find y env)) ys)
           (4, e2')
-          (fun y offset store_fv -> seq(range, range', (range, Stfd(y, x, C(offset))), store_fv))
-          (fun y _ offset store_fv -> seq(range, range', (range, Stw(y, x, C(offset))), store_fv)) in
-      range, Let(range', (x, t), (range, Mr(reg_hp)),
-          (range, Let(range', (reg_hp, Type.Int), (range, Add(reg_hp, C(align offset))),
+          (fun y offset store_fv -> seq(range, range', (range', Stfd(y, x, C(offset))), store_fv))
+          (fun y _ offset store_fv -> seq(range, range', (range', Stw(y, x, C(offset))), store_fv)) in
+      range, Let(range', (x, t), (range', Mr(reg_hp)),
+          (range, Let(range', (reg_hp, Type.Int), (range', Add(reg_hp, C(align offset))),
               let z = Id.genid "l" in
-              (range, Let(range', (z, Type.Int), (range, SetL(l)),
-                  seq(range, range', (range, Stw(z, x, C(0))),
+              (range, Let(range', (z, Type.Int), (range', SetL(l)),
+                  seq(range, range', (range', Stw(z, x, C(0))),
                       store_fv))))))
   | Closure.AppCls(x, ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
@@ -112,10 +112,10 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
           (0, g (M.add_list xts env) e2)
           (fun x offset load ->
             if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
-            fletd(range, range', x, (range, Lfd(y, C(offset))), load))
+            fletd(range, range', x, (range', Lfd(y, C(offset))), load))
           (fun x t offset load ->
             if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
-            range, Let(range, (x, t), (range, Lwz(y, C(offset))), load)) in
+            range, Let(range', (x, t), (range', Lwz(y, C(offset))), load)) in
       load
   | Closure.Get(x, y) -> (* 配列の読み出し (caml2html: virtual_get) *)
       let offset = Id.genid "o" in

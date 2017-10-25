@@ -41,7 +41,7 @@ type fundef = { (* MATSUSHITA: added H.range *) range : H.range; name : Id.l; ar
 type prog = Prog of (Id.l * float) list * fundef list * t
 
 (* MATSUSHITA: added show_prog function *)
-val show_prog : prog -> string
+val show_prog : string array -> prog -> string
 
 (* MATSUSHITA: added to arguments two H.range's *)
 val fletd : H.range * H.range * Id.t * exp * t -> t (* shorthand of Let for float *)

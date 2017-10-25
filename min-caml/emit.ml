@@ -4,23 +4,15 @@ open Lexing
 external gethi : float -> int32 = "gethi"
 external getlo : float -> int32 = "getlo"
 
-(* MATSUSHITA: added comment_range lines function *)
+(* MATSUSHITA: added functions comment_range and comment_range' *)
+
 let comment_range lines range = match range with
   | None -> ""
-  | Some (pos, pos') -> "\t# "^H.show_range' (pos, pos')^"\t\""^
-      let l = pos.pos_lnum - 1 in
-      let l' = pos'.pos_lnum - 1 in
-      let c = pos.pos_cnum - pos.pos_bol in
-      let c' = pos'.pos_cnum - pos'.pos_bol in
-      let line = lines.(l) in
-      let line' = lines.(l') in
-      (if l = l' then
-        String.sub line c (c' - c)
-      else
-        String.concat "\\n" ([String.sub line c (String.length line - c)]
-        @ Array.to_list (Array.sub lines (l + 1) (l' - l - 1))
-        @ [String.sub line' 0 c']))
-      ^"\""
+  | _ -> "\t# "^H.show_range range^" \""^H.show_from_range lines range^"\""
+
+let comment_range' lines range = match range with
+  | None -> "#\n"
+  | _ -> "# "^H.show_range range^" \""^H.show_from_range lines range^"\""
 
 let stackset = ref S.empty (* すでにSaveされた変数の集合 (caml2html: emit_stackset) *)
 let stackmap = ref [] (* Saveされた変数の、スタックにおける位置 (caml2html: emit_stackmap) *)
@@ -32,7 +24,7 @@ let savef x =
   stackset := S.add x !stackset;
   if not (List.mem x !stackmap) then
     (let pad =
-      if List.length !stackmap mod 2 = 0 then [] else [Id.gentmpint ()] in
+      if List.length !stackmap mod 2 = 0 then [] else [Id.genid "paddingint"] in
     stackmap := !stackmap @ pad @ [x; x])
 let locate x =
   let rec loc = function
@@ -238,7 +230,7 @@ and g' range oc lines (dest, ((_, body) as exp)) = match (dest, body) with (* �
 and g'_tail_if range oc lines ((range1, _) as e1) ((range2, _) as e2) b bn =
   let b_else = Id.genid (b ^ "_else") in
   Printf.fprintf oc "\t%s\tcr7, %s%s\n" bn b_else (comment_range lines range);
-  Printf.fprintf oc "#\t%s\n" (H.show_range range1);
+  output_string oc (comment_range' lines range1);
   let stackset_back = !stackset in
   g oc lines (Tail, e1);
   Printf.fprintf oc "%s:%s\n" b_else (comment_range lines range2);
@@ -249,7 +241,7 @@ and g'_non_tail_if range oc lines dest ((range1, _) as e1) ((range2, _) as e2) b
   let b_else = Id.genid (b ^ "_else") in
   let b_cont = Id.genid (b ^ "_cont") in
   Printf.fprintf oc "\t%s\tcr7, %s%s\n" bn b_else (comment_range lines range);
-  Printf.fprintf oc "#\t%s\n" (H.show_range range1);
+  output_string oc (comment_range' lines range1);
   let stackset_back = !stackset in
   g oc lines (dest, e1);
   let stackset1 = !stackset in

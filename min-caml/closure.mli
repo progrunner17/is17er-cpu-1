@@ -32,7 +32,7 @@ type fundef = { range : H.range; (* MATSUSHITA: added H.range *)
                 body : t }
 type prog = Prog of fundef list * t
 
-val show_prog : prog -> string
+val show_prog : string array -> prog -> string
 
 val fv : t -> S.t
 val f : KNormal.t -> prog

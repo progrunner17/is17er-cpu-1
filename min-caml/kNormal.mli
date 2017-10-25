@@ -27,7 +27,7 @@ and body =
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added show function *)
-val show : t -> string
+val show : string array -> t -> string
 
 val fv : t -> S.t
 val f : Syntax.t -> t
