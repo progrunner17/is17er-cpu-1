@@ -2,12 +2,12 @@ open Asm
 
 let rec g env (range, body) = match body with (* 命令列の16bit即値最適化 (caml2html: simm13_g) *)
   | Ans(exp) -> range, Ans(g' env exp)
-  | Let(range', (x, t), (range, Li(i)), e) when -32768 <= i && i < 32768 ->
+  | Let(range', (x, t), (range'', Li(i)), e) when -32768 <= i && i < 32768 ->
       let e' = g (M.add x i env) e in
-      if List.mem x (fv e') then range, Let(range', (x, t), (range, Li(i)), e') else
-      (e')
-  | Let(range', xt, (range, Slw(y, C(i))), e) when M.mem y env -> (* for array access *)
-      g env (range, Let(range', xt, (range, Li((M.find y env) lsl i)), e))
+      if List.mem x (fv e') then range, Let(range', (x, t), (range'', Li(i)), e') else
+      e'
+  | Let(range', xt, (range'', Slw(y, C(i))), e) when M.mem y env -> (* for array access *)
+      g env (range, Let(range', xt, (range'', Li((M.find y env) lsl i)), e))
   | Let(range', xt, exp, e) -> range, Let(range', xt, g' env exp, g env e)
 and g' env ((range, body) as e) = match body with (* 各命令の16bit即値最適化 (caml2html: simm13_gprime) *)
   | Add(x, V(y)) when M.mem y env -> range, Add(x, C(M.find y env))

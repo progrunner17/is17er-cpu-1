@@ -1,5 +1,9 @@
-let   rec   ack   x   y   =
-      if   x   <=   0   then   y   +   1   else
-      if   y   <=   0   then   ack   (x   -   1)   1   else
-      ack   (x   -   1)   (ack   x   (y   -   1))   in
-print_int   (ack               3   10)
+let rec f x y z = x *. y +. (x *. y -. z) *. (x *. y -. z) in
+let rec g x y = f x y 2. *. f x y 2. in
+let rec h x =
+  let rec k x = print_int x; x in
+  k x + k x in
+print_float (g 3. 5.);
+print_float (g 3. 5.);
+print_int (h 5);
+print_int (h 5)

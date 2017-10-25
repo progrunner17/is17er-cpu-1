@@ -8,11 +8,11 @@ external getlo : float -> int32 = "getlo"
 
 let comment_range lines range = match range with
   | None -> ""
-  | _ -> "\t# "^H.show_range range^" \""^H.show_from_range lines range^"\""
+  | _ -> "\t# "^H.show_from_range lines range
 
 let comment_range' lines range = match range with
   | None -> "#\n"
-  | _ -> "# "^H.show_range range^" \""^H.show_from_range lines range^"\""
+  | _ -> "# "^H.show_from_range lines range^"\n"
 
 let stackset = ref S.empty (* すでにSaveされた変数の集合 (caml2html: emit_stackset) *)
 let stackmap = ref [] (* Saveされた変数の、スタックにおける位置 (caml2html: emit_stackmap) *)

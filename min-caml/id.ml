@@ -12,6 +12,6 @@ let genid s =
   let t = try String.sub s 0 (String.rindex s '.') with Not_found -> s in
   Printf.sprintf "%s.%d" t !counter
 
-(* MATSUSHITA: deleted id_of_typ and gentmp and added genunit and gentmprange *)
+(* MATSUSHITA: deleted function id_of_typ and added function genunit *)
 let genunit () = incr counter; Printf.sprintf "().%d" !counter
-let gentmprange range = incr counter; Printf.sprintf "tmp.%s.%d" (H.show_range range) !counter
+let gentmp () = incr counter; Printf.sprintf "tmp.%d" !counter

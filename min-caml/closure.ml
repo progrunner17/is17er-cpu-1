@@ -34,7 +34,7 @@ type prog = Prog of fundef list * t
 
 (* MATSUSHITA: added functions show and show_prog *)
 
-let rec show lines (range, body) = "["^H.show_range range^"] "^match body with
+let rec show lines (range, body) = match body with
   | Unit -> "()"^H.show_from_range' lines range
   | Int n -> string_of_int n^H.show_from_range' lines range
   | Float a -> string_of_float a^H.show_from_range' lines range
@@ -47,26 +47,28 @@ let rec show lines (range, body) = "["^H.show_range range^"] "^match body with
   | FMul (x, x') -> x^" *. "^x'^H.show_from_range' lines range
   | FDiv (x, x') -> x^" /. "^x'^H.show_from_range' lines range
   | IfEq (range', x, x', e, e') ->
-      let s1 = "if ["^H.show_range range'^"] "^x^" = "^x'^" then"^H.show_from_range' lines range'^H.down_right () in
+      let s1 = "if "^x^" = "^x'^H.show_from_range' lines range'
+        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
       let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else "^H.down_right () in
+      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
       let s5 = s4^show lines e' in
       s5^H.left ()
   | IfLE (range', x, x', e, e') ->
-      let s1 = "if ["^H.show_range range'^"] "^x^" <= "^x'^" then"^H.show_from_range' lines range'^H.down_right () in
+      let s1 = "if "^x^" <= "^x'^H.show_from_range' lines range'
+        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
       let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else "^H.down_right () in
+      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
       let s5 = s4^show lines e' in
       s5^H.left ()
   | Let (range', (x, t), e, e') ->
-      let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" = "^show lines e^" in" in
+      let s1 = "let "^x^":"^Type.show t^" = "^show lines e^" in" in
       let s2 = s1^H.down () in
       s2^show lines e'
   | Var x -> x^H.show_from_range' lines range
   | MakeCls (range', (f, t), {entry = Id.L y; actual_fv = lxs}, e) ->
-      let s1 = "let_cls ["^H.show_range range'^"] (cls("^f^"):"^Type.show t^") = "
+      let s1 = "let_cls (cls("^f^"):"^Type.show t^") = "
         ^y^(if lxs = [] then " " else " <"^String.concat ", " lxs^"> ")
         ^H.show_from_range' lines range'^"in"^H.down () in
       s1^show lines e
@@ -74,7 +76,7 @@ let rec show lines (range, body) = "["^H.show_range range^"] "^match body with
   | AppDir (Id.L x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
   | Tuple xs -> "("^String.concat ", " xs^")"^H.show_from_range' lines range
   | LetTuple (range', xts, x, e) ->
-      let s1 = "let ["^H.show_range range'^"] ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
+      let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
         ^x^H.show_from_range' lines range'^" in"^H.down () in
       s1^show lines e
   | Get (x, x') -> x^".("^x'^")"^H.show_from_range' lines range
@@ -83,7 +85,7 @@ let rec show lines (range, body) = "["^H.show_range range^"] "^match body with
 
 let show_prog lines (Prog (fs, e)) =
   let s1 = H.sep "" (fun {range = range; name = Id.L f, t; args = xts; formal_fv = yts; body = e} ->
-    let s1 = "let_fun ["^H.show_range range^"] ("^f^":"^Type.show t^") "
+    let s1 = "let_fun ("^f^":"^Type.show t^") "
       ^(if yts = [] then "" else "<"^H.sep ", " (fun (x, t) -> x^":"^Type.show t) yts^"> ")
       ^H.sep " " (fun (x, t) -> "("^x^":"^Type.show t^")") xts^" ="
       ^H.show_from_range' lines range^H.down_right () in
