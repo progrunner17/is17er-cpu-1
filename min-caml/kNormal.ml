@@ -28,7 +28,7 @@ and body =
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
-(* MATSUSHITA: added function show *)
+(* MATSUSHITA: added functions show and subst *)
 
 let rec show lines (range, body) = match body with
   | Unit -> "()"^H.show_from_range' lines range
@@ -66,7 +66,8 @@ let rec show lines (range, body) = match body with
         let s3 = s2^H.down_left () in
         s3^show lines e'
       | _ ->
-        let s1 = "let "^x^":"^Type.show t^" = "^show lines e^" in" in
+        let s1 = "let "^x^":"^Type.show t
+          ^H.show_from_range' lines range'^" = "^show lines e^" in" in
         let s2 = s1^H.down () in
         s2^show lines e')
   | Var x -> x^H.show_from_range' lines range
@@ -87,6 +88,32 @@ let rec show lines (range, body) = match body with
   | ExtArray x -> "*"^x^"*"^H.show_from_range' lines range
   | ExtFunApp (x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
 
+(* env により変数を置換する *)
+let rec subst env (range, body) =
+  let q x = try M.find x env with Not_found -> x in
+  match body with
+  | Unit | Int _ | Float _ -> range, body
+  | Neg x -> range, Neg (q x)
+  | Add (x, x') -> range, Add (q x, q x')
+  | Sub (x, x') -> range, Sub (q x, q x')
+  | FNeg x -> range, FNeg (q x)
+  | FAdd (x, x') -> range, FAdd (q x, q x')
+  | FSub (x, x') -> range, FSub (q x, q x')
+  | FMul (x, x') -> range, FMul (q x, q x')
+  | FDiv (x, x') -> range, FDiv (q x, q x')
+  | IfEq (range', x, x', e, e') -> range, IfEq (range', q x, q x', subst env e, subst env e')
+  | IfLE (range', x, x', e, e') -> range, IfLE (range', q x, q x', subst env e, subst env e')
+  | Let (range', (x, t), e, e') -> range, Let (range', (x, t), subst env e, subst env e')
+  | Var x -> range, Var (q x)
+  | LetRec (range', f, e) -> range, LetRec(range', { f with body = subst env f.body }, subst env e)
+  | App (x, xs) -> range, App (q x, List.map (fun x -> q x) xs)
+  | Tuple xs -> range, Tuple (List.map (fun x -> q x) xs)
+  | LetTuple (range', xts, x, e) -> range, LetTuple(range', xts, q x, subst env e)
+  | Get (x, x') -> range, Get (q x, q x')
+  | Put (x, x', x'') -> range, Put (q x, q x', q x'')
+  | ExtArray x -> range, ExtArray (q x)
+  | ExtFunApp (x, xs) -> range, ExtFunApp (q x, List.map (fun x -> q x) xs)
+
 let rec fv (_, body) = match body with (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
   | Neg(x) | FNeg(x) -> S.singleton x
@@ -102,13 +129,13 @@ let rec fv (_, body) = match body with (* 式に出現する（自由な）変数 (caml2html:
   | Put(x, y, z) -> S.of_list [x; y; z]
   | LetTuple(_, xs, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xs)))
 
-let insert_let range ((range', body) as e, t) k = (* letを挿入する補助関数 (caml2html: knormal_insert) *)
+let insert_let range ((_, body) as e, t) k = (* letを挿入する補助関数 (caml2html: knormal_insert) *)
   match body with
   | Var(x) -> k x
   | _ ->
       let x = Id.gentmp () in
       let e', t' = k x in
-      (range, Let(range', (x, t), e, e')), t'
+      (range, Let(None, (x, t), e, e')), t'
 
 let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html: knormal_g) *)
   | Syntax.Unit -> (range, Unit), Type.Unit

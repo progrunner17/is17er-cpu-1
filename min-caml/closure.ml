@@ -63,17 +63,17 @@ let rec show lines (range, body) = match body with
       let s5 = s4^show lines e' in
       s5^H.left ()
   | Let (range', (x, t), e, e') ->
-      let s1 = "let "^x^":"^Type.show t^" = "^show lines e^" in" in
+      let s1 = "let "^x^":"^Type.show t^H.show_from_range' lines range'^" = "^show lines e^" in" in
       let s2 = s1^H.down () in
       s2^show lines e'
   | Var x -> x^H.show_from_range' lines range
   | MakeCls (range', (f, t), {entry = Id.L y; actual_fv = lxs}, e) ->
-      let s1 = "let_cls (cls("^f^"):"^Type.show t^") = "
-        ^y^(if lxs = [] then " " else " <"^String.concat ", " lxs^"> ")
-        ^H.show_from_range' lines range'^"in"^H.down () in
+      let s1 = "let_cls "^f^":"^Type.show t
+        ^" = *"^y^"*"^(if lxs = [] then "" else " <"^String.concat ", " lxs^">")
+        ^H.show_from_range' lines range'^" in"^H.down () in
       s1^show lines e
-  | AppCls (x, xs) -> "cls("^x^")"^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
-  | AppDir (Id.L x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
+  | AppCls (x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
+  | AppDir (Id.L x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
   | Tuple xs -> "("^String.concat ", " xs^")"^H.show_from_range' lines range
   | LetTuple (range', xts, x, e) ->
       let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
@@ -85,7 +85,7 @@ let rec show lines (range, body) = match body with
 
 let show_prog lines (Prog (fs, e)) =
   let s1 = H.sep "" (fun {range = range; name = Id.L f, t; args = xts; formal_fv = yts; body = e} ->
-    let s1 = "let_fun ("^f^":"^Type.show t^") "
+    let s1 = "let_fun (*"^f^"*:"^Type.show t^") "
       ^(if yts = [] then "" else "<"^H.sep ", " (fun (x, t) -> x^":"^Type.show t) yts^"> ")
       ^H.sep " " (fun (x, t) -> "("^x^":"^Type.show t^")") xts^" ="
       ^H.show_from_range' lines range^H.down_right () in
@@ -153,10 +153,8 @@ let rec g env known (range, body) = match body with (* クロージャ変換ル�
       if S.mem x (fv e2') then (* xが変数としてe2'に出現するか *)
         range, MakeCls(range', (x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* 出現していたら削除しない *)
       else
-        let _ = Printf.printf "Eliminating a closure %s\n" x in
         e2' (* 出現しなければMakeClsを削除 *)
   | KNormal.App(x, ys) when S.mem x known -> (* 関数適用の場合 (caml2html: closure_app) *)
-      Printf.printf "Directly applying %s\n" x;
       range, AppDir(Id.L(x), ys)
   | KNormal.App(f, xs) -> range, AppCls(f, xs)
   | KNormal.Tuple(xs) -> range, Tuple(xs)

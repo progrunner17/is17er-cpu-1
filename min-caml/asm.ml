@@ -49,7 +49,7 @@ let show_args prefix xs = if xs = [] then "" else " "^prefix^"("^String.concat "
 let rec show lines (range, body) = match body with
   | Ans (range', ebody) -> show_ebody lines range' ebody
   | Let (range', (x, t), (range'', ebody), e) ->
-    let s1 = "let "^x^":"^Type.show t^" = "^show_ebody lines range'' ebody in
+    let s1 = "let "^x^":"^Type.show t^H.show_from_range' lines range'^" = "^show_ebody lines range'' ebody in
     let s2 = s1^" in"^H.down () in
     s2^show lines e
 and show_i = function
@@ -116,15 +116,15 @@ and show_ebody lines range = function
     let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
     let s5 = s4^show lines e' in
     s5^H.left ()
-  | CallCls (f, xs, ys) -> "call cls("^f^")"^show_args "int" xs^show_args "float" ys^H.show_from_range' lines range
-  | CallDir (Id.L f, xs, ys) -> "call "^f^show_args "int" xs^show_args "float" ys^H.show_from_range' lines range
+  | CallCls (f, xs, ys) -> "call "^f^show_args "int" xs^show_args "float" ys^H.show_from_range' lines range
+  | CallDir (Id.L f, xs, ys) -> "call *"^f^"*"^show_args "int" xs^show_args "float" ys^H.show_from_range' lines range
   | Save (x, y) -> "save "^x^" "^y^H.show_from_range' lines range
   | Restore x -> "restore "^x^H.show_from_range' lines range
 
 let show_prog lines (Prog (table, fundefs, e)) =
   H.sep "" (fun (Id.L x, a) -> "let_float "^x^" = "^string_of_float a^" in\n") table^
   H.sep "" (fun { range = range; name = Id.L f; args = xs; fargs = ys; body = e; ret = t} ->
-    let s1 = "let_fun "^f^show_args "int" xs^show_args "float" ys
+    let s1 = "let_fun *"^f^"*"^show_args "int" xs^show_args "float" ys
       ^" ="^H.show_from_range' lines range^H.down_right () in
     let s2 = s1^show lines e in
     let s3 = s2^H.down ()^":"^Type.show t in
@@ -133,8 +133,8 @@ let show_prog lines (Prog (table, fundefs, e)) =
 
 (* MATSUSHITA: added to arguments two H.range's *)
 let fletd(range, range', x, e1, e2) = range, Let(range', (x, Type.Float), e1, e2)
-(* MATSUSHITA: added to arguments two H.range's *)
-let seq(range, range', e1, e2) = range, Let(range', (Id.genunit (), Type.Unit), e1, e2)
+(* MATSUSHITA: added to arguments H.range *)
+let seq(range, e1, e2) = range, Let(None, (Id.genunit (), Type.Unit), e1, e2)
 
 let regs = (* Array.init 27 (fun i -> Printf.sprintf "_R_%d" i) *)
   [| "%r2"; "%r5"; "%r6"; "%r7"; "%r8"; "%r9"; "%r10";

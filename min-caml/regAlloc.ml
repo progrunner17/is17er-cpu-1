@@ -106,14 +106,14 @@ let rec g dest cont regenv (range, body) = match body with (* 命令列のレジ
           let save = range,
             try Save(M.find y regenv, y)
             with Not_found -> Nop in
-          (seq(range, range', save, concat range range' e1' (r, t) e2'), regenv2)
+          (seq(range, save, concat range range' e1' (r, t) e2'), regenv2)
       | Alloc(r) ->
           let (e2', regenv2) = g dest cont (add x r regenv1) e in
           (concat range range' e1' (r, t) e2', regenv2))
 and g'_and_restore range range' dest cont regenv exp = (* 使用される変数をスタックからレジスタへRestore (caml2html: regalloc_unspill) *)
   try g' dest cont regenv exp
   with NoReg(x, t) ->
-    (g dest cont regenv (range, Let(range', (x, t), (range', Restore(x)), (fst exp, Ans(exp)))))
+    (g dest cont regenv (range, Let(None, (x, t), (fst exp, Restore(x)), (fst exp, Ans(exp)))))
 and g' dest cont regenv (range, body) = match body with (* 各命令のレジスタ割り当て (caml2html: regalloc_gprime) *)
   | Nop | Li _ | SetL _ | Comment _ | Restore _ | FLi _ as exp -> ((range, Ans(range, exp)), regenv)
   | Mr(x) -> ((range, Ans(range, Mr(find x Type.Int regenv))), regenv)
@@ -165,7 +165,7 @@ and g'_if range range' dest cont regenv exp constr e1 e2 = (* ifのレジスタ�
   (List.fold_left
      (fun e x ->
        if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
-       seq(range, range', (range, Save(M.find x regenv, x)), e)) (* そうでない変数は分岐直前にセーブ *)
+       seq(range, (range, Save(M.find x regenv, x)), e)) (* そうでない変数は分岐直前にセーブ *)
      (range, Ans(range, constr e1' e2'))
      (fv cont),
    regenv')
@@ -173,7 +173,7 @@ and g'_call range dest cont regenv exp constr ys zs = (* 関数呼び出しの�
   (List.fold_left
      (fun e x ->
        if x = fst dest || not (M.mem x regenv) then e else
-       seq(range, range, (range, Save(M.find x regenv, x)), e))
+       seq(range, (range, Save(M.find x regenv, x)), e))
      (range, Ans(range, constr
             (List.map (fun y -> find y Type.Int regenv) ys)
             (List.map (fun z -> find z Type.Float regenv) zs)))

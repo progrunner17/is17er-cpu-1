@@ -51,8 +51,9 @@ let rec g ffs (range, body) = match body with
       let e' = g ffs e in
       let live = fv e' in
       if List.exists (fun x -> S.mem x live) xs then range, LetTuple(range', xts, y, e') else
-      (Printf.printf "Eliminating variables %s" (Id.pp_list xs);
-       e')
+      let _ = Printf.printf "Eliminating variable%s %s"
+        (if List.length xs = 1 then "" else "s") (Id.pp_list xs) in
+      e'
   | _ -> range, body
 
 let f e = g (get_ffs e) e

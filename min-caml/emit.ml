@@ -11,8 +11,8 @@ let comment_range lines range = match range with
   | _ -> "\t# "^H.show_from_range lines range
 
 let comment_range' lines range = match range with
-  | None -> "#\n"
-  | _ -> "# "^H.show_from_range lines range^"\n"
+  | None -> ""
+  | _ -> "\t"^H.show_from_range lines range
 
 let stackset = ref S.empty (* すでにSaveされた変数の集合 (caml2html: emit_stackset) *)
 let stackmap = ref [] (* Saveされた変数の、スタックにおける位置 (caml2html: emit_stackmap) *)
@@ -63,13 +63,13 @@ let rec shuffle sw xys =
   | xys, acyc -> acyc @ shuffle sw xys
 
 type dest = Tail | NonTail of Id.t (* 末尾かどうかを表すデータ型 (caml2html: emit_dest) *)
-let rec g oc lines (dest, (range, body)) = match body with (* 命令列のアセンブリ生成 (caml2html: emit_g) *)
-  | Ans(exp) -> g' range oc lines (dest, exp)
+let rec g oc lines (dest, (_, body)) = match body with (* 命令列のアセンブリ生成 (caml2html: emit_g) *)
+  | Ans(exp) -> g' oc lines (dest, exp)
   | Let(range', (x, t), exp, e) ->
-      g' range' oc lines (NonTail(x), exp);
+      g' oc lines (NonTail(x), exp);
       g oc lines (dest, e)
 (* MATSUSHITA: added range comments *)
-and g' range oc lines (dest, ((_, body) as exp)) = match (dest, body) with (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
+and g' oc lines (dest, ((range, body) as exp)) = match (dest, body) with (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
   | NonTail(_), Nop -> ()
   | NonTail(x), Li(i) when -32768 <= i && i < 32768 -> Printf.fprintf oc "\tli\t%s, %d%s\n" (reg x) i (comment_range lines range)
@@ -126,18 +126,18 @@ and g' range oc lines (dest, ((_, body) as exp)) = match (dest, body) with (* �
       Printf.fprintf oc "\tlfd\t%s, %d(%s)%s\n" (reg x) (offset y) (reg reg_sp) (comment_range lines range)
   (* 末尾だったら計算結果を第一レジスタにセットしてリターン (caml2html: emit_tailret) *)
   | Tail, (Nop | Stw _ | Stfd _ | Comment _ | Save _) ->
-      g' range oc lines (NonTail(Id.genunit ()), exp);
+      g' oc lines (NonTail(Id.genunit ()), exp);
       Printf.fprintf oc "\tblr%s\n" (comment_range lines range);
   | Tail, (Li _ | SetL _ | Mr _ | Neg _ | Add _ | Sub _ | Slw _ | Lwz _) ->
-      g' range oc lines (NonTail(regs.(0)), exp);
+      g' oc lines (NonTail(regs.(0)), exp);
       Printf.fprintf oc "\tblr%s\n" (comment_range lines range);
   | Tail, (FLi _ | FMr _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | Lfd _) ->
-      g' range oc lines (NonTail(fregs.(0)), exp);
+      g' oc lines (NonTail(fregs.(0)), exp);
       Printf.fprintf oc "\tblr%s\n" (comment_range lines range);
   | Tail, Restore(x) ->
       (match locate x with
-      | [i] -> g' range oc lines (NonTail(regs.(0)), exp)
-      | [i; j] when i + 1 = j -> g' range oc lines (NonTail(fregs.(0)), exp)
+      | [i] -> g' oc lines (NonTail(regs.(0)), exp)
+      | [i; j] when i + 1 = j -> g' oc lines (NonTail(fregs.(0)), exp)
       | _ -> assert false);
       Printf.fprintf oc "\tblr%s\n" (comment_range lines range);
   | Tail, IfEq(range', x, V(y), e1, e2) ->
@@ -228,9 +228,9 @@ and g' range oc lines (dest, ((_, body) as exp)) = match (dest, body) with (* �
       Printf.fprintf oc "\tmtlr\t%s%s\n" (reg reg_tmp) (comment_range lines range)
 (* MATSUSHITA: added range comments *)
 and g'_tail_if range oc lines ((range1, _) as e1) ((range2, _) as e2) b bn =
-  let b_else = Id.genid (b ^ "_else") in
+  let b_else = Id.genid bn in
   Printf.fprintf oc "\t%s\tcr7, %s%s\n" bn b_else (comment_range lines range);
-  output_string oc (comment_range' lines range1);
+  Printf.fprintf oc "# %s:%s\n" b (comment_range' lines range1);
   let stackset_back = !stackset in
   g oc lines (Tail, e1);
   Printf.fprintf oc "%s:%s\n" b_else (comment_range lines range2);
@@ -238,10 +238,10 @@ and g'_tail_if range oc lines ((range1, _) as e1) ((range2, _) as e2) b bn =
   g oc lines (Tail, e2)
 (* MATSUSHITA: added range comments *)
 and g'_non_tail_if range oc lines dest ((range1, _) as e1) ((range2, _) as e2) b bn =
-  let b_else = Id.genid (b ^ "_else") in
-  let b_cont = Id.genid (b ^ "_cont") in
+  let b_else = Id.genid bn in
+  let b_cont = Id.genid "cont" in
   Printf.fprintf oc "\t%s\tcr7, %s%s\n" bn b_else (comment_range lines range);
-  output_string oc (comment_range' lines range1);
+  Printf.fprintf oc "# %s:%s\n" b (comment_range' lines range1);
   let stackset_back = !stackset in
   g oc lines (dest, e1);
   let stackset1 = !stackset in
@@ -249,7 +249,7 @@ and g'_non_tail_if range oc lines dest ((range1, _) as e1) ((range2, _) as e2) b
   Printf.fprintf oc "%s:%s\n" b_else (comment_range lines range2);
   stackset := stackset_back;
   g oc lines (dest, e2);
-  Printf.fprintf oc "%s:%s\n" b_cont (comment_range lines range);
+  Printf.fprintf oc "%s:\n" b_cont;
   let stackset2 = !stackset in
   stackset := S.inter stackset1 stackset2
 (* MATSUSHITA: added range comments *)
