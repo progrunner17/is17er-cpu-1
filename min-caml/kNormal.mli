@@ -26,8 +26,9 @@ and body =
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
-(* MATSUSHITA: added show function *)
-val show : t -> string
+(* MATSUSHITA: added functions show and subst *)
+val show : string array -> t -> string
+val subst : Id.t M.t -> t -> t
 
 val fv : t -> S.t
 val f : Syntax.t -> t

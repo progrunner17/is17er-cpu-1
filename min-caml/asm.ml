@@ -42,89 +42,99 @@ and ebody =
 type fundef = { (* MATSUSHITA: added H.range *) range : H.range; name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
 type prog = Prog of (Id.l * float) list * fundef list * t
 
-(* MATSUSHITA: added show_args function *)
+(* MATSUSHITA: added functions show_args, show, show_i, show_ebody and show_prog *)
+
 let show_args prefix xs = if xs = [] then "" else " "^prefix^"("^String.concat ", " xs^")"
 
-(* MATSUSHITA: added show function *)
-let rec show (range, body) = "["^H.show_range range^"] "^match body with
-  | Ans (_, ebody) -> show_ebody ebody
+let rec show lines (range, body) = match body with
+  | Ans (range', ebody) -> show_ebody lines range' ebody
   | Let (range', (x, t), (range'', ebody), e) ->
-    let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" = ["^H.show_range range''^"] "^show_ebody ebody in
+    let s1 = "let "^x^":"^Type.show t^H.show_from_range' lines range'^" = "^show_ebody lines range'' ebody in
     let s2 = s1^" in"^H.down () in
-    s2^show e
+    s2^show lines e
 and show_i = function
   | V x -> x
   | C n -> string_of_int n
-and show_ebody = function
-  | Nop -> "nop"
-  | Li n -> "li "^string_of_int n
-  | FLi (Id.L x) -> "fli *"^x^"*"
-  | SetL (Id.L x) -> "setl *"^x^"*"
-  | Mr x -> "mr "^x
-  | Neg x -> "neg "^x
-  | Add (x, i) -> "add "^x^" "^show_i i
-  | Sub (x, i) -> "sub "^x^" "^show_i i
-  | Slw (x, i) -> "slw "^x^" "^show_i i
-  | Lwz (x, i) -> "lwz "^x^" "^show_i i
-  | Stw (x, y, i) -> "stw "^x^" "^y^" "^show_i i
-  | FMr x -> "fmr "^x
-  | FNeg x -> "fneg "^x
-  | FAdd (x, y) -> "fadd "^x^" "^y
-  | FSub (x, y) -> "fsub "^x^" "^y
-  | FMul (x, y) -> "fmul "^x^" "^y
-  | FDiv (x, y) -> "fdiv "^x^" "^y
-  | Lfd (x, i) -> "lfd "^x^" "^show_i i
-  | Stfd (x, y, i) -> "stfd "^x^" "^y^" "^show_i i
-  | Comment s -> "# "^s
+and show_ebody lines range = function
+  | Nop -> "nop"^H.show_from_range' lines range
+  | Li n -> "li "^string_of_int n^H.show_from_range' lines range
+  | FLi (Id.L x) -> "fli "^x^H.show_from_range' lines range
+  | SetL (Id.L x) -> "setl "^x^H.show_from_range' lines range
+  | Mr x -> "mr "^x^H.show_from_range' lines range
+  | Neg x -> "neg "^x^H.show_from_range' lines range
+  | Add (x, i) -> "add "^x^" "^show_i i^H.show_from_range' lines range
+  | Sub (x, i) -> "sub "^x^" "^show_i i^H.show_from_range' lines range
+  | Slw (x, i) -> "slw "^x^" "^show_i i^H.show_from_range' lines range
+  | Lwz (x, i) -> "lwz "^x^"("^show_i i^")"^H.show_from_range' lines range
+  | Stw (x, y, i) -> "stw "^x^" "^y^"("^show_i i^")"^H.show_from_range' lines range
+  | FMr x -> "fmr "^x^H.show_from_range' lines range
+  | FNeg x -> "fneg "^x^H.show_from_range' lines range
+  | FAdd (x, y) -> "fadd "^x^" "^y^H.show_from_range' lines range
+  | FSub (x, y) -> "fsub "^x^" "^y^H.show_from_range' lines range
+  | FMul (x, y) -> "fmul "^x^" "^y^H.show_from_range' lines range
+  | FDiv (x, y) -> "fdiv "^x^" "^y^H.show_from_range' lines range
+  | Lfd (x, i) -> "lfd "^x^"("^show_i i^")"^H.show_from_range' lines range
+  | Stfd (x, y, i) -> "stfd "^x^" "^y^"("^show_i i^")"^H.show_from_range' lines range
+  | Comment s -> "(* "^s^" *)"^H.show_from_range' lines range
   | IfEq (range', x, i, e, e') ->
-    let s1 = "if ["^H.show_range range'^"] eq "^x^" "^show_i i^" then"^H.down_right () in
-    let s2 = s1^show e^H.down_left () in
-    let s3 = s2^"else"^H.down_right () in
-    let s4 = s3^show e' in
-    s4^H.left ()
+    let s1 = "if eq "^x^" "^show_i i^H.show_from_range' lines range'
+      ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+    let s2 = s1^show lines e in
+    let s3 = s2^H.down_left () in
+    let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+    let s5 = s4^show lines e' in
+    s5^H.left ()
   | IfLE (range', x, i, e, e') ->
-    let s1 = "if ["^H.show_range range'^"] e "^x^" "^show_i i^" then"^H.down_right () in
-    let s2 = s1^show e^H.down_left () in
-    let s3 = s2^"else"^H.down_right () in
-    let s4 = s3^show e' in
-    s4^H.left ()
+    let s1 = "if le "^x^" "^show_i i^H.show_from_range' lines range'
+      ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+    let s2 = s1^show lines e in
+    let s3 = s2^H.down_left () in
+    let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+    let s5 = s4^show lines e' in
+    s5^H.left ()
   | IfGE (range', x, i, e, e') ->
-    let s1 = "if ["^H.show_range range'^"] ge "^x^" "^show_i i^" then"^H.down_right () in
-    let s2 = s1^show e^H.down_left () in
-    let s3 = s2^"else"^H.down_right () in
-    let s4 = s3^show e' in
-    s4^H.left ()
+    let s1 = "if ge "^x^" "^show_i i^H.show_from_range' lines range'
+      ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+    let s2 = s1^show lines e in
+    let s3 = s2^H.down_left () in
+    let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+    let s5 = s4^show lines e' in
+    s5^H.left ()
   | IfFEq (range', x, y, e, e') ->
-    let s1 = "if ["^H.show_range range'^"] feq "^x^" "^y^" then"^H.down_right () in
-    let s2 = s1^show e^H.down_left () in
-    let s3 = s2^"else"^H.down_right () in
-    let s4 = s3^show e' in
-    s4^H.left ()
+    let s1 = "if feq "^x^" "^y^H.show_from_range' lines range'
+      ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+    let s2 = s1^show lines e in
+    let s3 = s2^H.down_left () in
+    let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+    let s5 = s4^show lines e' in
+    s5^H.left ()
   | IfFLE (range', x, y, e, e') ->
-    let s1 = "if ["^H.show_range range'^"] fle "^x^" "^y^" then"^H.down_right () in
-    let s2 = s1^show e^H.down_left () in
-    let s3 = s2^"else"^H.down_right () in
-    let s4 = s3^show e' in
-    s4^H.left ()
-  | CallCls (f, xs, ys) -> "call "^f^show_args "int" xs^show_args "float" ys
-  | CallDir (Id.L f, xs, ys) -> "call *"^f^"*"^show_args "int" xs^show_args "float" ys
-  | Save (x, y) -> "save "^x^" "^y
-  | Restore x -> "restore "^x
+    let s1 = "if fle "^x^" "^y^H.show_from_range' lines range'
+      ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+    let s2 = s1^show lines e in
+    let s3 = s2^H.down_left () in
+    let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+    let s5 = s4^show lines e' in
+    s5^H.left ()
+  | CallCls (f, xs, ys) -> "call "^f^show_args "int" xs^show_args "float" ys^H.show_from_range' lines range
+  | CallDir (Id.L f, xs, ys) -> "call *"^f^"*"^show_args "int" xs^show_args "float" ys^H.show_from_range' lines range
+  | Save (x, y) -> "save "^x^" "^y^H.show_from_range' lines range
+  | Restore x -> "restore "^x^H.show_from_range' lines range
 
-(* MATSUSHITA: added show_prog function *)
-let show_prog (Prog (table, fundefs, e)) =
+let show_prog lines (Prog (table, fundefs, e)) =
   H.sep "" (fun (Id.L x, a) -> "let_float "^x^" = "^string_of_float a^" in\n") table^
-  H.sep "" (fun {name = Id.L f; args = xs; fargs = ys; body = e; ret = t} ->
-    let s1 = "let_fun *"^f^"*"^show_args "int" xs^show_args "float" ys^" ="^H.down_right () in
-    let s2 = s1^show e in
+  H.sep "" (fun { range = range; name = Id.L f; args = xs; fargs = ys; body = e; ret = t} ->
+    let s1 = "let_fun *"^f^"*"^show_args "int" xs^show_args "float" ys
+      ^" ="^H.show_from_range' lines range^H.down_right () in
+    let s2 = s1^show lines e in
     let s3 = s2^H.down ()^":"^Type.show t in
     s3^" in"^H.down_left ()) fundefs^
-  show e
+  show lines e
 
 (* MATSUSHITA: added to arguments two H.range's *)
 let fletd(range, range', x, e1, e2) = range, Let(range', (x, Type.Float), e1, e2)
-(* MATSUSHITA: added to arguments two H.range's *)
-let seq(range, range', e1, e2) = range, Let(range', (Id.gentmp Type.Unit, Type.Unit), e1, e2)
+(* MATSUSHITA: added to arguments H.range *)
+let seq(range, e1, e2) = range, Let(None, (Id.genunit (), Type.Unit), e1, e2)
 
 let regs = (* Array.init 27 (fun i -> Printf.sprintf "_R_%d" i) *)
   [| "%r2"; "%r5"; "%r6"; "%r7"; "%r8"; "%r9"; "%r10";

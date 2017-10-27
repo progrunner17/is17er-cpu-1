@@ -41,7 +41,7 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
           let (l, _) = List.find (fun (_, d') -> d = d') !data in
           l
         with Not_found ->
-          let l = Id.L(Id.genid "l") in
+          let l = Id.L(Id.genid "floatconst") in
           data := (l, d) :: !data;
           l in
       range, Ans(range, FLi(l))
@@ -78,14 +78,14 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
       let offset, store_fv =
         expand
           (List.map (fun y -> (y, M.find y env)) ys)
-          (4, e2')
-          (fun y offset store_fv -> seq(range, range', (range, Stfd(y, x, C(offset))), store_fv))
-          (fun y _ offset store_fv -> seq(range, range', (range, Stw(y, x, C(offset))), store_fv)) in
-      range, Let(range', (x, t), (range, Mr(reg_hp)),
-          (range, Let(range', (reg_hp, Type.Int), (range, Add(reg_hp, C(align offset))),
-              let z = Id.genid "l" in
-              (range, Let(range', (z, Type.Int), (range, SetL(l)),
-                  seq(range, range', (range, Stw(z, x, C(0))),
+          (4, e2') (* 自分のアドレスの後から始まる; 非再帰の場合節約可能 *)
+          (fun y offset store_fv -> seq(range, (range', Stfd(y, x, C(offset))), store_fv))
+          (fun y _ offset store_fv -> seq(range, (range', Stw(y, x, C(offset))), store_fv)) in
+      range, Let(None, (x, t), (range', Mr(reg_hp)),
+          (range, Let(None, (reg_hp, Type.Int), (range', Add(reg_hp, C(align offset))),
+              let z = Id.genid "funcaddr" in
+              (range, Let(None, (z, Type.Int), (range', SetL(l)),
+                  seq(range, (range', Stw(z, x, C(0))), (* 自分のアドレスの後から始まる; 非再帰の場合節約可能 *)
                       store_fv))))))
   | Closure.AppCls(x, ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
@@ -99,8 +99,8 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
         expand
           (List.map (fun x -> (x, M.find x env)) xs)
           (0, (range, Ans(range, Mr(y))))
-          (fun x offset store -> seq(range, range, (range, Stfd(x, y, C(offset))), store))
-          (fun x _ offset store -> seq(range, range, (range, Stw(x, y, C(offset))), store))  in
+          (fun x offset store -> seq(range, (range, Stfd(x, y, C(offset))), store))
+          (fun x _ offset store -> seq(range, (range, Stw(x, y, C(offset))), store))  in
       range, Let(range, (y, Type.Tuple(List.map (fun x -> M.find x env) xs)), (range, Mr(reg_hp)),
           (range, Let(range, (reg_hp, Type.Int), (range, Add(reg_hp, C(align offset))),
               store)))
@@ -112,10 +112,10 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
           (0, g (M.add_list xts env) e2)
           (fun x offset load ->
             if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
-            fletd(range, range', x, (range, Lfd(y, C(offset))), load))
+            fletd(range, range', x, (range', Lfd(y, C(offset))), load))
           (fun x t offset load ->
             if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
-            range, Let(range, (x, t), (range, Lwz(y, C(offset))), load)) in
+            range, Let(range', (x, t), (range', Lwz(y, C(offset))), load)) in
       load
   | Closure.Get(x, y) -> (* 配列の読み出し (caml2html: virtual_get) *)
       let offset = Id.genid "o" in
@@ -148,8 +148,8 @@ let h { Closure.range = range; Closure.name = (Id.L(x), t); Closure.args = yts; 
     expand
       zts
       (4, g (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
-      (fun z offset load -> fletd(range, range, z, (range, Lfd(x, C(offset))), load))
-      (fun z t offset load -> range, Let(range, (z, t), (range, Lwz(x, C(offset))), load)) in
+      (fun z offset load -> fletd(range, None, z, (range, Lfd(x, C(offset))), load))
+      (fun z t offset load -> range, Let(None, (z, t), (range, Lwz(x, C(offset))), load)) in
   match t with
   | Type.Fun(_, t2) ->
       { range = range; name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }

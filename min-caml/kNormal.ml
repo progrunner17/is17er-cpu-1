@@ -28,58 +28,91 @@ and body =
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
-(* MATSUSHITA: added show function *)
-let rec show (range, body) = "["^H.show_range range^"] "^match body with
-  | Unit -> "()"
-  | Int n -> string_of_int n
-  | Float a -> string_of_float a
-  | Neg x -> "-"^x
-  | Add (x, x') -> x^" + "^x'
-  | Sub (x, x') -> x^" - "^x'
-  | FNeg x -> "-."^x
-  | FAdd (x, x') -> x^" +. "^x'
-  | FSub (x, x') -> x^" -. "^x'
-  | FMul (x, x') -> x^" *. "^x'
-  | FDiv (x, x') -> x^" /. "^x'
+(* MATSUSHITA: added functions show and subst *)
+
+let rec show lines (range, body) = match body with
+  | Unit -> "()"^H.show_from_range' lines range
+  | Int n -> string_of_int n^H.show_from_range' lines range
+  | Float a -> string_of_float a^H.show_from_range' lines range
+  | Neg x -> "-"^x^H.show_from_range' lines range
+  | Add (x, x') -> x^" + "^x'^H.show_from_range' lines range
+  | Sub (x, x') -> x^" - "^x'^H.show_from_range' lines range
+  | FNeg x -> "-."^x^H.show_from_range' lines range
+  | FAdd (x, x') -> x^" +. "^x'^H.show_from_range' lines range
+  | FSub (x, x') -> x^" -. "^x'^H.show_from_range' lines range
+  | FMul (x, x') -> x^" *. "^x'^H.show_from_range' lines range
+  | FDiv (x, x') -> x^" /. "^x'^H.show_from_range' lines range
   | IfEq (range', x, x', e, e') ->
-      let s1 = "if ["^H.show_range range'^"] "^x^" = "^x'^" then"^H.down_right () in
-      let s2 = s1^show e in
+      let s1 = "if "^x^" = "^x'^H.show_from_range' lines range'
+        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+      let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else "^H.down_right () in
-      let s5 = s4^show e' in
+      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+      let s5 = s4^show lines e' in
       s5^H.left ()
   | IfLE (range', x, x', e, e') ->
-      let s1 = "if ["^H.show_range range'^"] "^x^" <= "^x'^" then"^H.down_right () in
-      let s2 = s1^show e in
+      let s1 = "if "^x^" <= "^x'^H.show_from_range' lines range'
+        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+      let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else "^H.down_right () in
-      let s5 = s4^show e' in
+      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+      let s5 = s4^show lines e' in
       s5^H.left ()
   | Let (range', (x, t), e, e') -> (
       match snd e with Let _ | LetRec _ | LetTuple _ ->
-        let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" ="^H.down_right () in
-        let s2 = s1^show e^" in" in
+        let s1 = "let "^x^":"^Type.show t
+          ^" ="^H.show_from_range' lines range'^H.down_right () in
+        let s2 = s1^show lines e^" in" in
         let s3 = s2^H.down_left () in
-        s3^show e'
+        s3^show lines e'
       | _ ->
-        let s1 = "let "^x^":"^Type.show t^" = "^show e^" in" in
+        let s1 = "let "^x^":"^Type.show t
+          ^H.show_from_range' lines range'^" = "^show lines e^" in" in
         let s2 = s1^H.down () in
-        s2^show e')
-  | Var x -> x
+        s2^show lines e')
+  | Var x -> x^H.show_from_range' lines range
   | LetRec (range', f, e) ->
-      let s1 = "let rec ["^H.show_range range'^"] "^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" ="^H.down_right () in
-      let s2 = s1^show f.body^" in" in
+      let s1 = "let rec"^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)
+        ^" ="^H.show_from_range' lines range'^H.down_right () in
+      let s2 = s1^show lines f.body^" in" in
       let s3 = s2^H.down_left () in
-      s3^show e
-  | App (x, xs) -> x^H.sep "" (fun x -> " "^x) xs
-  | Tuple xs -> "("^String.concat ", " xs^")"
+      s3^show lines e
+  | App (x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
+  | Tuple xs -> "("^String.concat ", " xs^")"^H.show_from_range' lines range
   | LetTuple (range', xts, x, e) ->
-      let s1 = "let ["^H.show_range range'^"] ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^x^" in"^H.down () in
-      s1^show e
-  | Get (x, x') -> x^".("^x'^")"
-  | Put (x, x', x'') -> x^".("^x'^") <- "^x''
-  | ExtArray x -> "*"^x^"*"
-  | ExtFunApp (x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs
+      let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
+        ^x^H.show_from_range' lines range'^" in"^H.down () in
+      s1^show lines e
+  | Get (x, x') -> x^".("^x'^")"^H.show_from_range' lines range
+  | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.show_from_range' lines range
+  | ExtArray x -> "*"^x^"*"^H.show_from_range' lines range
+  | ExtFunApp (x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
+
+(* env により変数を置換する *)
+let rec subst env (range, body) =
+  let q x = try M.find x env with Not_found -> x in
+  match body with
+  | Unit | Int _ | Float _ -> range, body
+  | Neg x -> range, Neg (q x)
+  | Add (x, x') -> range, Add (q x, q x')
+  | Sub (x, x') -> range, Sub (q x, q x')
+  | FNeg x -> range, FNeg (q x)
+  | FAdd (x, x') -> range, FAdd (q x, q x')
+  | FSub (x, x') -> range, FSub (q x, q x')
+  | FMul (x, x') -> range, FMul (q x, q x')
+  | FDiv (x, x') -> range, FDiv (q x, q x')
+  | IfEq (range', x, x', e, e') -> range, IfEq (range', q x, q x', subst env e, subst env e')
+  | IfLE (range', x, x', e, e') -> range, IfLE (range', q x, q x', subst env e, subst env e')
+  | Let (range', (x, t), e, e') -> range, Let (range', (x, t), subst env e, subst env e')
+  | Var x -> range, Var (q x)
+  | LetRec (range', f, e) -> range, LetRec(range', { f with body = subst env f.body }, subst env e)
+  | App (x, xs) -> range, App (q x, List.map (fun x -> q x) xs)
+  | Tuple xs -> range, Tuple (List.map (fun x -> q x) xs)
+  | LetTuple (range', xts, x, e) -> range, LetTuple(range', xts, q x, subst env e)
+  | Get (x, x') -> range, Get (q x, q x')
+  | Put (x, x', x'') -> range, Put (q x, q x', q x'')
+  | ExtArray x -> range, ExtArray (q x)
+  | ExtFunApp (x, xs) -> range, ExtFunApp (q x, List.map (fun x -> q x) xs)
 
 let rec fv (_, body) = match body with (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
@@ -96,13 +129,13 @@ let rec fv (_, body) = match body with (* 式に出現する（自由な）変数 (caml2html:
   | Put(x, y, z) -> S.of_list [x; y; z]
   | LetTuple(_, xs, y, e) -> S.add y (S.diff (fv e) (S.of_list (List.map fst xs)))
 
-let insert_let range ((range', body) as e, t) k = (* letを挿入する補助関数 (caml2html: knormal_insert) *)
+let insert_let range ((_, body) as e, t) k = (* letを挿入する補助関数 (caml2html: knormal_insert) *)
   match body with
   | Var(x) -> k x
   | _ ->
-      let x = Id.gentmp t in
+      let x = Id.gentmp () in
       let e', t' = k x in
-      (range, Let(range', (x, t), e, e')), t'
+      (range, Let(None, (x, t), e, e')), t'
 
 let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html: knormal_g) *)
   | Syntax.Unit -> (range, Unit), Type.Unit

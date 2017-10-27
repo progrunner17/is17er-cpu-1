@@ -145,7 +145,7 @@ body:
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
     { Put($1, $4, $7) }
 | exp SEMICOLON exp
-    { Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 1), (Id.gentmp Type.Unit, Type.Unit), $1, $3) }
+    { Let(None, (Id.genunit (), Type.Unit), $1, $3) }
 | ARRAY_CREATE simple_exp simple_exp
     %prec prec_app
     { Array($2, $3) }

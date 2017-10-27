@@ -1,6 +1,6 @@
 type closure = { entry : Id.l; actual_fv : Id.t list }
 (* MATSUSHITA: added to t H.range *)
-type t = H.range * body (* ¥¯¥í¡¼¥¸¥ãÊÑ´¹¸å¤Î¼° (caml2html: closure_t) *)
+type t = H.range * body (* ã‚¯ãƒ­ãƒ¼ã‚¸ãƒ£å¤‰æ›å¾Œã®å¼ (caml2html: closure_t) *)
 and body =
   | Unit
   | Int of int
@@ -32,59 +32,66 @@ type fundef = { range : H.range; (* MATSUSHITA: added H.range *)
                 body : t }
 type prog = Prog of fundef list * t
 
-(* MATSUSHITA: added show function *)
-let rec show (range, body) = "["^H.show_range range^"] "^match body with
-  | Unit -> "()"
-  | Int n -> string_of_int n
-  | Float a -> string_of_float a
-  | Neg x -> "- "^x
-  | Add (x, x') -> x^" + "^x'
-  | Sub (x, x') -> x^" - "^x'
-  | FNeg x -> "-. "^x
-  | FAdd (x, x') -> x^" +. "^x'
-  | FSub (x, x') -> x^" -. "^x'
-  | FMul (x, x') -> x^" *. "^x'
-  | FDiv (x, x') -> x^" /. "^x'
+(* MATSUSHITA: added functions show and show_prog *)
+
+let rec show lines (range, body) = match body with
+  | Unit -> "()"^H.show_from_range' lines range
+  | Int n -> string_of_int n^H.show_from_range' lines range
+  | Float a -> string_of_float a^H.show_from_range' lines range
+  | Neg x -> "- "^x^H.show_from_range' lines range
+  | Add (x, x') -> x^" + "^x'^H.show_from_range' lines range
+  | Sub (x, x') -> x^" - "^x'^H.show_from_range' lines range
+  | FNeg x -> "-. "^x^H.show_from_range' lines range
+  | FAdd (x, x') -> x^" +. "^x'^H.show_from_range' lines range
+  | FSub (x, x') -> x^" -. "^x'^H.show_from_range' lines range
+  | FMul (x, x') -> x^" *. "^x'^H.show_from_range' lines range
+  | FDiv (x, x') -> x^" /. "^x'^H.show_from_range' lines range
   | IfEq (range', x, x', e, e') ->
-      let s1 = "if ["^H.show_range range'^"] "^x^" = "^x'^" then"^H.down_right () in
-      let s2 = s1^show e in
+      let s1 = "if "^x^" = "^x'^H.show_from_range' lines range'
+        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+      let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else "^H.down_right () in
-      let s5 = s4^show e' in
+      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+      let s5 = s4^show lines e' in
       s5^H.left ()
   | IfLE (range', x, x', e, e') ->
-      let s1 = "if ["^H.show_range range'^"] "^x^" <= "^x'^" then"^H.down_right () in
-      let s2 = s1^show e in
+      let s1 = "if "^x^" <= "^x'^H.show_from_range' lines range'
+        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+      let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else "^H.down_right () in
-      let s5 = s4^show e' in
+      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+      let s5 = s4^show lines e' in
       s5^H.left ()
   | Let (range', (x, t), e, e') ->
-      let s1 = "let ["^H.show_range range'^"] "^x^":"^Type.show t^" = "^show e^" in" in
+      let s1 = "let "^x^":"^Type.show t^H.show_from_range' lines range'^" = "^show lines e^" in" in
       let s2 = s1^H.down () in
-      s2^show e'
-  | Var x -> x
+      s2^show lines e'
+  | Var x -> x^H.show_from_range' lines range
   | MakeCls (range', (f, t), {entry = Id.L y; actual_fv = lxs}, e) ->
-      let s1 = "let_fun ["^H.show_range range'^"] (*"^f^"*:"^Type.show t^") "^y^(if lxs = [] then " = " else " <"^String.concat ", " lxs^"> = ") in
-      s1^show e
-  | AppCls (x, xs) -> x^H.sep "" (fun x -> " "^x) xs
-  | AppDir (Id.L x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs
-  | Tuple xs -> "("^String.concat ", " xs^")"
+      let s1 = "let_cls "^f^":"^Type.show t
+        ^" = *"^y^"*"^(if lxs = [] then "" else " <"^String.concat ", " lxs^">")
+        ^H.show_from_range' lines range'^" in"^H.down () in
+      s1^show lines e
+  | AppCls (x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
+  | AppDir (Id.L x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
+  | Tuple xs -> "("^String.concat ", " xs^")"^H.show_from_range' lines range
   | LetTuple (range', xts, x, e) ->
-      let s1 = "let ["^H.show_range range'^"] ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^x^" in"^H.down () in
-      s1^show e
-  | Get (x, x') -> x^".("^x'^")"
-  | Put (x, x', x'') -> x^".("^x'^") <- "^x''
-  | ExtArray (Id.L x) -> "*"^x^"*"
+      let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
+        ^x^H.show_from_range' lines range'^" in"^H.down () in
+      s1^show lines e
+  | Get (x, x') -> x^".("^x'^")"^H.show_from_range' lines range
+  | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.show_from_range' lines range
+  | ExtArray (Id.L x) -> "*"^x^"*"^H.show_from_range' lines range
 
-(* MATSUSHITA: added show_prog function *)
-let show_prog (Prog (fs, e)) =
-  let s1 = H.sep "" (fun {name = Id.L f, t; args = xts; formal_fv = yts; body = e} ->
-    let s1 = "let_fun (*"^f^"*:"^Type.show t^") "^H.sep " " (fun (x, t) -> "("^x^":"^Type.show t^")") xts in
-    let s2 = s1^(if yts = [] then " =" else " <"^H.sep ", " (fun (x, t) -> x^":"^Type.show t) yts^"> =")^H.down_right () in
-    let s3 = s2^show e in
-    s3^" in"^H.down_left ()) fs in
-  s1^show e
+let show_prog lines (Prog (fs, e)) =
+  let s1 = H.sep "" (fun {range = range; name = Id.L f, t; args = xts; formal_fv = yts; body = e} ->
+    let s1 = "let_fun (*"^f^"*:"^Type.show t^") "
+      ^(if yts = [] then "" else "<"^H.sep ", " (fun (x, t) -> x^":"^Type.show t) yts^"> ")
+      ^H.sep " " (fun (x, t) -> "("^x^":"^Type.show t^")") xts^" ="
+      ^H.show_from_range' lines range^H.down_right () in
+    let s2 = s1^show lines e in
+    s2^" in"^H.down_left ()) fs in
+  s1^show lines e
 
 let rec fv (_, body) = match body with
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
@@ -101,7 +108,7 @@ let rec fv (_, body) = match body with
 
 let toplevel : fundef list ref = ref []
 
-let rec g env known (range, body) = match body with (* ¥¯¥í¡¼¥¸¥ãÊÑ´¹¥ë¡¼¥Á¥óËÜÂÎ (caml2html: closure_g) *)
+let rec g env known (range, body) = match body with (* ã‚¯ãƒ­ãƒ¼ã‚¸ãƒ£å¤‰æ›ãƒ«ãƒ¼ãƒãƒ³æœ¬ä½“ (caml2html: closure_g) *)
   | KNormal.Unit -> range, Unit
   | KNormal.Int(i) -> range, Int(i)
   | KNormal.Float(d) -> range, Float(d)
@@ -117,37 +124,37 @@ let rec g env known (range, body) = match body with (* ¥¯¥í¡¼¥¸¥ãÊÑ´¹¥ë¡¼¥Á¥óËÜÂ
   | KNormal.IfLE(range', x, y, e1, e2) -> range, IfLE(range', x, y, g env known e1, g env known e2)
   | KNormal.Let(range', (x, t), e1, e2) -> range, Let(range', (x, t), g env known e1, g (M.add x t env) known e2)
   | KNormal.Var(x) -> range, Var(x)
-  | KNormal.LetRec(range', { KNormal.name = (x, t); KNormal.args = yts; KNormal.body = e1 }, e2) -> (* ´Ø¿ôÄêµÁ¤Î¾ì¹ç (caml2html: closure_letrec) *)
-      (* ´Ø¿ôÄêµÁlet rec x y1 ... yn = e1 in e2¤Î¾ì¹ç¤Ï¡¢
-         x¤Ë¼«Í³ÊÑ¿ô¤¬¤Ê¤¤(closure¤ò²ð¤µ¤ºdirect¤Ë¸Æ¤Ó½Ð¤»¤ë)
-         ¤È²¾Äê¤·¡¢known¤ËÄÉ²Ã¤·¤Æe1¤ò¥¯¥í¡¼¥¸¥ãÊÑ´¹¤·¤Æ¤ß¤ë *)
+  | KNormal.LetRec(range', { KNormal.name = (x, t); KNormal.args = yts; KNormal.body = e1 }, ((range'', _) as e2)) -> (* Â´Ã˜Â¿Ã´Ã„ÃªÂµÃÂ¤ÃŽÂ¾Ã¬Â¹Ã§ (caml2html: closure_letrec) *)
+      (* é–¢æ•°å®šç¾©let rec x y1 ... yn = e1 in e2ã®å ´åˆã¯ã€
+         xã«è‡ªç”±å¤‰æ•°ãŒãªã„(closureã‚’ä»‹ã•ãšdirectã«å‘¼ã³å‡ºã›ã‚‹)
+         ã¨ä»®å®šã—ã€knownã«è¿½åŠ ã—ã¦e1ã‚’ã‚¯ãƒ­ãƒ¼ã‚¸ãƒ£å¤‰æ›ã—ã¦ã¿ã‚‹ *)
       let toplevel_backup = !toplevel in
       let env' = M.add x t env in
       let known' = S.add x known in
       let e1' = g (M.add_list yts env') known' e1 in
-      (* ËÜÅö¤Ë¼«Í³ÊÑ¿ô¤¬¤Ê¤«¤Ã¤¿¤«¡¢ÊÑ´¹·ë²Ìe1'¤ò³ÎÇ§¤¹¤ë *)
-      (* Ãí°Õ: e1'¤Ëx¼«¿È¤¬ÊÑ¿ô¤È¤·¤Æ½Ð¸½¤¹¤ë¾ì¹ç¤Ïclosure¤¬É¬Í×!
-         (thanks to nuevo-namasute and azounoman; test/cls-bug2.ml»²¾È) *)
+      (* æœ¬å½“ã«è‡ªç”±å¤‰æ•°ãŒãªã‹ã£ãŸã‹ã€å¤‰æ›çµæžœe1'ã‚’ç¢ºèªã™ã‚‹ *)
+      (* æ³¨æ„: e1'ã«xè‡ªèº«ãŒå¤‰æ•°ã¨ã—ã¦å‡ºç¾ã™ã‚‹å ´åˆã¯closureãŒå¿…è¦!
+         (thanks to nuevo-namasute and azounoman; test/cls-bug2.mlå‚ç…§) *)
       let zs = S.diff (fv e1') (S.of_list (List.map fst yts)) in
       let known', e1' =
         if S.is_empty zs then known', e1' else
-        (* ÂÌÌÜ¤À¤Ã¤¿¤é¾õÂÖ(toplevel¤ÎÃÍ)¤òÌá¤·¤Æ¡¢¥¯¥í¡¼¥¸¥ãÊÑ´¹¤ò¤ä¤êÄ¾¤¹ *)
-        (Printf.printf "Free variable(s) %s found in function %s\n" (Id.pp_list (S.elements zs)) x;
-         Printf.printf "Function %s cannot be directly applied in fact\n" x;
-         toplevel := toplevel_backup;
-         let e1' = g (M.add_list yts env') known e1 in
-         known, e1') in
-      let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* ¼«Í³ÊÑ¿ô¤Î¥ê¥¹¥È *)
-      let zts = List.map (fun z -> (z, M.find z env')) zs in (* ¤³¤³¤Ç¼«Í³ÊÑ¿ôz¤Î·¿¤ò°ú¤¯¤¿¤á¤Ë°ú¿ôenv¤¬É¬Í× *)
-      toplevel := { range = range'; name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel; (* ¥È¥Ã¥×¥ì¥Ù¥ë´Ø¿ô¤òÄÉ²Ã *)
+        (* é§„ç›®ã ã£ãŸã‚‰çŠ¶æ…‹(toplevelã®å€¤)ã‚’æˆ»ã—ã¦ã€ã‚¯ãƒ­ãƒ¼ã‚¸ãƒ£å¤‰æ›ã‚’ã‚„ã‚Šç›´ã™ *)
+        let fvs = S.elements zs in
+        let _ = Printf.printf "Free variable%s %s found in function %s\n"
+          (if List.length fvs = 1 then "" else "s") (Id.pp_list fvs) x in
+        let _ = Printf.printf "Function %s cannot be directly applied\n" x in
+        let _ = toplevel := toplevel_backup in
+        let e1' = g (M.add_list yts env') known e1 in
+        known, e1' in
+      let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* è‡ªç”±å¤‰æ•°ã®ãƒªã‚¹ãƒˆ *)
+      let zts = List.map (fun z -> (z, M.find z env')) zs in (* ã“ã“ã§è‡ªç”±å¤‰æ•°zã®åž‹ã‚’å¼•ããŸã‚ã«å¼•æ•°envãŒå¿…è¦ *)
+      toplevel := { range = range'; name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel; (* ãƒˆãƒƒãƒ—ãƒ¬ãƒ™ãƒ«é–¢æ•°ã‚’è¿½åŠ  *)
       let e2' = g env' known' e2 in
-      if S.mem x (fv e2') then (* x¤¬ÊÑ¿ô¤È¤·¤Æe2'¤Ë½Ð¸½¤¹¤ë¤« *)
-        range, MakeCls(range', (x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* ½Ð¸½¤·¤Æ¤¤¤¿¤éºï½ü¤·¤Ê¤¤ *)
+      if S.mem x (fv e2') then (* xãŒå¤‰æ•°ã¨ã—ã¦e2'ã«å‡ºç¾ã™ã‚‹ã‹ *)
+        range, MakeCls(range', (x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* å‡ºç¾ã—ã¦ã„ãŸã‚‰å‰Šé™¤ã—ãªã„ *)
       else
-        (Printf.printf "Eliminating closure(s) %s\n" x;
-         e2') (* ½Ð¸½¤·¤Ê¤±¤ì¤ÐMakeCls¤òºï½ü *)
-  | KNormal.App(x, ys) when S.mem x known -> (* ´Ø¿ôÅ¬ÍÑ¤Î¾ì¹ç (caml2html: closure_app) *)
-      Printf.printf "Directly applying %s\n" x;
+        e2' (* å‡ºç¾ã—ãªã‘ã‚Œã°MakeClsã‚’å‰Šé™¤ *)
+  | KNormal.App(x, ys) when S.mem x known -> (* é–¢æ•°é©ç”¨ã®å ´åˆ (caml2html: closure_app) *)
       range, AppDir(Id.L(x), ys)
   | KNormal.App(f, xs) -> range, AppCls(f, xs)
   | KNormal.Tuple(xs) -> range, Tuple(xs)

@@ -9,17 +9,9 @@ let rec pp_list = function
 let counter = ref 0
 let genid s =
   incr counter;
-  Printf.sprintf "%s.%d" s !counter
+  let t = try String.sub s 0 (String.rindex s '.') with Not_found -> s in
+  Printf.sprintf "%s.%d" t !counter
 
-let rec id_of_typ = function
-  | Type.Unit -> "u"
-  | Type.Bool -> "b"
-  | Type.Int -> "i"
-  | Type.Float -> "d"
-  | Type.Fun _ -> "f"
-  | Type.Tuple _ -> "t"
-  | Type.Array _ -> "a" 
-  | Type.Var _ -> assert false
-let gentmp typ =
-  incr counter;
-  Printf.sprintf "T%s%d" (id_of_typ typ) !counter
+(* MATSUSHITA: deleted function id_of_typ and added function genunit *)
+let genunit () = incr counter; Printf.sprintf "().%d" !counter
+let gentmp () = incr counter; Printf.sprintf "tmp.%d" !counter
