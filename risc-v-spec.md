@@ -28,10 +28,10 @@ IS17erCPU実験第1班コア係 五反田正太郎
 
 | 命令                | 形式                           | 解釈疑似コード                                    | 命令(即値)フォーマット | 規定即値 | 実装の有無 | 備考 |  |
 |:------------------|:-----------------------------|:-------------------------------------------|:------------:|:----:|:-----:|:---|:-|
-| [lui](#LUI命令)     | _lui rd, imm_                | rd = imm << 12                             |      U       |      |   ○   |    |  |
-| [auipc](#AUIPC命令) | _auipc rd, imm_              | rd = pc + imm << 12                        |      U       |      |   ○   |    |  |
-| [jal](#JAL命令)     | _jal rd, imm_                | rd = pc + 4  ,pc = pc + imm<<2             |      J       |      |   ○   |    |  |
-| [jalr](#JALR命令)   | _jalr rd, rs1, imm_          | rd = pc + 4  ,pc = (rs1 + imm)(下位2bit切り捨て) |      I       |      |   ○   |    |  |
+| [lui](#lui命令)     | _lui rd, imm_                | rd = imm << 12                             |      U       |      |   ○   |    |  |
+| [auipc](#auipcC命令) | _auipc rd, imm_              | rd = pc + imm << 12                        |      U       |      |   ○   |    |  |
+| [jal](#jal命令)     | _jal rd, imm_                | rd = pc + 4  ,pc = pc + imm<<2             |      J       |      |   ○   |    |  |
+| [jalr](#jalr命令)   | _jalr rd, rs1, imm_          | rd = pc + 4  ,pc = (rs1 + imm)(下位2bit切り捨て) |      I       |      |   ○   |    |  |
 | [beq](#beq)       | _beq rs1, rs2, pc + imm<<2_  | pc = (rs1 == rs2) ? pc + imm<<2 : pc + 4   |      B       |      |   ○   |    |  |
 | [bne](#bne)       | _bne rs1, rs2, pc + imm<<2_  | pc = (rs1 != rs2) ? pc + imm<<2 : pc + 4   |      B       |      |   ×   |    |  |
 | [blt](#blt)       | _blt rs1, rs2, pc + imm<<2_  | pc = (rs1 < rs2) ? pc + imm<<2 : pc + 4    |      B       |      |   ○   |    |  |
