@@ -21,51 +21,50 @@ IS17erCPU実験第1班コア係 五反田正太郎
 - 即値は基本的に符号付きNbit整数
 ### 命令フォーマット
 
-
 ### 注意点
 
 
 ### 命令一覧
 
-| 命令   | 形式                          | 解釈疑似コード                                     | 命令(即値)フォーマット| 規定即値 | 実装の有無 | 備考|
-|:------|:-----------------------------|:-------------------------------------------------|:--------:|:--------:|:-----:|:--|
-| lui   | _lui rd, imm_                | rd = imm << 12                                   |    U     |         |   ○   |   |
-| auipc | _auipc rd, imm_              | rd = pc + imm << 12                              |    U     |         |   ○   |   |
-| jal   | _jal rd, imm_                | rd = pc + 4  ,pc = pc + imm<<2                   |    J     |         |   ○   |   |
-| jalr  | _jalr rd, rs1, imm_          | rd = pc + 4  ,pc = (rs1 + imm)(下位2bit切り捨て)   |    I     |         |   ○   |   |
-| beq   | _beq rs1, rs2, pc + imm<<2_  | pc = (rs1 == rs2) ? pc + imm<<2 : pc + 4         |    B     |         |   ○   |   |
-| bne   | _bne rs1, rs2, pc + imm<<2_  | pc = (rs1 != rs2) ? pc + imm<<2 : pc + 4         |    B     |         |   ×   |   |
-| blt   | _blt rs1, rs2, pc + imm<<2_  | pc = (rs1 < rs2) ? pc + imm<<2 : pc + 4          |    B     |         |   ○   |   |
-| bge   | _bge rs1, rs2, pc + imm<<2_  | pc = (rs1 >= rs2) ? pc + imm<<2 : pc + 4         |    B     |         |   ×   |   |
-| bltu  | _bltu rs1, rs2, pc + imm<<2_ | pc = (rs1 < rs2) ? pc + imm<<2 : pc + 4          |    B     |         |   ×   |   |
-| bgeu  | _bgeu rs1, rs2, pc + imm<<2_ | pc = (rs1 >= rs2) ? pc + imm<<2 : pc + 4         |    B     |         |   ×   |   |
-| lb    | _lb rd, imm(rs1)_            | rd =                                             |    I     |         |   ×   |   |
-| lh    | _lh rd, imm(rs1)_            | rd =                                             |    I     |         |   ×   |   |
-| lw    | _lw rd, imm(rs1)_            | rd = mem[rs1 + imm <<2]                          |    I     |         |   ○   |   |
-| lbu   | _lbu rd, imm(rs1)_           | rd = {0,mem[addr]}                               |    I     |         |   ×   |   |
-| lhu   | _lhu rd, imm(rs1)_           | rd = {0,mem[addr]}                               |    I     |         |   ×   |   |
-| sb    | _sb rs2, imm(rs1)_           | mem[addr] = rs2[7:0]                             |    S     |         |   ×   |   |
-| sh    | _sh rs2, imm(rs1)_           | mem[addr] = rs2[15:0]                            |    S     |         |   ×   |   |
-| sw    | _sw rs2, imm(rs1)_           | mem[addr] = rs2                                  |    S     |         |   ○   |   |
-| addi  | _addi rd, rs1, imm_          | rd = rs1 + imm                                   |    I     |         |   ○   |   |
-| slti  | _slti rd, rs1, imm_          | rd = (rs1 < imm) ? 1 : 0                         |    I     |         |   ○   |   |
-| sltiu | _sltiu rd, rs1, imm_         | rd = (rs1 < imm) ? 1 : 0                         |    I     |         |   ○   |   |
-| xori  | _xori rd, rs1, imm_          | rd = rs1 ^ imm                                   |    I     |         |   ○   |   |
-| ori   | _ori rd, rs1, imm_           | rd = rs1 \|  imm  							      |    I 	 |         |   ○   |   |
-| andi  | _andi rd, rs1, imm_          | rd = rs1 & imm                                   |    I     |         |   ○   |   |
-| slli  | _slli rd, rs1, imm_          | rd = rs1 << imm                                  |  I(5bit) |         |   ○   |   |
-| srli  | _srli rd, rs1, imm_          | rd = rs1 >> imm                                  |  I(5bit) |         |   ○   |   |
-| srai  | _srai rd, rs1, imm_          | rd = rs1 >>> imm                                 |  I(5bit) |         |   ○   |   |
-| add   | _add rd, rs1, rs2_           | rd = rs1 + rs2                                   |    R     |         |   ○   |   |
-| sub   | _sub rd, rs1, rs2_           | rd = rs1 - rs2                                   |    R     |         |   ○   |   |
-| sll   | _sll rd, rs1, rs2_           | rd = rs1 << rs2                                  |    R     |         |   ○   |   |
-| slt   | _slt rd, rs1, rs2_           | rd = (rs1 < rs2) ? 1:0                           |    R     |         |   ○   |   |
-| sltu  | _sltu rd, rs1, rs2_          | rd = (rs1 < rs2) ? 1:0                           |    R     |         |   ○   |   |
-| xor   | _xor rd, rs1, rs2_           | rd = rs1 ^ rs2                                   |    R     |         |   ○   |   |
-| srl   | _srl rd, rs1, rs2_           | rd = rs1 >> rs2                                  |    R     |         |   ○   |   |
-| sra   | _sra rd, rs1, rs2_           | rd = rs1 >>> rs2                                 |    R     |         |   ○   |   |
-| or    | _or rd, rs1, rs2_            | rd = rs1 \|  rs2  							      |    R     |         |   ○   |   |
-| and   | _and rd, rs1, rs2_           | rd = rs1 & rs2                             	  |    R     |         |   ○   |   |
+| 命令                | 形式                           | 解釈疑似コード                                    | 命令(即値)フォーマット | 規定即値 | 実装の有無 | 備考 |  |
+|:------------------|:-----------------------------|:-------------------------------------------|:------------:|:----:|:-----:|:---|:-|
+| [lui](#LUI命令)     | _lui rd, imm_                | rd = imm << 12                             |      U       |      |   ○   |    |  |
+| [auipc](#AUIPC命令) | _auipc rd, imm_              | rd = pc + imm << 12                        |      U       |      |   ○   |    |  |
+| [jal](#JAL命令)     | _jal rd, imm_                | rd = pc + 4  ,pc = pc + imm<<2             |      J       |      |   ○   |    |  |
+| [jalr](#JALR命令)   | _jalr rd, rs1, imm_          | rd = pc + 4  ,pc = (rs1 + imm)(下位2bit切り捨て) |      I       |      |   ○   |    |  |
+| [beq](#beq)       | _beq rs1, rs2, pc + imm<<2_  | pc = (rs1 == rs2) ? pc + imm<<2 : pc + 4   |      B       |      |   ○   |    |  |
+| [bne](#bne)       | _bne rs1, rs2, pc + imm<<2_  | pc = (rs1 != rs2) ? pc + imm<<2 : pc + 4   |      B       |      |   ×   |    |  |
+| [blt](#blt)       | _blt rs1, rs2, pc + imm<<2_  | pc = (rs1 < rs2) ? pc + imm<<2 : pc + 4    |      B       |      |   ○   |    |  |
+| [bge]("bge")      | _bge rs1, rs2, pc + imm<<2_  | pc = (rs1 >= rs2) ? pc + imm<<2 : pc + 4   |      B       |      |   ×   |    |  |
+| [bltu](#bltu)     | _bltu rs1, rs2, pc + imm<<2_ | pc = (rs1 < rs2) ? pc + imm<<2 : pc + 4    |      B       |      |   ×   |    |  |
+| [bgeu](#bgeu)     | _bgeu rs1, rs2, pc + imm<<2_ | pc = (rs1 >= rs2) ? pc + imm<<2 : pc + 4   |      B       |      |   ×   |    |  |
+| [lb](#lb)         | _lb rd, imm(rs1)_            | rd =                                       |      I       |      |   ×   |    |  |
+| [lh](#lh)         | _lh rd, imm(rs1)_            | rd =                                       |      I       |      |   ×   |    |  |
+| [lw](#lw)         | _lw rd, imm(rs1)_            | rd = mem[rs1 + imm <<2]                    |      I       |      |   ○   |    |  |
+| [lbu](#lbu)       | _lbu rd, imm(rs1)_           | rd = {0,mem[addr]}                         |      I       |      |   ×   |    |  |
+| [lhu](#lhu)       | _lhu rd, imm(rs1)_           | rd = {0,mem[addr]}                         |      I       |      |   ×   |    |  |
+| [sb](#sb)         | _sb rs2, imm(rs1)_           | mem[addr] = rs2[7:0]                       |      S       |      |   ×   |    |  |
+| [sh](#sh)         | _sh rs2, imm(rs1)_           | mem[addr] = rs2[15:0]                      |      S       |      |   ×   |    |  |
+| [sw](#sw)         | _sw rs2, imm(rs1)_           | mem[addr] = rs2                            |      S       |      |   ○   |    |  |
+| [addi](#addi)     | _addi rd, rs1, imm_          | rd = rs1 + imm                             |      I       |      |   ○   |    |  |
+| [slti](#slti)     | _slti rd, rs1, imm_          | rd = (rs1 < imm) ? 1 : 0                   |      I       |      |   ○   |    |  |
+| [sltiu](#sltiu)   | _sltiu rd, rs1, imm_         | rd = (rs1 < imm) ? 1 : 0                   |      I       |      |   ○   |    |  |
+| [xori](#xori)     | _xori rd, rs1, imm_          | rd = rs1 ^ imm                             |      I       |      |   ○   |    |  |
+| [ori](#ori)       | _ori rd, rs1, imm_           | rd = rs1 ｜imm                              |      I       |      |   ○   |    |  |
+| [andi](#andi)     | _andi rd, rs1, imm_          | rd = rs1 & imm                             |      I       |      |   ○   |    |  |
+| [slli](#slli)     | _slli rd, rs1, imm_          | rd = rs1 << imm                            |   I(5bit)    |      |   ○   |    |  |
+| [srli](#srli)     | _srli rd, rs1, imm_          | rd = rs1 >> imm                            |   I(5bit)    |      |   ○   |    |  |
+| [srai](#srai)     | _srai rd, rs1, imm_          | rd = rs1 >>> imm                           |   I(5bit)    |      |   ○   |    |  |
+| [add](#add)       | _add rd, rs1, rs2_           | rd = rs1 + rs2                             |      R       |      |   ○   |    |  |
+| [sub](#sub)       | _sub rd, rs1, rs2_           | rd = rs1 - rs2                             |      R       |      |   ○   |    |  |
+| [sll](#sll)       | _sll rd, rs1, rs2_           | rd = rs1 << rs2                            |      R       |      |   ○   |    |  |
+| [slt](#slt)       | _slt rd, rs1, rs2_           | rd = (rs1 < rs2) ? 1:0                     |      R       |      |   ○   |    |  |
+| [sltu](#sltu)     | _sltu rd, rs1, rs2_          | rd = (rs1 < rs2) ? 1:0                     |      R       |      |   ○   |    |  |
+| [xor](#xor)       | _xor rd, rs1, rs2_           | rd = rs1 ^ rs2                             |      R       |      |   ○   |    |  |
+| [srl](#srl)       | _srl rd, rs1, rs2_           | rd = rs1 >> rs2                            |      R       |      |   ○   |    |  |
+| [sra](#sra)       | _sra rd, rs1, rs2_           | rd = rs1 >>> rs2                           |      R       |      |   ○   |    |  |
+| [or](#or)         | _or rd, rs1, rs2_            | rd = rs1 ｜rs2                              |      R       |      |   ○   |    |  |
+| [and](#and)       | _and rd, rs1, rs2_           | rd = rs1 & rs2                             |      R       |      |   ○   |    |  |
 
 ##### ※細かい仕様の変更をした方が良さそう。
 
@@ -158,17 +157,17 @@ jalr命令(即値12bit)と組み合わせて遠方への相対ジャンプがで
 ### STORE系命令
 - オペコード:	0b0100011
 - リトルエンディアン
-	#### SB命令
+	#### sb
 	- funct3 0b000
 	- 命令形式: _sb rs2, imm(rs1)_
 	- 意味:	mem[addr] = rs2[7:0]
 
-	#### SH命令
+	#### sh
 	- funct3 0b001
 	- 命令形式: _sh rs2, imm(rs1)_
 	- 意味:	mem[addr] = rs2[15:0]
 
-	#### SW命令
+	#### sw
 	- funct3 0b010
 	- 命令形式: _sw rs2, imm(rs1)_
 	- 意味:	mem[addr] = rs2
@@ -226,6 +225,7 @@ jalr命令(即値12bit)と組み合わせて遠方への相対ジャンプがで
 ### OP系命令
 - オペコード:0b0110011
 - 命令形式:	_opcode rd, rs1, rs2_
+
 	#### add
 	- funct3:	0b000
 	- 意味:	rd = rs1 + rs2
@@ -275,39 +275,59 @@ jalr命令(即値12bit)と組み合わせて遠方への相対ジャンプがで
 
 - 単精度(IEEE754)命令
 - 浮動小数点専用レジスタ f0~f31
-- f0 = 0
+	- f1~f10,f30、f31: 汎用レジスタ
+	- f0,f11~f29: 定数
+	#### 浮動小数点数 hard wired レジスタ一覧
 
-###命令一覧
+| レジスタ名 | 値        | bit表現                  | 備考              |
+|:------|:---------|:-----------------------|:----------------|
+| f0    | 0.0      | 0x00000000(hard wired) | //LUI&ADDIで生成可能 |
+| f11   | 1.0      | 0x3F800000(hard wired) | //LUIで生成可能      |
+| f12   | 2.0      | 0x40000000(hard wired) | //LUIで生成可能      |
+| f13   | 4.0      | 0x40800000(hard wired) | //LUIで生成可能      |
+| f14   | 10.0     | 0x41200000(hard wired) | //LUIで生成可能      |
+| f15   | 15.0     | 0x41700000(hard wired) | //LUIで生成可能      |
+| f16   | 20.0     | 0x41A00000(hard wired) | //LUIで生成可能      |
+| f17   | 128.0    | 0x43000000(hard wired) | //LUIで生成可能      |
+| f18   | 200.0    | 0x43480000(hard wired) | //LUIで生成可能      |
+| f19   | 255.0    | 0x437F0000(hard wired) | //LUIで生成可能      |
+| f20   | 850.0    | 0x44548000(hard wired) | //LUIで生成可能      |
+| f21   | 0.100    | 0x3DCCCCCD(hard wired) | //LUI&ADDIで生成可能 |
+| f22   | 0.200    | 0x3E4CCCCD(hard wired) | //LUI&ADDIで生成可能 |
+| f23   | 0.001    | 0x3A83126F(hard wired) | //LUI&ADDIで生成可能 |
+| f24   | 0.005    | 0x3BA3D70A(hard wired) | //LUI&ADDIで生成可能 |
+| f25   | 0.150    | 0x3E19999A(hard wired) | //LUI&ADDIで生成可能 |
+| f26   | 0.250    | 0x3E800000(hard wired) | //LUIで生成可能      |
+| f27   | 0.500    | 0x3F000000(hard wired) | //LUIで生成可能      |
+| f28   | pi       | 0x40490FDB(hard wired) | //LUI&ADDIで生成可能 |
+| f29   | 30.0 /pi | 0x4118C9EB(hard wired) | //LUI&ADDIで生成可能 |
 
-###OP-FP命令
-- オペコード:	0b1010011
-	- fadd
-		- funct7: 	0b00000000
-	- fsub
-		- funct7:	0b0000100
-	- fmul
-		- funct7:	0b0001000
-	- fdiv
-		- funct7:	0b0001100
-	- fsqrt
-		- funct7:	0b0101100
-	- ftoi
-		- funct7:	0b
-	- itof
-		- funct7:	0b
-	- floor
-		- funct7:	0b
-	#### fsgn
-	- funct7:	0b0010000
-		- fabs
-			- funct3: 	0b010
-		- fneg
-			- funct3:	0b001
-		- fmv
-			- funct3:	0b000
 
-###CUSTOM-FP命令
-- オペコード 0b0001011
+### 命令一覧
+
+| 命令      | 形式                  | 解釈疑似コード              |      レジスタ規定      | 実装の有無 | 備考 |
+|:--------|:--------------------|:---------------------|:----------------:|:-----:|:---|
+| flw     | _flw rd, imm(rs1)_  | rd = mem\[rs1+imm\]  |   rd:fn,rs1:xn   |   ○   |    |
+| fsw     | _fsw rs2, imm(rs1)_ | mem\[rs1+imm\] = rs2 |  rs2:fn,rs1:xn   |   ○   |    |
+| fadd    | _fadd rd, rs1, rs2_ | rd = rs1 +. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
+| fsub    | _fsub rd, rs1, rs2_ | rd = rs1 -. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
+| fmul    | _fmul rd, rs1, rs2_ | rd = rs1 *. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
+| fdiv    | _fdiv rd, rs1, rs2_ | rd = rs1 /. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
+| fsqrt   | _fsqrt rd, rs1_     | rd = sqrt(rs)        |     rd,rs:fn     |   ○   |    |
+| fabs    | _fabs rd, rs1_      | rd = ｜rs｜            |     rd,rs:fn     |   ○   |    |
+| fneg    | _fneg rd, rs1_      | rd = -rs             |     rd,rs:fn     |   ○   |    |
+| feq     | _feq rd, rs1, rs2_  | rd = (rs1==rs2)?1:0  | rd:xn,rs1,rs2:fn |   ○   |    |
+| flt     | _flt rd, rs1, rs2_  | rd = (rs1<rs2)?1:0   | rd:xn,rs1,rs2:fn |   ○   |    |
+| fle     | _fle rd, rs1, rs2_  | rd = (rs1<=rs2)?1:0  | rd:xn,rs1,rs2:fn |   ○   |    |
+| itof    | _itof rd, rs1_      | rd = (float) rs1     |   rd:fn,rs1:xn   |   ○   |    |
+| ftoi    | _ftoi rd, rs1_      | rd = (int) rs2       |   rd:xn,rs1:fn   |   ○   |    |
+| floor   | _floor rd, rs1_     | rd = [rs1]           |   rd:xn,rs1:fn   |   ○   |    |
+| fmv.f.x | _fmv.f.x rd, rs1_   | rd = rs1             |   rd:fn,rs1:xn   |   ○   |    |
+| fmv.x.f | _fmv.f.x rd, rs1_   | rd = rs1             |   rd:xn,rs1:fn   |   ○   |    |
+| sin     | _sin rd, rs1_       | rd = sin(rs1)        |     rd,rs:fn     |   ×   |    |
+| cos     | _cos rd, rs1_       | rd = cos(rs1)        |     rd,rs:fn     |   ×   |    |
+| atan    | _atan rd, rs1_      | rd = atan(rs1)       |     rd,rs:fn     |   ×   |    |
+
 
 
 
