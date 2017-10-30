@@ -5,12 +5,12 @@ open Lexing
 type pos = position
 type range = (pos * pos) option
 let show_pos pos = Printf.sprintf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
-let show_range' (pos, pos') = if pos.pos_lnum = pos'.pos_lnum then
-    Printf.sprintf "%d:%d-%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) (pos'.pos_cnum - pos'.pos_bol + 1)
-  else
-    Printf.sprintf "%d:%d-%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) pos'.pos_lnum (pos'.pos_cnum - pos'.pos_bol + 1)
 let show_range range = match range with
-  | Some poss -> show_range' poss
+  | Some (pos, pos') ->
+      if pos.pos_lnum = pos'.pos_lnum then
+        Printf.sprintf "%d:%d-%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) (pos'.pos_cnum - pos'.pos_bol + 1)
+      else
+        Printf.sprintf "%d:%d-%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) pos'.pos_lnum (pos'.pos_cnum - pos'.pos_bol + 1)
   | None -> "nowhere"
 let show_from_range lines range = match range with
   | Some (pos, pos') ->
@@ -20,14 +20,14 @@ let show_from_range lines range = match range with
     let c' = pos'.pos_cnum - pos'.pos_bol in
     let line = lines.(l) in
     let line' = lines.(l') in
-    Str.global_replace (Str.regexp "[ \t\n\r]+") " " (if l = l' then
+    Str.global_replace (Str.regexp "\\([ \t\n\r]\\|(\\*.*\\*)\\)+") " " (if l = l' then
       String.sub line c (c' - c)
     else
       String.concat "\n" ([String.sub line c (String.length line - c)]
       @ Array.to_list (Array.sub lines (l + 1) (l' - l - 1))
       @ [String.sub line' 0 c']))
   | None -> "nowhere"
-let show_from_range' lines range = match range with
+let comment_from_range lines range = match range with
   | None -> ""
   | _ -> " (* "^show_from_range lines range^" *)"
 

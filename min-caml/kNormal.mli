@@ -4,16 +4,31 @@ and body =
   | Unit
   | Int of int
   | Float of float
+  | Not of Id.t
+  | Xor of Id.t * Id.t
   | Neg of Id.t
   | Add of Id.t * Id.t
   | Sub of Id.t * Id.t
+  | SllI of Id.t * int
+  | SraI of Id.t * int
   | FNeg of Id.t
+  | FAbs of Id.t
+  | FFloor of Id.t
+  | IToF of Id.t
+  | FToI of Id.t
+  | FSqrt of Id.t
+  | FCos of Id.t
+  | FSin of Id.t
+  | FTan of Id.t
+  | FAtan of Id.t
   | FAdd of Id.t * Id.t
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | FEq of Id.t * Id.t
+  | FLT of Id.t * Id.t
   | IfEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
-  | IfLE of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
+  | IfLT of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
   | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
   | LetRec of H.range * fundef * t (* MATSUSHITA: added H.range *)

@@ -23,16 +23,30 @@ let rec deref_typ = function (* 型変数を中身でおきかえる関数 (caml2html: typing_
 let rec deref_id_typ (x, t) = (x, deref_typ t)
 let rec deref_term (range, body) = range, match body with
   | Not(e) -> Not(deref_term e)
+  | Xor(e1, e2) -> Xor(deref_term e1, deref_term e2)
   | Neg(e) -> Neg(deref_term e)
   | Add(e1, e2) -> Add(deref_term e1, deref_term e2)
   | Sub(e1, e2) -> Sub(deref_term e1, deref_term e2)
+  | SllI(e, n) -> SllI(deref_term e, n)
+  | SraI(e, n) -> SraI(deref_term e, n)
   | Eq(e1, e2) -> Eq(deref_term e1, deref_term e2)
-  | LE(e1, e2) -> LE(deref_term e1, deref_term e2)
+  | LT(e1, e2) -> LT(deref_term e1, deref_term e2)
   | FNeg(e) -> FNeg(deref_term e)
+  | FAbs(e) -> FAbs(deref_term e)
+  | FFloor(e) -> FFloor(deref_term e)
+  | IToF(e) -> IToF(deref_term e)
+  | FToI(e) -> FToI(deref_term e)
+  | FSqrt(e) -> FSqrt(deref_term e)
+  | FCos(e) -> FCos(deref_term e)
+  | FSin(e) -> FSin(deref_term e)
+  | FTan(e) -> FTan(deref_term e)
+  | FAtan(e) -> FAtan(deref_term e)
   | FAdd(e1, e2) -> FAdd(deref_term e1, deref_term e2)
   | FSub(e1, e2) -> FSub(deref_term e1, deref_term e2)
   | FMul(e1, e2) -> FMul(deref_term e1, deref_term e2)
   | FDiv(e1, e2) -> FDiv(deref_term e1, deref_term e2)
+  | FEq(e1, e2) -> FEq(deref_term e1, deref_term e2)
+  | FLT(e1, e2) -> FLT(deref_term e1, deref_term e2)
   | If(e1, e2, e3) -> If(deref_term e1, deref_term e2, deref_term e3)
   | Let(range, xt, e1, e2) -> Let(range, deref_id_typ xt, deref_term e1, deref_term e2)
   | LetRec(range, { name = xt; args = yts; body = e1 }, e2) ->
@@ -47,7 +61,7 @@ let rec deref_term (range, body) = range, match body with
   | Array(e1, e2) -> Array(deref_term e1, deref_term e2)
   | Get(e1, e2) -> Get(deref_term e1, deref_term e2)
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
-  | e -> e
+  | (Unit | Bool _ | Int _ | Float _ | Var _) as e -> e
 
 let rec occur r1 = function (* occur check (caml2html: typing_occur) *)
   | Type.Fun(t2s, t2) -> List.exists (occur r1) t2s || occur r1 t2
@@ -90,22 +104,36 @@ let rec g lines env ((range, body) as e) = (* 型推論ルーチン (caml2html: typing_
     | Not(e) ->
         unify Type.Bool (g lines env e);
         Type.Bool
-    | Neg(e) ->
+    | Xor(e1, e2) ->
+        unify Type.Bool (g lines env e1);
+        unify Type.Bool (g lines env e2);
+        Type.Bool
+    | Neg(e) | SllI(e, _) | SraI(e, _) ->
         unify Type.Int (g lines env e);
         Type.Int
-    | Add(e1, e2) | Sub(e1, e2) -> (* 足し算（と引き算）の型推論 (caml2html: typing_add) *)
+    | Add(e1, e2) | Sub(e1, e2) ->
         unify Type.Int (g lines env e1);
         unify Type.Int (g lines env e2);
         Type.Int
-    | FNeg(e) ->
+    | Eq(e1, e2) | LT(e1, e2) ->
+        unify (g lines env e1) (g lines env e2); (* 両方とも Type.Int の可能性も、Type.Bool の可能性もある *)
+        Type.Bool
+    | FNeg(e) | FAbs(e) | FFloor(e) | FSqrt(e) | FCos(e) | FSin(e) | FTan(e) | FAtan(e) ->
         unify Type.Float (g lines env e);
         Type.Float
+    | IToF(e) ->
+        unify Type.Int (g lines env e);
+        Type.Float
+    | FToI(e) ->
+        unify Type.Float (g lines env e);
+        Type.Int
     | FAdd(e1, e2) | FSub(e1, e2) | FMul(e1, e2) | FDiv(e1, e2) ->
         unify Type.Float (g lines env e1);
         unify Type.Float (g lines env e2);
         Type.Float
-    | Eq(e1, e2) | LE(e1, e2) ->
-        unify (g lines env e1) (g lines env e2);
+    | FEq(e1, e2) | FLT(e1, e2) ->
+        unify Type.Float (g lines env e1);
+        unify Type.Float (g lines env e2);
         Type.Bool
     | If(e1, e2, e3) ->
         unify (g lines env e1) Type.Bool;

@@ -11,10 +11,30 @@ let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos 
 %token <int> INT
 %token <float> FLOAT
 %token NOT
-%token MINUS
+%token XOR
+%token AND
+%token FISZERO
+%token FLESS
+%token FISPOS
+%token FISNEG
+%token FNEG
+%token FABS
+%token FHALF
+%token FSQR
+%token FLOOR
+%token FLOATOFINT
+%token INTOFFLOAT
+%token SQRT
+%token COS
+%token SIN
+%token TAN
+%token ATAN
 %token PLUS
-%token MINUS_DOT
+%token MINUS
+%token AST
+%token SLASH
 %token PLUS_DOT
+%token MINUS_DOT
 %token AST_DOT
 %token SLASH_DOT
 %token EQUAL
@@ -63,92 +83,154 @@ let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos 
 /* MATSUSHITA: added simmple_body and body, altering simple_exp and exp */
 
 simple_exp: /* (* 括弧をつけなくても関数の引数になれる式 (caml2html: parser_simple) *) */
-| simple_body { (symbol_range (), $1) }
-
-simple_body:
 | LPAREN exp RPAREN
-    { snd $2 }
+    { $2 }
 | LPAREN RPAREN
-    { Unit }
+    { symbol_range (), Unit }
 | BOOL
-    { Bool($1) }
+    { symbol_range (), Bool($1) }
 | INT
-    { Int($1) }
+    { symbol_range (), Int($1) }
 | FLOAT
-    { Float($1) }
+    { symbol_range (), Float($1) }
 | IDENT
-    { Var($1) }
+    { symbol_range (), Var($1) }
 | simple_exp DOT LPAREN exp RPAREN
-    { Get($1, $4) }
+    { symbol_range (), Get($1, $4) }
 
 exp: /* (* 一般の式 (caml2html: parser_exp) *) */
-| body { (symbol_range (), $1) }
-
-body:
-| simple_body
+| simple_exp
     { $1 }
-| NOT exp
+| NOT simple_exp
     %prec prec_app
-    { Not($2) }
+    { symbol_range (), Not($2) }
+| XOR simple_exp simple_exp
+    %prec prec_app
+    { symbol_range (), Xor($2, $3) }
+| FISZERO simple_exp
+    %prec prec_app
+    { symbol_range (), FEq($2, (None, Float(0.))) }
+| FLESS simple_exp simple_exp
+    %prec prec_app
+    { symbol_range (), FLT($2, $3) }
+| FISPOS simple_exp
+    %prec prec_app
+    { symbol_range (), FLT((None, Float(0.)), $2) }
+| FISNEG simple_exp
+    %prec prec_app
+    { symbol_range (), FLT($2, (None, Float(0.))) }
+| FNEG simple_exp
+    %prec prec_app
+    { symbol_range (), FNeg($2) }
+| FHALF simple_exp
+    %prec prec_app
+    { symbol_range (), FMul($2, (None, Float(0.5))) }
+| FSQR simple_exp
+    %prec prec_app
+    { let tmp = Id.gentmp () in
+      symbol_range (), Let(None, addtyp tmp, $2,
+        (symbol_range (), FMul((None, Var(tmp)), (None, Var(tmp))))) }
+| FABS simple_exp
+    %prec prec_app
+    { symbol_range (), FAbs($2) }
+| FLOOR simple_exp
+    %prec prec_app
+    { symbol_range (), FFloor($2) }
+| FLOATOFINT simple_exp
+    %prec prec_app
+    { symbol_range (), IToF($2) }
+| INTOFFLOAT simple_exp
+    %prec prec_app
+    { symbol_range (), FToI($2) }
+| SQRT simple_exp
+    %prec prec_app
+    { symbol_range (), FSqrt($2) }
+| COS simple_exp
+    %prec prec_app
+    { symbol_range (), FCos($2) }
+| SIN simple_exp
+    %prec prec_app
+    { symbol_range (), FSin($2) }
+| TAN simple_exp
+    %prec prec_app
+    { symbol_range (), FSin($2) }
+| ATAN simple_exp
+    %prec prec_app
+    { symbol_range (), FAtan($2) }
 | MINUS exp
     %prec prec_unary_minus
-    { match $2 with
-    | (_, Float(f)) -> Float(-.f) (* -1.23などは型エラーではないので別扱い *)
-    | e -> Neg(e) }
+    { symbol_range (), match $2 with
+    | _, Float f -> Float(-.f) (* -1.23などは型エラーではないので別扱い *)
+    | e -> Neg e }
 | exp PLUS exp /* (* 足し算を構文解析するルール (caml2html: parser_add) *) */
-    { Add($1, $3) }
+    { symbol_range (), Add($1, $3) }
 | exp MINUS exp
-    { Sub($1, $3) }
+    { symbol_range (), Sub($1, $3) }
+| exp AST INT
+    { assert($3 = 4);
+      symbol_range (), SllI($1, 2) }
+| exp SLASH INT
+    { assert($3 = 2);
+      symbol_range (), SraI($1, 1) }
 | exp EQUAL exp
-    { Eq($1, $3) }
+    { symbol_range (), Eq($1, $3) }
 | exp LESS_GREATER exp
-    { Not(symbol_range (), Eq($1, $3)) }
+    { symbol_range (), Not(symbol_range (), Eq($1, $3)) }
 | exp LESS exp
-    { Not(symbol_range (), LE($3, $1)) }
+    { symbol_range (), LT($1, $3) }
 | exp GREATER exp
-    { Not(symbol_range (), LE($1, $3)) }
+    { symbol_range (), LT($3, $1) }
 | exp LESS_EQUAL exp
-    { LE($1, $3) }
+    { symbol_range (), Not(symbol_range (), LT($3, $1)) }
 | exp GREATER_EQUAL exp
-    { LE($3, $1) }
+    { symbol_range (), Not(symbol_range (), LT($1, $3)) }
 | IF exp THEN exp ELSE exp
     %prec prec_if
-    { If($2, $4, $6) }
+    { symbol_range (), If($2, $4, $6) }
 | MINUS_DOT exp
     %prec prec_unary_minus
-    { FNeg($2) }
+    { symbol_range (), FNeg($2) }
 | exp PLUS_DOT exp
-    { FAdd($1, $3) }
+    { symbol_range (), FAdd($1, $3) }
 | exp MINUS_DOT exp
-    { FSub($1, $3) }
+    { symbol_range (), FSub($1, $3) }
 | exp AST_DOT exp
-    { FMul($1, $3) }
+    { symbol_range (), FMul($1, $3) }
 | exp SLASH_DOT exp
-    { FDiv($1, $3) }
+    { symbol_range (), FDiv($1, $3) }
+| LET BOOL EQUAL exp IN exp
+    { $6 }
 | LET IDENT EQUAL exp IN exp
     %prec prec_let
     { (* MATSUSHITA: added range *)
-      Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4), addtyp $2, $4, $6) }
+      if snd $6 = Int 0 then $4 else
+      symbol_range (), Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4), addtyp $2, $4, $6) }
+| LET REC XOR formal_args EQUAL exp IN exp
+    { $8 }
+| LET REC TAN formal_args EQUAL exp IN exp
+    { $8 }
 | LET REC fundef IN exp
     %prec prec_let
     { (* MATSUSHITA: added range *)
-      LetRec(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 3), $3, $5) }
+      symbol_range (), LetRec(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 3), $3, $5) }
 | simple_exp actual_args
     %prec prec_app
-    { App($1, $2) }
+    { symbol_range (), App($1, $2) }
 | elems
     %prec prec_tuple
-    { Tuple($1) }
+    { symbol_range (), Tuple($1) }
 | LET LPAREN pat RPAREN EQUAL exp IN exp
     { (* MATSUSHITA: added range *)
-      LetTuple(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 6), $3, $6, $8) }
+      symbol_range (), LetTuple(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 6), $3, $6, $8) }
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
-    { Put($1, $4, $7) }
+    { symbol_range (), Put($1, $4, $7) }
 | exp SEMICOLON exp
-    { Let(None, (Id.genunit (), Type.Unit), $1, $3) }
+    { symbol_range (), Let(None, (Id.genunit (), Type.Unit), $1, $3) }
+| exp SEMICOLON
+    { symbol_range (), Let(None, (Id.genunit (), Type.Unit), $1, (None, Unit)) }
 | ARRAY_CREATE simple_exp simple_exp
     %prec prec_app
-    { Array($2, $3) }
+    { symbol_range (), Array($2, $3) }
 | error
     { Printf.printf "Parse error at %s\n" (H.show_range (symbol_range ()));
       exit 1 }

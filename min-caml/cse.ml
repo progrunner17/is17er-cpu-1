@@ -13,7 +13,7 @@ module MB =
 let get_ffs e =
   let ffs = ref S.empty in
   let rec go infs (_, body) = match body with
-    | IfEq (_, _, _, e, e') | IfLE (_, _, _, e, e') | Let (_, _, e, e') -> go infs e; go infs e'
+    | IfEq (_, _, _, e, e') | IfLT (_, _, _, e, e') | Let (_, _, e, e') -> go infs e; go infs e'
     | LetRec (_, { name = x, _; body = e }, e') -> go (S.add x infs) e; go infs e'
     | LetTuple (_, _, _, e) -> go infs e
     | Get _ | Put _ | ExtFunApp _ -> S.iter (fun x -> ffs := S.add x !ffs) infs
@@ -23,7 +23,7 @@ let get_ffs e =
 
 (* 部分式が副作用を持ちうるかどうか *)
 let rec effect ffs (_, body) = match body with
-  | IfEq (_, _, _, e1, e2) | IfLE (_, _, _, e1, e2) | Let (_, _, e1, e2) -> effect ffs e1 || effect ffs e2
+  | IfEq (_, _, _, e1, e2) | IfLT (_, _, _, e1, e2) | Let (_, _, e1, e2) -> effect ffs e1 || effect ffs e2
   | Var x -> S.mem x ffs
   | LetRec (_, _, e) | LetTuple (_, _, _, e) -> effect ffs e
   | App (x, xs) -> List.exists (fun x -> S.mem x ffs) (x :: xs)
@@ -33,7 +33,7 @@ let rec effect ffs (_, body) = match body with
 
 let rec g ffs mb (range, body) = match body with
   | IfEq (range', x, x', e, e') -> range, IfEq (range', x, x', g ffs mb e, g ffs mb e')
-  | IfLE (range', x, x', e, e') -> range, IfLE (range', x, x', g ffs mb e, g ffs mb e')
+  | IfLT (range', x, x', e, e') -> range, IfLT (range', x, x', g ffs mb e, g ffs mb e')
   | Let (range', (x, t), e, e') ->
     if effect ffs e then range, Let (range', (x, t), e, g ffs mb e') else
     if MB.mem (snd e) mb then let x' = MB.find (snd e) mb in g ffs mb (KNormal.subst (M.add x x' M.empty) e') else

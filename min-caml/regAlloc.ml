@@ -4,22 +4,21 @@ open Asm
 (* [XXX] Callがあったら、そこから先は無意味というか逆効果なので追わない。
          そのために「Callがあったかどうか」を返り値の第1要素に含める。 *)
 let rec target' src (dest, t) (_, body) = match body with
-  | Mr(x) when x = src && is_reg dest ->
+  | Mv(x) when x = src && is_reg dest ->
       assert (t <> Type.Unit);
       assert (t <> Type.Float);
       false, [dest]
-  | FMr(x) when x = src && is_reg dest ->
+  | FMv(x) when x = src && is_reg dest ->
       assert (t = Type.Float);
       false, [dest]
-  | IfEq(_, _, _, e1, e2) | IfLE(_, _, _, e1, e2) | IfGE(_, _, _, e1, e2)
-  | IfFEq(_, _, _, e1, e2) | IfFLE(_, _, _, e1, e2) ->
+  | IfEq(_, _, _, e1, e2) | IfLT(_, _, _, e1, e2) ->
       let c1, rs1 = target src (dest, t) e1 in
       let c2, rs2 = target src (dest, t) e2 in
       c1 && c2, rs1 @ rs2
   | CallCls(x, ys, zs) ->
       true, (target_args src regs 0 ys @
              target_args src fregs 0 zs @
-             if x = src then [reg_cl] else [])
+             if x = src then ["%x29"] else [])
   | CallDir(_, ys, zs) ->
       true, (target_args src regs 0 ys @
              target_args src fregs 0 zs)
@@ -42,12 +41,8 @@ type alloc_result = (* allocにおいてspillingがあったかどうかを表�
 let rec alloc dest cont regenv x t =
   (* allocate a register or spill a variable *)
   assert (not (M.mem x regenv));
-  let all =
-    match t with
-    | Type.Unit -> ["%r0"] (* dummy *)
-    | Type.Float -> allfregs
-    | _ -> allregs in
-  if all = ["%r0"] then Alloc("%r0") else (* [XX] ad hoc optimization *)
+  if t = Type.Unit then Alloc (reg_const 0) else (* [XX] ad hoc optimization *)
+  let all = if t = Type.Float then Array.to_list fregs else Array.to_list regs in
   if is_reg x then Alloc(x) else
   let free = fv cont in
   try
@@ -88,10 +83,6 @@ let find x t regenv =
   if is_reg x then x else
   try M.find x regenv
   with Not_found -> raise (NoReg(x, t))
-let find' x' regenv =
-  match x' with
-  | V(x) -> V(find x Type.Int regenv)
-  | c -> c
 
 let rec g dest cont regenv (range, body) = match body with (* 命令列のレジスタ割り当て (caml2html: regalloc_g) *)
   | Ans(exp) -> g'_and_restore range range dest cont regenv exp
@@ -104,7 +95,7 @@ let rec g dest cont regenv (range, body) = match body with (* 命令列のレジ
           let r = M.find y regenv1 in
           let (e2', regenv2) = g dest cont (add x r (M.remove y regenv1)) e in
           let save = range,
-            try Save(M.find y regenv, y)
+            try save (M.find y regenv) y
             with Not_found -> Nop in
           (seq(range, save, concat range range' e1' (r, t) e2'), regenv2)
       | Alloc(r) ->
@@ -113,29 +104,47 @@ let rec g dest cont regenv (range, body) = match body with (* 命令列のレジ
 and g'_and_restore range range' dest cont regenv exp = (* 使用される変数をスタックからレジスタへRestore (caml2html: regalloc_unspill) *)
   try g' dest cont regenv exp
   with NoReg(x, t) ->
-    (g dest cont regenv (range, Let(None, (x, t), (fst exp, Restore(x)), (fst exp, Ans(exp)))))
+    g dest cont regenv (range, Let(None, (x, t), (fst exp, restore x t), (fst exp, Ans(exp))))
 and g' dest cont regenv (range, body) = match body with (* 各命令のレジスタ割り当て (caml2html: regalloc_gprime) *)
-  | Nop | Li _ | SetL _ | Comment _ | Restore _ | FLi _ as exp -> ((range, Ans(range, exp)), regenv)
-  | Mr(x) -> ((range, Ans(range, Mr(find x Type.Int regenv))), regenv)
-  | Neg(x) -> ((range, Ans(range, Neg(find x Type.Int regenv))), regenv)
-  | Add(x, y') -> ((range, Ans(range, Add(find x Type.Int regenv, find' y' regenv))), regenv)
-  | Sub(x, y') -> ((range, Ans(range, Sub(find x Type.Int regenv, find' y' regenv))), regenv)
-  | Slw(x, y') -> ((range, Ans(range, Slw(find x Type.Int regenv, find' y' regenv))), regenv)
-  | Lwz(x, y') -> ((range, Ans(range, Lwz(find x Type.Int regenv, find' y' regenv))), regenv)
-  | Stw(x, y, z') -> ((range, Ans(range, Stw(find x Type.Int regenv, find y Type.Int regenv, find' z' regenv))), regenv)
-  | FMr(x) -> ((range, Ans(range, FMr(find x Type.Float regenv))), regenv)
-  | FNeg(x) -> ((range, Ans(range, FNeg(find x Type.Float regenv))), regenv)
-  | FAdd(x, y) -> ((range, Ans(range, FAdd(find x Type.Float regenv, find y Type.Float regenv))), regenv)
-  | FSub(x, y) -> ((range, Ans(range, FSub(find x Type.Float regenv, find y Type.Float regenv))), regenv)
-  | FMul(x, y) -> ((range, Ans(range, FMul(find x Type.Float regenv, find y Type.Float regenv))), regenv)
-  | FDiv(x, y) -> ((range, Ans(range, FDiv(find x Type.Float regenv, find y Type.Float regenv))), regenv)
-  | Lfd(x, y') -> ((range, Ans(range, Lfd(find x Type.Int regenv, find' y' regenv))), regenv)
-  | Stfd(x, y, z') -> ((range, Ans(range, Stfd(find x Type.Float regenv, find y Type.Int regenv, find' z' regenv))), regenv)
-  | IfEq(range', x, y', e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfEq(range', find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
-  | IfLE(range', x, y', e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfLE(range', find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
-  | IfGE(range', x, y', e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfGE(range', find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
-  | IfFEq(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfFEq(range', find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
-  | IfFLE(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfFLE(range', find x Type.Float regenv, find y Type.Float regenv, e1', e2')) e1 e2
+  | Nop | LI _ | LIL _ | FLI _ | Restore _ | FRestore _ as exp -> (range, Ans(range, exp)), regenv
+  | Mv(x) -> (range, Ans(range, Mv(find x Type.Int regenv))), regenv
+  | Not(x) -> (range, Ans(range, Not(find x Type.Int regenv))), regenv
+  | Xor(x, y) -> (range, Ans(range, Xor(find x Type.Int regenv, find y Type.Int regenv))), regenv
+  | Neg(x) -> (range, Ans(range, Neg(find x Type.Int regenv))), regenv
+  | Add(x, y) -> (range, Ans(range, Add(find x Type.Int regenv, find y Type.Int regenv))), regenv
+  | AddI(x, n) -> (range, Ans(range, AddI(find x Type.Int regenv, n))), regenv
+  | Sub(x, y) -> (range, Ans(range, Sub(find x Type.Int regenv, find y Type.Int regenv))), regenv
+  | SllI(x, n) -> (range, Ans(range, SllI(find x Type.Int regenv, n))), regenv
+  | SraI(x, n) -> (range, Ans(range, SraI(find x Type.Int regenv, n))), regenv
+  | LW(x, n) -> (range, Ans(range, LW(find x Type.Int regenv, n))), regenv
+  | LWA(x, y) -> (range, Ans(range, LWA(find x Type.Int regenv, find y Type.Int regenv))), regenv
+  | SW(x, y, n) -> (range, Ans(range, SW(find x Type.Int regenv, find y Type.Int regenv, n))), regenv
+  | SWA(x, y, z) -> (range, Ans(range, SWA(find x Type.Int regenv, find y Type.Int regenv, find z Type.Int regenv))), regenv
+  | FMv(x) -> (range, Ans(range, FMv(find x Type.Float regenv))), regenv
+  | FNeg(x) -> (range, Ans(range, FNeg(find x Type.Float regenv))), regenv
+  | FAbs(x) -> (range, Ans(range, FAbs(find x Type.Float regenv))), regenv
+  | FFloor(x) -> (range, Ans(range, FFloor(find x Type.Float regenv))), regenv
+  | IToF(x) -> (range, Ans(range, IToF(find x Type.Int regenv))), regenv
+  | FToI(x) -> (range, Ans(range, FToI(find x Type.Float regenv))), regenv
+  | FSqrt(x) -> (range, Ans(range, FSqrt(find x Type.Float regenv))), regenv
+  | FCos(x) -> (range, Ans(range, FCos(find x Type.Float regenv))), regenv
+  | FSin(x) -> (range, Ans(range, FSin(find x Type.Float regenv))), regenv
+  | FTan(x) -> (range, Ans(range, FTan(find x Type.Float regenv))), regenv
+  | FAtan(x) -> (range, Ans(range, FAtan(find x Type.Float regenv))), regenv
+  | FAdd(x, y) -> (range, Ans(range, FAdd(find x Type.Float regenv, find y Type.Float regenv))), regenv
+  | FSub(x, y) -> (range, Ans(range, FSub(find x Type.Float regenv, find y Type.Float regenv))), regenv
+  | FMul(x, y) -> (range, Ans(range, FMul(find x Type.Float regenv, find y Type.Float regenv))), regenv
+  | FDiv(x, y) -> (range, Ans(range, FDiv(find x Type.Float regenv, find y Type.Float regenv))), regenv
+  | FEq(x, y) -> (range, Ans(range, FEq(find x Type.Float regenv, find y Type.Float regenv))), regenv
+  | FLT(x, y) -> (range, Ans(range, FLT(find x Type.Float regenv, find y Type.Float regenv))), regenv
+  | FLW(x, n) -> (range, Ans(range, FLW(find x Type.Int regenv, n))), regenv
+  | FLWA(x, y) -> (range, Ans(range, FLWA(find x Type.Int regenv, find y Type.Int regenv))), regenv
+  | FSW(x, y, n) -> (range, Ans(range, FSW(find x Type.Float regenv, find y Type.Int regenv, n))), regenv
+  | FSWA(x, y, z) -> (range, Ans(range, FSWA(find x Type.Float regenv, find y Type.Int regenv, find z Type.Int regenv))), regenv
+  | GetC -> (range, Ans(range, GetC)), regenv
+  | PutC x -> (range, Ans(range, PutC (find x Type.Int regenv))), regenv
+  | IfEq(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfEq(range', find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
+  | IfLT(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfLT(range', find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
   | CallCls(x, ys, zs) as exp ->
       if List.length ys > Array.length regs - 2 || List.length zs > Array.length fregs - 1 then
         failwith (Format.sprintf "cannot allocate registers for arugments to %s" x)
@@ -146,10 +155,10 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
         failwith (Format.sprintf "cannot allocate registers for arugments to %s" x)
       else
         g'_call range dest cont regenv exp (fun ys zs -> CallDir(Id.L(x), ys, zs)) ys zs
-  | Save(x, y) -> assert false
+  | Save _ | FSave _ -> assert false
 and g'_if range range' dest cont regenv exp constr e1 e2 = (* ifのレジスタ割り当て (caml2html: regalloc_if) *)
-  let (e1', regenv1) = g dest cont regenv e1 in
-  let (e2', regenv2) = g dest cont regenv e2 in
+  let e1', regenv1 = g dest cont regenv e1 in
+  let e2', regenv2 = g dest cont regenv e2 in
   let regenv' = (* 両方に共通のレジスタ変数だけ利用 *)
     List.fold_left
       (fun regenv' x ->
@@ -165,7 +174,7 @@ and g'_if range range' dest cont regenv exp constr e1 e2 = (* ifのレジスタ�
   (List.fold_left
      (fun e x ->
        if x = fst dest || not (M.mem x regenv) || M.mem x regenv' then e else
-       seq(range, (range, Save(M.find x regenv, x)), e)) (* そうでない変数は分岐直前にセーブ *)
+       seq(range, (range, save (M.find x regenv) x), e)) (* そうでない変数は分岐直前にセーブ *)
      (range, Ans(range, constr e1' e2'))
      (fv cont),
    regenv')
@@ -173,15 +182,22 @@ and g'_call range dest cont regenv exp constr ys zs = (* 関数呼び出しの�
   (List.fold_left
      (fun e x ->
        if x = fst dest || not (M.mem x regenv) then e else
-       seq(range, (range, Save(M.find x regenv, x)), e))
+       seq(range, (range, save (M.find x regenv) x), e))
      (range, Ans(range, constr
             (List.map (fun y -> find y Type.Int regenv) ys)
             (List.map (fun z -> find z Type.Float regenv) zs)))
      (fv cont),
    M.empty)
+and save r x = match String.sub r 0 2 with
+  | "%x" -> Save(r, x)
+  | "%f" -> FSave(r, x)
+  | _ -> failwith "illegal register"
+and restore x t = match t with
+  | Type.Float -> FRestore x
+  | _ -> Restore x
 
 let h { range = range; name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数のレジスタ割り当て (caml2html: regalloc_h) *)
-  let regenv = M.add x reg_cl M.empty in
+  let regenv = M.add x "%x29" M.empty in
   let (i, arg_regs, regenv) =
     List.fold_left
       (fun (i, arg_regs, regenv) y ->
@@ -205,12 +221,12 @@ let h { range = range; name = Id.L(x); args = ys; fargs = zs; body = e; ret = t 
   let a =
     match t with
     | Type.Unit -> Id.genunit ()
-    | Type.Float -> fregs.(0)
-    | _ -> regs.(0) in
-  let (e', regenv') = g (a, t) (range, Ans(range, Mr(a))) regenv e in
+    | Type.Float -> "%f1"
+    | _ -> "%x4" in
+  let (e', regenv') = g (a, t) (range, Ans(range, Mv(a))) regenv e in
   { range = range; name = Id.L(x); args = arg_regs; fargs = farg_regs; body = e'; ret = t }
 
-let f (Prog(data, fundefs, e)) = (* プログラム全体のレジスタ割り当て (caml2html: regalloc_f) *)
+let f (Prog(fundefs, e)) = (* プログラム全体のレジスタ割り当て (caml2html: regalloc_f) *)
   let fundefs' = List.map h fundefs in
   let e', regenv' = g (Id.genunit (), Type.Unit) (None, Ans(None, Nop)) M.empty e in
-  Prog(data, fundefs', e')
+  Prog(fundefs', e')

@@ -10,6 +10,7 @@ type t = (* MinCamlの型を表現するデータ型 (caml2html: type_t) *)
 
 let gentyp () = Var(ref None) (* 新しい型変数を作る *)
 
+(* MATSUSHITA; added function show *)
 let rec show = function
   | Unit -> "unit"
   | Bool -> "bool"

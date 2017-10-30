@@ -6,16 +6,30 @@ and body =
   | Int of int
   | Float of float
   | Not of t
+  | Xor of t * t
   | Neg of t
   | Add of t * t
   | Sub of t * t
+  | SllI of t * int
+  | SraI of t * int
+  | Eq of t * t
+  | LT of t * t
   | FNeg of t
+  | FAbs of t
+  | FFloor of t
+  | IToF of t
+  | FToI of t
+  | FSqrt of t
+  | FCos of t
+  | FSin of t
+  | FTan of t
+  | FAtan of t
   | FAdd of t * t
   | FSub of t * t
   | FMul of t * t
   | FDiv of t * t
-  | Eq of t * t
-  | LE of t * t
+  | FEq of t * t
+  | FLT of t * t
   | If of t * t * t
   | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
@@ -28,22 +42,37 @@ and body =
   | Put of t * t * t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
+(* MATSUSHITA: added function show *)
 let rec show (_, body) = match body with
   | Unit -> "()"
   | Bool b -> if b then "true" else "false"
   | Int n -> string_of_int n
   | Float a -> string_of_float a
   | Not e -> "(not "^show e^")"
+  | Xor (e, e') -> "(xor "^show e^" "^show e'^")"
   | Neg e -> "(- " ^show e^")"
   | Add (e, e') -> "("^show e^" + "^show e'^")"
   | Sub (e, e') -> "("^show e^" - "^show e'^")"
+  | SllI (e, n) -> "("^show e^" sll "^string_of_int n^")"
+  | SraI (e, n) -> "("^show e^" sra "^string_of_int n^")"
+  | Eq (e, e') -> "("^show e^" = "^show e'^")"
+  | LT (e, e') -> "("^show e^" < "^show e'^")"
   | FNeg e -> "(-. "^show e^")"
+  | FAbs e -> "(fabs "^show e^")"
+  | FFloor e -> "(ffloor "^show e^")"
+  | IToF e -> "(itof "^show e^")"
+  | FToI e -> "(ftoi "^show e^")"
+  | FSqrt e -> "(fsqrt "^show e^")"
+  | FCos e -> "(fcos "^show e^")"
+  | FSin e -> "(fsin "^show e^")"
+  | FTan e -> "(ftan "^show e^")"
+  | FAtan e -> "(fatan "^show e^")"
   | FAdd (e, e') -> "("^show e^" +. "^show e'^")"
   | FSub (e, e') -> "("^show e^" -. "^show e'^")"
   | FMul (e, e') -> "("^show e^" *. "^show e'^")"
   | FDiv (e, e') -> "("^show e^" /. "^show e'^")"
-  | Eq (e, e') -> "("^show e^" = "^show e'^")"
-  | LE (e, e') -> "("^show e^" <= "^show e'^")"
+  | FEq (e, e') -> "("^show e^" =. "^show e'^")"
+  | FLT (e, e') -> "("^show e^" <. "^show e'^")"
   | If (e, e', e'') -> "(if "^show e^" then "^show e'^" else "^show e''^")"
   | Let (_, (x, t), e, e') -> "(let "^x^":"^Type.show t^" = "^show e^" in "^show e'^")"
   | Var x -> x
