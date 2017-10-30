@@ -8,6 +8,10 @@ external int32_of_float: float -> int32 = "int32_of_float"
 let upper n = n asr 12 + if n land 2048 = 0 then 0 else 1
 let lower n = (n lsl 19) asr 19 (* 符号拡張を行っている int が 31bit 整数であることに注意 *)
 
+(* MATSUSHITA: added pc and labels*)
+let pc = ref 0
+let labels = ref M.empty
+
 (* MATSUSHITA: added functions comment_range and comment_range' *)
 let comment_range lines range = match range with
   | None -> "\n"
@@ -15,10 +19,6 @@ let comment_range lines range = match range with
 let comment_range' lines range = match range with
   | None -> "\n"
   | _ -> "\t"^H.show_from_range lines range^"\n"
-
-let pc = ref 0
-
-let labels = ref M.empty
 
 let stackset = ref S.empty (* すでにSaveされた変数の集合 (caml2html: emit_stackset) *)
 let stackmap = ref [] (* Saveされた変数の、スタックにおける位置 (caml2html: emit_stackmap) *)
@@ -84,12 +84,12 @@ and g' lines (dest, ((range, body) as exp)) =
       if upper n = 0 then
         let _ = pc := !pc + 2 in
         Printf.sprintf "\taddi\tx31, x0, %d%s" n (comment_range lines range)^
-        Printf.sprintf "\tmvitof\t%s, x31%s" (freg x) (comment_range lines range)
+        Printf.sprintf "\tfmv.x.f\t%s, x31%s" (freg x) (comment_range lines range)
       else
         let _ = pc := !pc + 3 in
         Printf.sprintf "\tlui\tx31, %d%s" (upper n) (comment_range lines range)^
         Printf.sprintf "\taddi\tx31, x31, %d%s" (lower n) (comment_range lines range)^
-        Printf.sprintf "\tmvitof\t%s, x31%s" (freg x) (comment_range lines range)
+        Printf.sprintf "\tfmv.x.f\t%s, x31%s" (freg x) (comment_range lines range)
   | NonTail(x), LIL(Id.L(y)) ->
       let n = M.find y !labels in
       let regx = reg x in
@@ -267,19 +267,20 @@ and g' lines (dest, ((range, body) as exp)) =
       Printf.sprintf "\tjalr\tx0, x31, 0%s" (comment_range lines range)
   | Tail, CallDir(Id.L(x), ys, zs) -> (* 末尾呼び出し *)
       let s = g'_args range lines [] ys zs in
+      pc := !pc + 1;
       let n = M.find x !labels - !pc in
       if upper n = 0 then
-        let _ = pc := !pc + 1 in
         s^
         Printf.sprintf "\tjal\tx0, %d%s" n (comment_range lines range)
       else
-        let _ = pc := !pc + 2 in
         s^
         Printf.sprintf "\tauipc\tx31, %d%s" (upper n) (comment_range lines range)^
+        let _ = pc := !pc + 1 in
         Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower n) (comment_range lines range)
   | NonTail(a), CallCls(x, ys, zs) ->
       let ss = stacksize () in
-      g'_args range lines [(x, "%x29")] ys zs^
+      let s1 = g'_args range lines [(x, "%x29")] ys zs in
+      s1^
       let _ = pc := !pc + 7 in
       Printf.sprintf "\tsw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range)^
       Printf.sprintf "\taddi\tx2, x2, %d%s" ss (comment_range lines range)^
@@ -293,25 +294,27 @@ and g' lines (dest, ((range, body) as exp)) =
         | _ -> failwith @@ "invalid register"^a)
   | NonTail(a), CallDir(Id.L(x), ys, zs) ->
       let ss = stacksize () in
-      g'_args range lines [] ys zs^
-      let _ = pc := !pc + 2 in
-      Printf.sprintf "\tsw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range)^
-      Printf.sprintf "\taddi\tx2, x2, %d%s" ss (comment_range lines range)^
-      (let n = M.find x !labels - !pc in
-      if upper n = 0 then
+      let s1 = g'_args range lines [] ys zs in
+      let _ = pc := !pc + 1 in
+      let s2 = Printf.sprintf "\taddi\tx2, x2, %d%s" ss (comment_range lines range) in
+      let s3 =
         let _ = pc := !pc + 1 in
-        Printf.sprintf "\tjal\tx0, %d%s" n (comment_range lines range)
-      else
-        let _ = pc := !pc + 2 in
-        Printf.sprintf "\tauipc\tx31, %d%s" (upper n) (comment_range lines range)^
-        Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower n) (comment_range lines range))^
+        let n = M.find x !labels - !pc in
+        if upper n = 0 then
+          Printf.sprintf "\tjal\tx0, %d%s" n (comment_range lines range)
+        else
+          Printf.sprintf "\tauipc\tx31, %d%s" (upper n) (comment_range lines range)^
+          let _ = pc := !pc + 1 in
+          Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower n) (comment_range lines range) in
       let _ = pc := !pc + 3 in
-      Printf.sprintf "\tsubi\tx2, x2, %d%s" ss (comment_range lines range)^
-      Printf.sprintf "\tlw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range)^
-      (match String.sub a 0 2 with
-        | "%x" -> Printf.sprintf "\taddi\t%s, x4, 0%s" (reg a) (comment_range lines range)
-        | "%f" -> Printf.sprintf "\tfmr\t%s, f1%s" (freg a) (comment_range lines range)
-        | _ -> failwith @@ "invalid register"^a)
+      let s4 =
+        Printf.sprintf "\tsubi\tx2, x2, %d%s" ss (comment_range lines range)^
+        Printf.sprintf "\tlw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range)^
+        match String.sub a 0 2 with
+          | "%x" -> Printf.sprintf "\taddi\t%s, x4, 0%s" (reg a) (comment_range lines range)
+          | "%f" -> Printf.sprintf "\tfmr\t%s, f1%s" (freg a) (comment_range lines range)
+          | _ -> failwith @@ "invalid register"^a in
+      s1^s2^s3^s4
 (* MATSUSHITA: added range comments *)
 and g'_tail_if lines range x y b ((range1, _) as e1) bn ((range2, _) as e2) =
   let oldpc = !pc in
@@ -394,6 +397,10 @@ let f oc lines (Prog(fundefs, e)) =
     M.empty;
   List.iter (fun fundef -> h oc lines fundef) fundefs;
   Printf.fprintf oc "_min_caml_start:\t# entry point\n";
+  pc := !pc + 2;
+  Printf.fprintf oc "\taddi x2, x0, 0\n";
+  Printf.fprintf oc "\tlui x3, %d\n" (upper 1048575);
+  Printf.fprintf oc "\taddi x3, x3, %d\n" (lower 1048575);
   Printf.fprintf oc "# program starts\n";
   stackset := S.empty;
   stackmap := [];
