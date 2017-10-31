@@ -1,5 +1,7 @@
+`default_nettype none
 
-module uart #(parameter base_addr = 32'h4060_0000) (
+
+module uart_loopback #(parameter UART_ADDR = 32'h4060_0000) (
 	input wire  clk,    // Clock
 		input wire triger,
 		input wire read_state,
