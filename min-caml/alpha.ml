@@ -15,6 +15,7 @@ let rec g env (range, body) = match body with (* α変換ルーチン本体 (caml2html: 
   | Sub(x, y) -> range, Sub(find x env, find y env)
   | SllI(x, n) -> range, SllI(find x env, n)
   | SraI(x, n) -> range, SraI(find x env, n)
+  | AndI(x, n) -> range, AndI(find x env, n)
   | FNeg(x) -> range, FNeg(find x env)
   | FAbs(x) -> range, FAbs(find x env)
   | FFloor(x) -> range, FFloor(find x env)
@@ -57,5 +58,9 @@ let rec g env (range, body) = match body with (* α変換ルーチン本体 (caml2html: 
   | Put(x, y, z) -> range, Put(find x env, find y env, find z env)
   | ExtArray(x) -> range, ExtArray(x)
   | ExtFunApp(x, ys) -> range, ExtFunApp(x, List.map (fun y -> find y env) ys)
+  | Read -> range, Read
+  | FRead -> range, FRead
+  | Write x -> range, Write (find x env)
+  | FWrite x -> range, FWrite (find x env)
 
 let f = g M.empty

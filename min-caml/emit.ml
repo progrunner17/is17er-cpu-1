@@ -2,7 +2,8 @@ open Asm
 open Lexing
 
 (* MATSUSHITA: added function int32_of_float *)
-external int32_of_float: float -> int32 = "int32_of_float"
+external upper_float: float -> int32 = "upper_float"
+external lower_float: float -> int32 = "lower_float"
 
 (* MATSUSHITA: added functions upper and lower *)
 let upper n = n asr 12 + if n land 2048 = 0 then 0 else 1
@@ -80,16 +81,17 @@ and g' lines (dest, ((range, body) as exp)) =
         Printf.sprintf "\tlui\t%s, %d%s" regx (upper n) (comment_range lines range)^
         Printf.sprintf "\taddi\t%s, %s, %d%s" regx regx (lower n) (comment_range lines range)
   | NonTail(x), FLI(a) ->
-      let n = Int32.to_int @@ int32_of_float a in
-      if upper n = 0 then
+      let m = Int32.to_int @@ upper_float a in
+      let n = Int32.to_int @@ lower_float a in
+      if m = 0 then
         let _ = pc := !pc + 2 in
         Printf.sprintf "\taddi\tx31, x0, %d%s" n (comment_range lines range)^
-        Printf.sprintf "\tfmv.x.f\t%s, x31%s" (freg x) (comment_range lines range)
+        Printf.sprintf "\txtof\t%s, x31%s" (freg x) (comment_range lines range)
       else
         let _ = pc := !pc + 3 in
-        Printf.sprintf "\tlui\tx31, %d%s" (upper n) (comment_range lines range)^
-        Printf.sprintf "\taddi\tx31, x31, %d%s" (lower n) (comment_range lines range)^
-        Printf.sprintf "\tfmv.x.f\t%s, x31%s" (freg x) (comment_range lines range)
+        Printf.sprintf "\tlui\tx31, %d%s" m (comment_range lines range)^
+        Printf.sprintf "\taddi\tx31, x31, %d%s" n (comment_range lines range)^
+        Printf.sprintf "\txtof\t%s, x31%s" (freg x) (comment_range lines range)
   | NonTail(x), LIL(Id.L(y)) ->
       let n = M.find y !labels in
       let regx = reg x in
@@ -131,20 +133,26 @@ and g' lines (dest, ((range, body) as exp)) =
       assert(-2048 <= n && n <= 2047);
       pc := !pc + 1;
       Printf.sprintf "\tsrai\t%s, %s, %d%s" (reg x) (reg y) n (comment_range lines range)
+  | NonTail(x), AndI(y, n) ->
+      assert(-2048 <= n && n <= 2047);
+      pc := !pc + 1;
+      Printf.sprintf "\tandi\t%s, %s, %d%s" (reg x) (reg y) n (comment_range lines range)
   | NonTail(x), LW(y, n) ->
       assert(-2048 <= n && n <= 2047);
       pc := !pc + 1;
       Printf.sprintf "\tlw\t%s, %d(%s)%s" (reg x) n (reg y) (comment_range lines range)
   | NonTail(x), LWA(y, z) ->
-      pc := !pc + 1;
-      Printf.sprintf "\tlwa\t%s, (%s, %s)%s" (reg x) (reg y) (reg z) (comment_range lines range)
+      pc := !pc + 2;
+      Printf.sprintf "\tadd\tx31, %s, %s%s" (reg y) (reg z) (comment_range lines range)^
+      Printf.sprintf "\tlw\t%s, 0(x31)%s" (reg x) (comment_range lines range)
   | NonTail(_), SW(x, y, n) ->
       assert(-2048 <= n && n <= 2047);
       pc := !pc + 1;
       Printf.sprintf "\tsw\t%s, %d(%s)%s" (reg x) n (reg y) (comment_range lines range)
   | NonTail(_), SWA(x, y, z) ->
-      pc := !pc + 1;
-      Printf.sprintf "\tswa\t%s, (%s, %s)%s" (reg x) (reg y) (reg z) (comment_range lines range)
+      pc := !pc + 2;
+      Printf.sprintf "\tadd\tx31, %s, %s%s" (reg y) (reg z) (comment_range lines range)^
+      Printf.sprintf "\tsw\t%s, 0(x31)%s" (reg x) (comment_range lines range)
   | NonTail(x), FMv(y) when x = y -> ""
   | NonTail(x), FMv(y) ->
       pc := !pc + 1;
@@ -156,8 +164,9 @@ and g' lines (dest, ((range, body) as exp)) =
       pc := !pc + 1;
       Printf.sprintf "\tfabs\t%s, %s%s" (freg x) (freg y) (comment_range lines range)
   | NonTail(x), FFloor(y) ->
-      pc := !pc + 1;
-      Printf.sprintf "\tfloor\t%s, %s%s" (freg x) (freg y) (comment_range lines range)
+      pc := !pc + 2;
+      Printf.sprintf "\tftoi\tx31, %s%s" (freg y) (comment_range lines range)^
+      Printf.sprintf "\titof\t%s, x31%s" (freg x) (comment_range lines range)
   | NonTail(x), FToI(y) ->
       pc := !pc + 1;
       Printf.sprintf "\tftoi\t%s, %s%s" (reg x) (freg y) (comment_range lines range)
@@ -202,21 +211,29 @@ and g' lines (dest, ((range, body) as exp)) =
       pc := !pc + 1;
       Printf.sprintf "\tflw\t%s, %d(%s)%s" (freg x) n (reg y) (comment_range lines range)
   | NonTail(x), FLWA(y, z) ->
-      pc := !pc + 1;
-      Printf.sprintf "\tflwa\t%s, (%s, %s)%s" (freg x) (reg y) (reg z) (comment_range lines range)
+      pc := !pc + 2;
+      Printf.sprintf "\tadd\tx31, %s, %s%s" (reg y) (reg z) (comment_range lines range)^
+      Printf.sprintf "\tflw\t%s, 0(x31)%s" (freg x) (comment_range lines range)
   | NonTail(_), FSW(x, y, n) ->
       assert(-2048 <= n && n <= 2047);
       pc := !pc + 1;
       Printf.sprintf "\tfsw\t%s, %d(%s)%s" (freg x) n (reg y) (comment_range lines range)
   | NonTail(_), FSWA(x, y, z) ->
+      pc := !pc + 2;
+      Printf.sprintf "\tadd\tx31, %s, %s%s" (reg y) (reg z) (comment_range lines range)^
+      Printf.sprintf "\tfsw\t%s, 0(x31)%s" (freg x) (comment_range lines range)
+  | NonTail(x), Read ->
       pc := !pc + 1;
-      Printf.sprintf "\tfswa\t%s, (%s, %s)%s" (freg x) (reg y) (reg z) (comment_range lines range)
-  | NonTail(x), GetC ->
+      Printf.sprintf "\tlw\t%s, -64(x0)%s" (reg x) (comment_range lines range)
+  | NonTail(x), FRead ->
       pc := !pc + 1;
-      Printf.sprintf "\tlw\t%s, -256(x0)%s" (reg x) (comment_range lines range)
-  | NonTail(_), PutC(x) ->
+      Printf.sprintf "\tflw\t%s, -64(x0)%s" (freg x) (comment_range lines range)
+  | NonTail(_), Write(x) ->
       pc := !pc + 1;
-      Printf.sprintf "\tsw\t%s, -252(x0)%s" (reg x) (comment_range lines range)
+      Printf.sprintf "\tsw\t%s, -63(x0)%s" (reg x) (comment_range lines range)
+  | NonTail(_), FWrite(x) ->
+      pc := !pc + 1;
+      Printf.sprintf "\tfsw\t%s, -63(x0)%s" (freg x) (comment_range lines range)
   (* 退避の仮想命令の実装 (caml2html: emit_save) *)
   | NonTail(_), Save(x, y) when not (S.mem y !stackset) ->
       save y;
@@ -235,18 +252,18 @@ and g' lines (dest, ((range, body) as exp)) =
       pc := !pc + 1;
       Printf.sprintf "\tflw\t%s, %d(x2)%s" (freg x) (offset y) (comment_range lines range)
   (* 末尾だったら計算結果を第一レジスタにセットしてリターン (caml2html: emit_tailret) *)
-  | Tail, (Nop | SW _ | SWA _ | FSW _ | FSWA _ | PutC _ | Save _ | FSave _) ->
+  | Tail, (Nop | SW _ | SWA _ | FSW _ | FSWA _ | Write _ | FWrite _ | Save _ | FSave _) ->
       let s = g' lines (NonTail(Id.genunit ()), exp) in
       pc := !pc + 1;
       s^Printf.sprintf "\tjalr x0, x1, 0%s" (comment_range lines range)
   | Tail, (LI _ | LIL _ | Mv _ | Not _ | Xor _
-    | Neg _ | Add _ | AddI _ | Sub _ | SllI _ | SraI _ | LW _ | LWA _ | FToI _ | FEq _ | FLT _ | GetC | Restore _) ->
+    | Neg _ | Add _ | AddI _ | Sub _ | SllI _ | SraI _ | AndI _ | LW _ | LWA _ | FToI _ | FEq _ | FLT _ | Read | Restore _) ->
       let s = g' lines (NonTail("%x4"), exp) in
       pc := !pc + 1;
       s^Printf.sprintf "\tjalr\tx0, x1, 0%s" (comment_range lines range)
   | Tail, (FLI _ | FMv _ | FNeg _ | FAbs _ | FFloor _ | IToF _ | FSqrt _
     | FCos _ | FSin _ | FTan _ | FAtan _
-    | FAdd _ | FSub _ | FMul _ | FDiv _ | FLW _ | FLWA _ | FRestore _) ->
+    | FAdd _ | FSub _ | FMul _ | FDiv _ | FLW _ | FLWA _ | FRead | FRestore _) ->
       let s = g' lines (NonTail("%f1"), exp) in
       pc := !pc + 1;
       s^Printf.sprintf "\tjalr\tx0, x1, 0%s" (comment_range lines range)

@@ -12,6 +12,7 @@ and body =
   | Sub of Id.t * Id.t
   | SllI of Id.t * int
   | SraI of Id.t * int
+  | AndI of Id.t * int
   | FNeg of Id.t
   | FAbs of Id.t
   | FFloor of Id.t
@@ -40,6 +41,10 @@ and body =
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.l
+  | Read
+  | Write of Id.t
+  | FRead
+  | FWrite of Id.t
 type fundef = { range : H.range; (* MATSUSHITA: added H.range *)
                 name : Id.l * Type.t;
                 args : (Id.t * Type.t) list;
@@ -60,6 +65,7 @@ let rec show lines (range, body) = match body with
   | Sub (x, x') -> x^" - "^x'^H.comment_from_range lines range
   | SllI (x, n) -> x^" sll "^string_of_int n^H.comment_from_range lines range
   | SraI (x, n) -> x^" sra "^string_of_int n^H.comment_from_range lines range
+  | AndI (x, n) -> x^" and "^string_of_int n^H.comment_from_range lines range
   | FNeg x -> "-. "^x^H.comment_from_range lines range
   | FAbs x -> "fabs "^x^H.comment_from_range lines range
   | FFloor x -> "ffloor "^x^H.comment_from_range lines range
@@ -112,6 +118,10 @@ let rec show lines (range, body) = match body with
   | Get (x, x') -> x^".("^x'^")"^H.comment_from_range lines range
   | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.comment_from_range lines range
   | ExtArray (Id.L x) -> "*"^x^"*"^H.comment_from_range lines range
+  | Read -> "read"^H.comment_from_range lines range
+  | FRead -> "fread"^H.comment_from_range lines range
+  | Write x -> "write "^x^H.comment_from_range lines range
+  | FWrite x -> "fwrite "^x^H.comment_from_range lines range
 
 let show_prog lines (Prog (fs, e)) =
   let s1 = H.sep "" (fun {range = range; name = Id.L f, t; args = xts; formal_fv = yts; body = e} ->
@@ -124,8 +134,10 @@ let show_prog lines (Prog (fs, e)) =
   s1^show lines e
 
 let rec fv (_, body) = match body with
-  | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
-  | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) -> S.singleton x
+  | Unit | Int(_) | Float(_) | ExtArray(_)| Read | FRead -> S.empty
+  | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | AndI(x, _)
+  | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x)
+  | Write(x) | FWrite(x) -> S.singleton x
   | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Get(x, y) -> S.of_list [x; y]
   | IfEq(_, x, y, e1, e2)| IfLT(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
@@ -149,6 +161,7 @@ let rec g env known (range, body) = match body with (* クロージャ変換ル�
   | KNormal.Sub(x, y) -> range, Sub(x, y)
   | KNormal.SllI(x, n) -> range, SllI(x, n)
   | KNormal.SraI(x, n) -> range, SraI(x, n)
+  | KNormal.AndI(x, n) -> range, AndI(x, n)
   | KNormal.FNeg(x) -> range, FNeg(x)
   | KNormal.FAbs(x) -> range, FAbs(x)
   | KNormal.FFloor(x) -> range, FFloor(x)
@@ -208,6 +221,10 @@ let rec g env known (range, body) = match body with (* クロージャ変換ル�
   | KNormal.Put(x, y, z) -> range, Put(x, y, z)
   | KNormal.ExtArray(x) -> range, ExtArray(Id.L(x))
   | KNormal.ExtFunApp(x, ys) -> range, AppDir(Id.L("min_caml_" ^ x), ys)
+  | KNormal.Read -> range, Read
+  | KNormal.FRead -> range, FRead
+  | KNormal.Write x -> range, Write x
+  | KNormal.FWrite x -> range, FWrite x
 
 let f e =
   toplevel := [];

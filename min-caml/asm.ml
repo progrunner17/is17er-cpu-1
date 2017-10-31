@@ -20,6 +20,7 @@ and ebody =
   | Sub of Id.t * Id.t
   | SllI of Id.t * int
   | SraI of Id.t * int
+  | AndI of Id.t * int
   | LW of Id.t * int
   | LWA of Id.t * Id.t
   | SW of Id.t * Id.t * int
@@ -45,8 +46,10 @@ and ebody =
   | FLWA of Id.t * Id.t
   | FSW of Id.t * Id.t * int
   | FSWA of Id.t * Id.t * Id.t
-  | GetC
-  | PutC of Id.t
+  | Read
+  | Write of Id.t
+  | FRead
+  | FWrite of Id.t
   (* virtual instructions *)
   | IfEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
   | IfLT of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
@@ -84,6 +87,7 @@ and show_ebody lines range = function
   | Sub (x, y) -> "sub "^x^" "^y^H.comment_from_range lines range
   | SllI (x, n) -> "slli "^x^" "^string_of_int n^H.comment_from_range lines range
   | SraI (x, n) -> "srai "^x^" "^string_of_int n^H.comment_from_range lines range
+  | AndI (x, n) -> "andi "^x^" "^string_of_int n^H.comment_from_range lines range
   | LW (x, n) -> "lw "^string_of_int n^"("^x^")"^H.comment_from_range lines range
   | LWA (x, y) -> "lwa ("^x^", "^y^")"^H.comment_from_range lines range
   | SW (x, y, n) -> "sw "^x^" "^string_of_int n^"("^y^")"^H.comment_from_range lines range
@@ -109,8 +113,10 @@ and show_ebody lines range = function
   | FLWA (x, y) -> "flwa ("^x^", "^y^")"^H.comment_from_range lines range
   | FSW (x, y, n) -> "fsw "^x^" "^string_of_int n^"("^y^")"^H.comment_from_range lines range
   | FSWA (x, y, z) -> "fswa "^x^" ("^y^", "^z^")"^H.comment_from_range lines range
-  | GetC -> "getc"^H.comment_from_range lines range
-  | PutC x -> "putc "^x^H.comment_from_range lines range
+  | Read -> "read"^H.comment_from_range lines range
+  | FRead -> "fread"^H.comment_from_range lines range
+  | Write x -> "write "^x^H.comment_from_range lines range
+  | FWrite x -> "fwrite "^x^H.comment_from_range lines range
   | IfEq (range', x, y, e, e') ->
     let s1 = "if eq "^x^" "^y^H.comment_from_range lines range'
       ^" then"^H.comment_from_range lines (fst e)^H.down_right () in
@@ -200,10 +206,10 @@ let rec remove_and_uniq xs = function
 
 (* free variables in the order of use (for spilling) (caml2html: sparcasm_fv) *)
 let rec fv_exp (range, ebody) = match ebody with
-  | Nop | LI(_) | FLI(_) | LIL(_) | Restore(_) | FRestore(_) | GetC -> []
-  | LW(x, _) | FLW(x, _) | Mv(x) | Not(x) | Neg(x) | AddI(x, _) | SllI(x, _) | SraI(x, _)
+  | Nop | LI(_) | FLI(_) | LIL(_) | Restore(_) | FRestore(_) | Read | FRead -> []
+  | LW(x, _) | FLW(x, _) | Mv(x) | Not(x) | Neg(x) | AddI(x, _) | SllI(x, _) | SraI(x, _) | AndI(x, _)
   | FMv(x) | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x)
-  | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) | PutC(x) | Save(x, _) | FSave(x, _) -> [x]
+  | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) | Write(x) | FWrite(x) | Save(x, _) | FSave(x, _) -> [x]
   | Xor(x, y) | Add(x, y) | Sub(x, y) | LWA(x, y) | SW(x, y, _) | FLWA(x, y) | FSW(x, y, _) -> [x; y]
   | SWA(x, y, z) | FSWA(x, y, z) -> [x; y; z]
   | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) -> [x; y]

@@ -1,18 +1,68 @@
 %{
-(* parserが利用する変数、関数、型などの定義 *)
 open Syntax
 let addtyp x = (x, Type.gentyp ())
-(* MATSUSHITA: added symbol_range function *)
+
+(* MATSUSHITA: added functions *)
+
 let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
+
+let just body = None, body
+let letint x e e' = just @@ Let (None, ("x", Type.Int), e, e')
+let letfloat x e e' = just @@ Let (None, ("x", Type.Float), e, e')
+let (&!) e n = just @@ AndI(e, n)
+let var x = just @@ Var x
+let int n = just @@ Int n
+let float a = just @@ Float a
+let ftoi e = just @@ FToI e
+let itof e = just @@ IToF e
+let (+!) e e' = just @@ FAdd(e, e')
+let (-!) e e' = just @@ FSub(e, e')
+let ( *!) e e' = just @@ FMul(e, e')
+let (/!) e e' = just @@ FDiv(e, e')
+
+let cos e =
+  letfloat "x" e @@
+  letfloat "xx" (var "x" *! var "x") @@
+  letfloat "t2" (var "xx" /! float 2.) @@
+  letfloat "t4" (var "t2" *! var "xx" /! float 12.) @@
+  letfloat "t6" (var "t4" *! var "xx" /! float 30.) @@
+  letfloat "t8" (var "t6" *! var "xx" /! float 56.) @@
+  letfloat "t10" (var "t8" *! var "xx" /! float 90.) @@
+  float 1. -! var "t2" +! var "t4" -! var "t6" +! var "t8" -! var "t10"
+
+let pi = float 3.1415927
+
+let sin e =
+  letfloat "x" e @@
+  letint "n" (ftoi (var "x" /! pi)) @@
+  (float 1. -! itof (var "n" &! 1) *! float 2.) *!
+    cos (var "x" -! itof (var "n") *! pi -! pi /! float 2.)
+
+let tan e =
+  letfloat "x" e @@
+  letfloat "xx" (var "x" *! var "x") @@
+  letfloat "t3" (var "x" *! var "xx" /! float 3.) @@
+  letfloat "t5" (var "t3" *! var "xx" *! (float 2. /! float 5.)) @@
+  letfloat "t7" (var "t5" *! var "xx" *! (float 17. /! float 42.)) @@
+  letfloat "t9" (var "t7" *! var "xx" *! (float 62. /! float 153.)) @@
+  var "x" +! var "t3" +! var "t5" +! var "t7" +! var "t9"
+
+let atan e =
+  letfloat "x" e @@
+  letfloat "t1" ((var "x" -! float 2.) /! float 5.) @@
+  letfloat "t2" ((var "t1" *! var "t1" *! float 2.)) @@
+  letfloat "t3" ((var "t2" *! var "t1" *! (float 11. /! float 6.))) @@
+  letfloat "t4" ((var "t3" *! var "t1" *! (float 18. /! float 11.))) @@
+  letfloat "t5" ((var "t4" *! var "t1" *! (float 41. /! float 30.))) @@
+  float 1.10714872 +! var "t1" -! var "t2" +! var "t3" -! var "t4" +! var "t5"
+
 %}
 
-/* (* 字句を表すデータ型の定義 (caml2html: parser_token) *) */
 %token <bool> BOOL
 %token <int> INT
 %token <float> FLOAT
 %token NOT
 %token XOR
-%token AND
 %token FISZERO
 %token FLESS
 %token FISPOS
@@ -29,6 +79,10 @@ let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos 
 %token SIN
 %token TAN
 %token ATAN
+%token READINT
+%token READFLOAT
+%token PRINTINT
+%token PRINTFLOAT
 %token PLUS
 %token MINUS
 %token AST
@@ -59,7 +113,6 @@ let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos 
 %token RPAREN
 %token EOF
 
-/* (* 優先順位とassociativityの定義（低い方から高い方へ） (caml2html: parser_prior) *) */
 %nonassoc IN
 %right prec_let
 %right SEMICOLON
@@ -74,7 +127,6 @@ let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos 
 %left prec_app
 %left DOT
 
-/* (* 開始記号の定義 *) */
 %type <Syntax.t> exp
 %start exp
 
@@ -82,7 +134,7 @@ let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos 
 
 /* MATSUSHITA: added simmple_body and body, altering simple_exp and exp */
 
-simple_exp: /* (* 括弧をつけなくても関数の引数になれる式 (caml2html: parser_simple) *) */
+simple_exp:
 | LPAREN exp RPAREN
     { $2 }
 | LPAREN RPAREN
@@ -98,7 +150,7 @@ simple_exp: /* (* 括弧をつけなくても関数の引数になれる式 (caml2html: parser_simp
 | simple_exp DOT LPAREN exp RPAREN
     { symbol_range (), Get($1, $4) }
 
-exp: /* (* 一般の式 (caml2html: parser_exp) *) */
+exp:
 | simple_exp
     { $1 }
 | NOT simple_exp
@@ -109,27 +161,27 @@ exp: /* (* 一般の式 (caml2html: parser_exp) *) */
     { symbol_range (), Xor($2, $3) }
 | FISZERO simple_exp
     %prec prec_app
-    { symbol_range (), FEq($2, (None, Float(0.))) }
+    { symbol_range (), FEq($2, float 0.) }
 | FLESS simple_exp simple_exp
     %prec prec_app
     { symbol_range (), FLT($2, $3) }
 | FISPOS simple_exp
     %prec prec_app
-    { symbol_range (), FLT((None, Float(0.)), $2) }
+    { symbol_range (), FLT(float 0., $2) }
 | FISNEG simple_exp
     %prec prec_app
-    { symbol_range (), FLT($2, (None, Float(0.))) }
+    { symbol_range (), FLT($2, float  0.) }
 | FNEG simple_exp
     %prec prec_app
     { symbol_range (), FNeg($2) }
 | FHALF simple_exp
     %prec prec_app
-    { symbol_range (), FMul($2, (None, Float(0.5))) }
+    { symbol_range (), FMul($2, float 0.5) }
 | FSQR simple_exp
     %prec prec_app
     { let tmp = Id.gentmp () in
       symbol_range (), Let(None, addtyp tmp, $2,
-        (symbol_range (), FMul((None, Var(tmp)), (None, Var(tmp))))) }
+        (symbol_range (), FMul(var tmp, var tmp))) }
 | FABS simple_exp
     %prec prec_app
     { symbol_range (), FAbs($2) }
@@ -147,22 +199,34 @@ exp: /* (* 一般の式 (caml2html: parser_exp) *) */
     { symbol_range (), FSqrt($2) }
 | COS simple_exp
     %prec prec_app
-    { symbol_range (), FCos($2) }
+    { symbol_range (), snd @@ cos $2 }
 | SIN simple_exp
     %prec prec_app
-    { symbol_range (), FSin($2) }
+    { symbol_range (), snd @@ sin $2 }
 | TAN simple_exp
     %prec prec_app
-    { symbol_range (), FSin($2) }
+    { symbol_range (), snd @@ tan $2 }
 | ATAN simple_exp
     %prec prec_app
-    { symbol_range (), FAtan($2) }
+    { symbol_range (), snd @@ atan $2 }
+| READINT simple_exp
+    %prec prec_app
+    { symbol_range (), Read }
+| READFLOAT simple_exp
+    %prec prec_app
+    { symbol_range (), FRead }
+| PRINTINT simple_exp
+    %prec prec_app
+    { symbol_range (), Write($2) }
+| PRINTFLOAT simple_exp
+    %prec prec_app
+    { symbol_range (), FWrite($2) }
 | MINUS exp
     %prec prec_unary_minus
     { symbol_range (), match $2 with
-    | _, Float f -> Float(-.f) (* -1.23などは型エラーではないので別扱い *)
+    | _, Float f -> Float(-.f)
     | e -> Neg e }
-| exp PLUS exp /* (* 足し算を構文解析するルール (caml2html: parser_add) *) */
+| exp PLUS exp
     { symbol_range (), Add($1, $3) }
 | exp MINUS exp
     { symbol_range (), Sub($1, $3) }

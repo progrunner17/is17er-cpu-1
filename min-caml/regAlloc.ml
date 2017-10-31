@@ -116,6 +116,7 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
   | Sub(x, y) -> (range, Ans(range, Sub(find x Type.Int regenv, find y Type.Int regenv))), regenv
   | SllI(x, n) -> (range, Ans(range, SllI(find x Type.Int regenv, n))), regenv
   | SraI(x, n) -> (range, Ans(range, SraI(find x Type.Int regenv, n))), regenv
+  | AndI(x, n) -> (range, Ans(range, AndI(find x Type.Int regenv, n))), regenv
   | LW(x, n) -> (range, Ans(range, LW(find x Type.Int regenv, n))), regenv
   | LWA(x, y) -> (range, Ans(range, LWA(find x Type.Int regenv, find y Type.Int regenv))), regenv
   | SW(x, y, n) -> (range, Ans(range, SW(find x Type.Int regenv, find y Type.Int regenv, n))), regenv
@@ -141,8 +142,10 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
   | FLWA(x, y) -> (range, Ans(range, FLWA(find x Type.Int regenv, find y Type.Int regenv))), regenv
   | FSW(x, y, n) -> (range, Ans(range, FSW(find x Type.Float regenv, find y Type.Int regenv, n))), regenv
   | FSWA(x, y, z) -> (range, Ans(range, FSWA(find x Type.Float regenv, find y Type.Int regenv, find z Type.Int regenv))), regenv
-  | GetC -> (range, Ans(range, GetC)), regenv
-  | PutC x -> (range, Ans(range, PutC (find x Type.Int regenv))), regenv
+  | Read -> (range, Ans(range, Read)), regenv
+  | FRead -> (range, Ans(range, FRead)), regenv
+  | Write x -> (range, Ans(range, Write (find x Type.Int regenv))), regenv
+  | FWrite x -> (range, Ans(range, FWrite (find x Type.Float regenv))), regenv
   | IfEq(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfEq(range', find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
   | IfLT(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfLT(range', find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
   | CallCls(x, ys, zs) as exp ->

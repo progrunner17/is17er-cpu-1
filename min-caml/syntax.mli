@@ -12,6 +12,7 @@ and body =
   | Sub of t * t
   | SllI of t * int
   | SraI of t * int
+  | AndI of t * int
   | Eq of t * t
   | LT of t * t
   | FNeg of t
@@ -40,6 +41,10 @@ and body =
   | Array of t * t
   | Get of t * t
   | Put of t * t * t
+  | Read
+  | Write of t
+  | FRead
+  | FWrite of t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added function show *)

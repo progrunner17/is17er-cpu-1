@@ -1,0 +1,6 @@
+USAGE
+
+$ make nominrt
+$ ./nominrt < nomincontest.sld > contest.ppm
+$ rm contest.ppm
+$ make clean

@@ -18,6 +18,7 @@ and ebody =
   | Sub of Id.t * Id.t
   | SllI of Id.t * int
   | SraI of Id.t * int
+  | AndI of Id.t * int
   | LW of Id.t * int
   | LWA of Id.t * Id.t
   | SW of Id.t * Id.t * int
@@ -43,8 +44,10 @@ and ebody =
   | FLWA of Id.t * Id.t
   | FSW of Id.t * Id.t * int
   | FSWA of Id.t * Id.t * Id.t
-  | GetC
-  | PutC of Id.t
+  | Read
+  | Write of Id.t
+  | FRead
+  | FWrite of Id.t
   (* virtual instructions *)
   | IfEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
   | IfLT of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)

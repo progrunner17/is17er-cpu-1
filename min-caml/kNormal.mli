@@ -11,6 +11,7 @@ and body =
   | Sub of Id.t * Id.t
   | SllI of Id.t * int
   | SraI of Id.t * int
+  | AndI of Id.t * int
   | FNeg of Id.t
   | FAbs of Id.t
   | FFloor of Id.t
@@ -39,6 +40,10 @@ and body =
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t
   | ExtFunApp of Id.t * Id.t list
+  | Read
+  | Write of Id.t
+  | FRead
+  | FWrite of Id.t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added functions show and subst *)

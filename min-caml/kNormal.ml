@@ -13,6 +13,7 @@ and body =
   | Sub of Id.t * Id.t
   | SllI of Id.t * int
   | SraI of Id.t * int
+  | AndI of Id.t * int
   | FNeg of Id.t
   | FAbs of Id.t
   | FFloor of Id.t
@@ -41,6 +42,10 @@ and body =
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t
   | ExtFunApp of Id.t * Id.t list
+  | Read
+  | Write of Id.t
+  | FRead
+  | FWrite of Id.t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added functions show and subst *)
@@ -56,6 +61,7 @@ let rec show lines (range, body) = match body with
   | Sub (x, x') -> x^" - "^x'^H.comment_from_range lines range
   | SllI (x, n) -> x^" sll "^string_of_int n^H.comment_from_range lines range
   | SraI (x, n) -> x^" sra "^string_of_int n^H.comment_from_range lines range
+  | AndI (x, n) -> x^" and "^string_of_int n^H.comment_from_range lines range
   | FNeg x -> "-."^x^H.comment_from_range lines range
   | FAbs x -> "fabs "^x^H.comment_from_range lines range
   | FFloor x -> "ffloor "^x^H.comment_from_range lines range
@@ -117,6 +123,10 @@ let rec show lines (range, body) = match body with
   | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.comment_from_range lines range
   | ExtArray x -> "*"^x^"*"^H.comment_from_range lines range
   | ExtFunApp (x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.comment_from_range lines range
+  | Read -> "read"^H.comment_from_range lines range
+  | FRead -> "fread"^H.comment_from_range lines range
+  | Write x -> "write "^x^H.comment_from_range lines range
+  | FWrite x -> "fwrite "^x^H.comment_from_range lines range
 
 (* env により変数を置換する *)
 let rec subst env (range, body) =
@@ -130,6 +140,7 @@ let rec subst env (range, body) =
   | Sub (x, x') -> range, Sub (q x, q x')
   | SllI (x, n) -> range, SllI (q x, n)
   | SraI (x, n) -> range, SraI (q x, n)
+  | AndI (x, n) -> range, AndI (q x, n)
   | FNeg x -> range, FNeg (q x)
   | FAbs x -> range, FAbs (q x)
   | FFloor x -> range, FFloor (q x)
@@ -158,10 +169,16 @@ let rec subst env (range, body) =
   | Put (x, x', x'') -> range, Put (q x, q x', q x'')
   | ExtArray x -> range, ExtArray (q x)
   | ExtFunApp (x, xs) -> range, ExtFunApp (q x, List.map (fun x -> q x) xs)
+  | Read -> range, Read
+  | FRead -> range, FRead
+  | Write x -> range, Write (q x)
+  | FWrite x -> range, FWrite (q x)
 
 let rec fv (_, body) = match body with (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
-  | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
-  | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) -> S.singleton x
+  | Unit | Int(_) | Float(_) | ExtArray(_) | Read | FRead -> S.empty
+  | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | AndI(x, _)
+  | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x)
+  | Write(x) | FWrite(x) -> S.singleton x
   | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Get(x, y) -> S.of_list [x; y]
   | IfEq(_, x, y, e1, e2) | IfLT(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
@@ -211,6 +228,9 @@ let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html:
   | Syntax.SraI(e, n) ->
       insert_let range (g env e)
         (fun x -> (range, SraI(x, n)), Type.Int)
+  | Syntax.AndI(e, n) ->
+      insert_let range (g env e)
+        (fun x -> (range, AndI(x, n)), Type.Int)
   | Syntax.Eq _ | Syntax.LT _ as cmp ->
       g env (range, Syntax.If((range, cmp), (range, Syntax.Bool(true)), (range, Syntax.Bool(false))))
   | Syntax.FNeg(e) ->
@@ -355,5 +375,13 @@ let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html:
         (fun x -> insert_let range (g env e2)
             (fun y -> insert_let range (g env e3)
                 (fun z -> (range, Put(x, y, z)), Type.Unit)))
+  | Syntax.Read -> (range, Read), Type.Int
+  | Syntax.FRead -> (range, FRead), Type.Float
+  | Syntax.Write(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, Write(x)), Type.Unit)
+  | Syntax.FWrite(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FWrite(x)), Type.Unit)
 
 let f e = fst (g M.empty e)

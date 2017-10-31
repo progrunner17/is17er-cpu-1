@@ -12,6 +12,7 @@ and body =
   | Sub of t * t
   | SllI of t * int
   | SraI of t * int
+  | AndI of t * int
   | Eq of t * t
   | LT of t * t
   | FNeg of t
@@ -40,6 +41,10 @@ and body =
   | Array of t * t
   | Get of t * t
   | Put of t * t * t
+  | Read
+  | Write of t
+  | FRead
+  | FWrite of t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added function show *)
@@ -55,6 +60,7 @@ let rec show (_, body) = match body with
   | Sub (e, e') -> "("^show e^" - "^show e'^")"
   | SllI (e, n) -> "("^show e^" sll "^string_of_int n^")"
   | SraI (e, n) -> "("^show e^" sra "^string_of_int n^")"
+  | AndI (e, n) -> "(andi "^show e^" "^string_of_int n^")"
   | Eq (e, e') -> "("^show e^" = "^show e'^")"
   | LT (e, e') -> "("^show e^" < "^show e'^")"
   | FNeg e -> "(-. "^show e^")"
@@ -83,3 +89,7 @@ let rec show (_, body) = match body with
   | Array (e, e') -> "Array.make "^show e^" "^show e'
   | Get (e, e') -> show e^".("^show e'^")"
   | Put (e, e', e'') -> "("^show e^".("^show e'^") <- "^show e''^")"
+  | Read -> "read"
+  | FRead -> "fread"
+  | Write e -> "write "^show e
+  | FWrite e -> "fwrite "^show e

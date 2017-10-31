@@ -39,6 +39,7 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
   | Closure.Sub(x, y) -> range, Ans(range, Sub(x, y))
   | Closure.SllI(x, n) -> range, Ans(range, SllI(x, n))
   | Closure.SraI(x, n) -> range, Ans(range, SraI(x, n))
+  | Closure.AndI(x, n) -> range, Ans(range, AndI(x, n))
   | Closure.FNeg(x) -> range, Ans(range, FNeg(x))
   | Closure.FAbs(x) -> range, Ans(range, FAbs(x))
   | Closure.FFloor(x) -> range, Ans(range, FFloor(x))
@@ -85,10 +86,6 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
   | Closure.AppCls(x, ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
       range, Ans(range, CallCls(x, int, float))
-  | Closure.AppDir(Id.L("min_caml_getchar"), []) ->
-      range, Ans(range, GetC)
-  | Closure.AppDir(Id.L("min_caml_putchar"), [y]) ->
-      range, Ans(range, PutC y)
   | Closure.AppDir(Id.L(x), ys) ->
       let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
       range, Ans(range, CallDir(Id.L(x), int, float))
@@ -126,6 +123,10 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
       | Type.Array(_) -> range, Ans(range, SWA(z, x, y))
       | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> range, Ans(range, LIL(Id.L("min_caml_" ^ x)))
+  | Closure.Read -> range, Ans(range, Read)
+  | Closure.FRead -> range, Ans(range, FRead)
+  | Closure.Write x -> range, Ans(range, Write x)
+  | Closure.FWrite x -> range, Ans(range, FWrite x)
 
 (* 関数の仮想マシンコード生成 (caml2html: virtual_h) *)
 let h { Closure.range = range; Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =

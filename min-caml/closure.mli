@@ -12,6 +12,7 @@ and body =
   | Sub of Id.t * Id.t
   | SllI of Id.t * int
   | SraI of Id.t * int
+  | AndI of Id.t * int
   | FNeg of Id.t
   | FAbs of Id.t
   | FFloor of Id.t
@@ -40,6 +41,10 @@ and body =
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.l
+  | Read
+  | Write of Id.t
+  | FRead
+  | FWrite of Id.t
 type fundef = { range : H.range; (* MATSUSHITA: added H.range *)
                 name : Id.l * Type.t;
                 args : (Id.t * Type.t) list;

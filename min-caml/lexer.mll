@@ -64,6 +64,14 @@ rule token = parse
     { TAN }
 | "atan"
     { ATAN }
+| "read_int"
+    { READINT }
+| "read_float"
+    { READFLOAT }
+| "print_int"
+    { PRINTINT }
+| "print_float"
+    { PRINTFLOAT }
 | digit+ (* 整数を字句解析するルール (caml2html: lexer_int) *)
     { INT(int_of_string (Lexing.lexeme lexbuf)) }
 | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?

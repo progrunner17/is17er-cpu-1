@@ -30,6 +30,7 @@ let rec g env ((range, body) as e) =
   | Sub(z, x) when zero z env -> range, Neg x
   | SllI(x, n) when memi x env -> range, Int(findi x env lsl n)
   | SraI(x, n) when memi x env -> range, Int(findi x env asr n)
+  | AndI(x, n) when memi x env -> range, Int(findi x env land n)
   | FNeg(x) when memf x env -> range, Float(-.(findf x env))
   | FAbs(x) when memf x env -> range, Float(abs_float (findf x env))
   | FFloor(x) when memf x env -> range, Float(floor (findf x env))

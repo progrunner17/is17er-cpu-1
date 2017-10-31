@@ -29,6 +29,7 @@ let rec deref_term (range, body) = range, match body with
   | Sub(e1, e2) -> Sub(deref_term e1, deref_term e2)
   | SllI(e, n) -> SllI(deref_term e, n)
   | SraI(e, n) -> SraI(deref_term e, n)
+  | AndI(e, n) -> AndI(deref_term e, n)
   | Eq(e1, e2) -> Eq(deref_term e1, deref_term e2)
   | LT(e1, e2) -> LT(deref_term e1, deref_term e2)
   | FNeg(e) -> FNeg(deref_term e)
@@ -61,7 +62,9 @@ let rec deref_term (range, body) = range, match body with
   | Array(e1, e2) -> Array(deref_term e1, deref_term e2)
   | Get(e1, e2) -> Get(deref_term e1, deref_term e2)
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
-  | (Unit | Bool _ | Int _ | Float _ | Var _) as e -> e
+  | Write e -> Write (deref_term e)
+  | FWrite e -> FWrite (deref_term e)
+  | (Unit | Bool _ | Int _ | Float _ | Var _ | Read | FRead) as e -> e
 
 let rec occur r1 = function (* occur check (caml2html: typing_occur) *)
   | Type.Fun(t2s, t2) -> List.exists (occur r1) t2s || occur r1 t2
@@ -108,7 +111,7 @@ let rec g lines env ((range, body) as e) = (* 型推論ルーチン (caml2html: typing_
         unify Type.Bool (g lines env e1);
         unify Type.Bool (g lines env e2);
         Type.Bool
-    | Neg(e) | SllI(e, _) | SraI(e, _) ->
+    | Neg(e) | SllI(e, _) | SraI(e, _) | AndI(e, _) ->
         unify Type.Int (g lines env e);
         Type.Int
     | Add(e1, e2) | Sub(e1, e2) ->
@@ -175,6 +178,14 @@ let rec g lines env ((range, body) as e) = (* 型推論ルーチン (caml2html: typing_
         let t = g lines env e3 in
         unify (Type.Array(t)) (g lines env e1);
         unify Type.Int (g lines env e2);
+        Type.Unit
+    | Read -> Type.Int
+    | FRead -> Type.Float
+    | Write e ->
+        unify Type.Int (g lines env e);
+        Type.Unit
+    | FWrite e ->
+        unify Type.Float (g lines env e);
         Type.Unit
   with Unify(t1, t2) -> let e' = deref_term e in
     (* MATSUSHITA: modified error message *)
