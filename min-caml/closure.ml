@@ -5,16 +5,31 @@ and body =
   | Unit
   | Int of int
   | Float of float
+  | Not of Id.t
+  | Xor of Id.t * Id.t
   | Neg of Id.t
   | Add of Id.t * Id.t
   | Sub of Id.t * Id.t
+  | SllI of Id.t * int
+  | SraI of Id.t * int
   | FNeg of Id.t
+  | FAbs of Id.t
+  | FFloor of Id.t
+  | IToF of Id.t
+  | FToI of Id.t
+  | FSqrt of Id.t
+  | FCos of Id.t
+  | FSin of Id.t
+  | FTan of Id.t
+  | FAtan of Id.t
   | FAdd of Id.t * Id.t
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | FEq of Id.t * Id.t
+  | FLT of Id.t * Id.t
   | IfEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
-  | IfLE of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
+  | IfLT of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
   | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
   | MakeCls of H.range * (Id.t * Type.t) * closure * t (* MATSUSHITA: added H.range *)
@@ -35,69 +50,84 @@ type prog = Prog of fundef list * t
 (* MATSUSHITA: added functions show and show_prog *)
 
 let rec show lines (range, body) = match body with
-  | Unit -> "()"^H.show_from_range' lines range
-  | Int n -> string_of_int n^H.show_from_range' lines range
-  | Float a -> string_of_float a^H.show_from_range' lines range
-  | Neg x -> "- "^x^H.show_from_range' lines range
-  | Add (x, x') -> x^" + "^x'^H.show_from_range' lines range
-  | Sub (x, x') -> x^" - "^x'^H.show_from_range' lines range
-  | FNeg x -> "-. "^x^H.show_from_range' lines range
-  | FAdd (x, x') -> x^" +. "^x'^H.show_from_range' lines range
-  | FSub (x, x') -> x^" -. "^x'^H.show_from_range' lines range
-  | FMul (x, x') -> x^" *. "^x'^H.show_from_range' lines range
-  | FDiv (x, x') -> x^" /. "^x'^H.show_from_range' lines range
+  | Unit -> "()"^H.comment_from_range lines range
+  | Int n -> string_of_int n^H.comment_from_range lines range
+  | Float a -> string_of_float a^H.comment_from_range lines range
+  | Not x -> "not "^x^H.comment_from_range lines range
+  | Xor (x, x') -> x^" xor "^x'^H.comment_from_range lines range
+  | Neg x -> "- "^x^H.comment_from_range lines range
+  | Add (x, x') -> x^" + "^x'^H.comment_from_range lines range
+  | Sub (x, x') -> x^" - "^x'^H.comment_from_range lines range
+  | SllI (x, n) -> x^" sll "^string_of_int n^H.comment_from_range lines range
+  | SraI (x, n) -> x^" sra "^string_of_int n^H.comment_from_range lines range
+  | FNeg x -> "-. "^x^H.comment_from_range lines range
+  | FAbs x -> "fabs "^x^H.comment_from_range lines range
+  | FFloor x -> "ffloor "^x^H.comment_from_range lines range
+  | IToF x -> "itof "^x^H.comment_from_range lines range
+  | FToI x -> "ftoi "^x^H.comment_from_range lines range
+  | FSqrt x -> "fsqrt "^x^H.comment_from_range lines range
+  | FCos x -> "fcos "^x^H.comment_from_range lines range
+  | FSin x -> "fsin "^x^H.comment_from_range lines range
+  | FTan x -> "ftan "^x^H.comment_from_range lines range
+  | FAtan x -> "fatan "^x^H.comment_from_range lines range
+  | FAdd (x, x') -> x^" +. "^x'^H.comment_from_range lines range
+  | FSub (x, x') -> x^" -. "^x'^H.comment_from_range lines range
+  | FMul (x, x') -> x^" *. "^x'^H.comment_from_range lines range
+  | FDiv (x, x') -> x^" /. "^x'^H.comment_from_range lines range
+  | FEq (x, x') -> x^" =. "^x'^H.comment_from_range lines range
+  | FLT (x, x') -> x^" <. "^x'^H.comment_from_range lines range
   | IfEq (range', x, x', e, e') ->
-      let s1 = "if "^x^" = "^x'^H.show_from_range' lines range'
-        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+      let s1 = "if "^x^" = "^x'^H.comment_from_range lines range'
+        ^" then"^H.comment_from_range lines (fst e)^H.down_right () in
       let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+      let s4 = s3^"else"^H.comment_from_range lines (fst e')^H.down_right () in
       let s5 = s4^show lines e' in
       s5^H.left ()
-  | IfLE (range', x, x', e, e') ->
-      let s1 = "if "^x^" <= "^x'^H.show_from_range' lines range'
-        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+  | IfLT (range', x, x', e, e') ->
+      let s1 = "if "^x^" < "^x'^H.comment_from_range lines range'
+        ^" then"^H.comment_from_range lines (fst e)^H.down_right () in
       let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+      let s4 = s3^"else"^H.comment_from_range lines (fst e')^H.down_right () in
       let s5 = s4^show lines e' in
       s5^H.left ()
   | Let (range', (x, t), e, e') ->
-      let s1 = "let "^x^":"^Type.show t^H.show_from_range' lines range'^" = "^show lines e^" in" in
+      let s1 = "let "^x^":"^Type.show t^H.comment_from_range lines range'^" = "^show lines e^" in" in
       let s2 = s1^H.down () in
       s2^show lines e'
-  | Var x -> x^H.show_from_range' lines range
+  | Var x -> x^H.comment_from_range lines range
   | MakeCls (range', (f, t), {entry = Id.L y; actual_fv = lxs}, e) ->
       let s1 = "let_cls "^f^":"^Type.show t
         ^" = *"^y^"*"^(if lxs = [] then "" else " <"^String.concat ", " lxs^">")
-        ^H.show_from_range' lines range'^" in"^H.down () in
+        ^H.comment_from_range lines range'^" in"^H.down () in
       s1^show lines e
-  | AppCls (x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
-  | AppDir (Id.L x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
-  | Tuple xs -> "("^String.concat ", " xs^")"^H.show_from_range' lines range
+  | AppCls (x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.comment_from_range lines range
+  | AppDir (Id.L x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.comment_from_range lines range
+  | Tuple xs -> "("^String.concat ", " xs^")"^H.comment_from_range lines range
   | LetTuple (range', xts, x, e) ->
       let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
-        ^x^H.show_from_range' lines range'^" in"^H.down () in
+        ^x^H.comment_from_range lines range'^" in"^H.down () in
       s1^show lines e
-  | Get (x, x') -> x^".("^x'^")"^H.show_from_range' lines range
-  | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.show_from_range' lines range
-  | ExtArray (Id.L x) -> "*"^x^"*"^H.show_from_range' lines range
+  | Get (x, x') -> x^".("^x'^")"^H.comment_from_range lines range
+  | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.comment_from_range lines range
+  | ExtArray (Id.L x) -> "*"^x^"*"^H.comment_from_range lines range
 
 let show_prog lines (Prog (fs, e)) =
   let s1 = H.sep "" (fun {range = range; name = Id.L f, t; args = xts; formal_fv = yts; body = e} ->
     let s1 = "let_fun (*"^f^"*:"^Type.show t^") "
       ^(if yts = [] then "" else "<"^H.sep ", " (fun (x, t) -> x^":"^Type.show t) yts^"> ")
       ^H.sep " " (fun (x, t) -> "("^x^":"^Type.show t^")") xts^" ="
-      ^H.show_from_range' lines range^H.down_right () in
+      ^H.comment_from_range lines range^H.down_right () in
     let s2 = s1^show lines e in
     s2^" in"^H.down_left ()) fs in
   s1^show lines e
 
 let rec fv (_, body) = match body with
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
-  | Neg(x) | FNeg(x) -> S.singleton x
-  | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
-  | IfEq(_, x, y, e1, e2)| IfLE(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
+  | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) -> S.singleton x
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Get(x, y) -> S.of_list [x; y]
+  | IfEq(_, x, y, e1, e2)| IfLT(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
   | MakeCls(_, (x, t), { entry = l; actual_fv = ys }, e) -> S.remove x (S.union (S.of_list ys) (fv e))
@@ -112,16 +142,31 @@ let rec g env known (range, body) = match body with (* クロージャ変換ル�
   | KNormal.Unit -> range, Unit
   | KNormal.Int(i) -> range, Int(i)
   | KNormal.Float(d) -> range, Float(d)
+  | KNormal.Not(x) -> range, Not(x)
+  | KNormal.Xor(x, y) -> range, Xor(x, y)
   | KNormal.Neg(x) -> range, Neg(x)
   | KNormal.Add(x, y) -> range, Add(x, y)
   | KNormal.Sub(x, y) -> range, Sub(x, y)
+  | KNormal.SllI(x, n) -> range, SllI(x, n)
+  | KNormal.SraI(x, n) -> range, SraI(x, n)
   | KNormal.FNeg(x) -> range, FNeg(x)
+  | KNormal.FAbs(x) -> range, FAbs(x)
+  | KNormal.FFloor(x) -> range, FFloor(x)
+  | KNormal.IToF(x) -> range, IToF(x)
+  | KNormal.FToI(x) -> range, FToI(x)
+  | KNormal.FSqrt(x) -> range, FSqrt(x)
+  | KNormal.FCos(x) -> range, FCos(x)
+  | KNormal.FSin(x) -> range, FSin(x)
+  | KNormal.FTan(x) -> range, FTan(x)
+  | KNormal.FAtan(x) -> range, FAtan(x)
   | KNormal.FAdd(x, y) -> range, FAdd(x, y)
   | KNormal.FSub(x, y) -> range, FSub(x, y)
   | KNormal.FMul(x, y) -> range, FMul(x, y)
   | KNormal.FDiv(x, y) -> range, FDiv(x, y)
+  | KNormal.FEq(x, y) -> range, FEq(x, y)
+  | KNormal.FLT(x, y) -> range, FLT(x, y)
   | KNormal.IfEq(range', x, y, e1, e2) -> range, IfEq(range', x, y, g env known e1, g env known e2)
-  | KNormal.IfLE(range', x, y, e1, e2) -> range, IfLE(range', x, y, g env known e1, g env known e2)
+  | KNormal.IfLT(range', x, y, e1, e2) -> range, IfLT(range', x, y, g env known e1, g env known e2)
   | KNormal.Let(range', (x, t), e1, e2) -> range, Let(range', (x, t), g env known e1, g (M.add x t env) known e2)
   | KNormal.Var(x) -> range, Var(x)
   | KNormal.LetRec(range', { KNormal.name = (x, t); KNormal.args = yts; KNormal.body = e1 }, ((range'', _) as e2)) -> (* ´Ø¿ôÄêµÁ¤Î¾ì¹ç (caml2html: closure_letrec) *)
@@ -141,7 +186,7 @@ let rec g env known (range, body) = match body with (* クロージャ変換ル�
         (* 駄目だったら状態(toplevelの値)を戻して、クロージャ変換をやり直す *)
         let fvs = S.elements zs in
         let _ = Printf.printf "Free variable%s %s found in function %s\n"
-          (if List.length fvs = 1 then "" else "s") (Id.pp_list fvs) x in
+          (if List.length fvs = 1 then "" else "s") (String.concat " " fvs) x in
         let _ = Printf.printf "Function %s cannot be directly applied\n" x in
         let _ = toplevel := toplevel_backup in
         let e1' = g (M.add_list yts env') known e1 in

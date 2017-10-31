@@ -30,18 +30,56 @@ rule token = parse
     { BOOL(false) }
 | "not"
     { NOT }
+| "xor"
+    { XOR }
+| "fiszero"
+    { FISZERO }
+| "fless"
+    { FLESS }
+| "fispos"
+    { FISPOS }
+| "fisneg"
+    { FISNEG }
+| "fneg"
+    { FNEG }
+| "fabs"
+    { FABS }
+| "fhalf"
+    { FHALF }
+| "fsqr"
+    { FSQR }
+| "floor"
+    { FLOOR }
+| "float_of_int"
+    { FLOATOFINT }
+| "int_of_float"
+    { INTOFFLOAT }
+| "sqrt"
+    { SQRT }
+| "cos"
+    { COS }
+| "sin"
+    { SIN }
+| "tan"
+    { TAN }
+| "atan"
+    { ATAN }
 | digit+ (* 整数を字句解析するルール (caml2html: lexer_int) *)
     { INT(int_of_string (Lexing.lexeme lexbuf)) }
 | digit+ ('.' digit*)? (['e' 'E'] ['+' '-']? digit+)?
     { FLOAT(float_of_string (Lexing.lexeme lexbuf)) }
-| '-' (* -.より後回しにしなくても良い? 最長一致? *)
-    { MINUS }
-| '+' (* +.より後回しにしなくても良い? 最長一致? *)
+| '+'
     { PLUS }
-| "-."
-    { MINUS_DOT }
+| '-'
+    { MINUS }
+| '*'
+    { AST }
+| '/'
+    { SLASH }
 | "+."
     { PLUS_DOT }
+| "-."
+    { MINUS_DOT }
 | "*."
     { AST_DOT }
 | "/."
@@ -74,7 +112,8 @@ rule token = parse
     { COMMA }
 | '_'
     { IDENT(Id.genunit ()) }
-| "Array.create" | "Array.make" (* [XX] ad hoc *)
+(* ごまかし *)
+| "create_array" | "Array.create" | "Array.make"
     { ARRAY_CREATE }
 | '.'
     { DOT }
@@ -88,7 +127,7 @@ rule token = parse
     { IDENT(Lexing.lexeme lexbuf) }
 | _
     { (* MATSUSHITA: modified error message *)
-      Printf.printf "Lex error: Unknown token %s at %s\n" (Lexing.lexeme lexbuf) (H.show_range' (lexbuf.Lexing.lex_start_p, lexbuf.Lexing.lex_curr_p));
+      Printf.printf "Lex error: Unknown token %s at %s\n" (Lexing.lexeme lexbuf) (H.show_range (Some (lexbuf.Lexing.lex_start_p, lexbuf.Lexing.lex_curr_p)));
       exit 1 }
 and comment = parse
 | "*)"

@@ -6,16 +6,31 @@ and body =
   | Unit
   | Int of int
   | Float of float
+  | Not of Id.t
+  | Xor of Id.t * Id.t
   | Neg of Id.t
   | Add of Id.t * Id.t
   | Sub of Id.t * Id.t
+  | SllI of Id.t * int
+  | SraI of Id.t * int
   | FNeg of Id.t
+  | FAbs of Id.t
+  | FFloor of Id.t
+  | IToF of Id.t
+  | FToI of Id.t
+  | FSqrt of Id.t
+  | FCos of Id.t
+  | FSin of Id.t
+  | FTan of Id.t
+  | FAtan of Id.t
   | FAdd of Id.t * Id.t
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | FEq of Id.t * Id.t
+  | FLT of Id.t * Id.t
   | IfEq of H.range * Id.t * Id.t * t * t (* 比較 + 分岐 (caml2html: knormal_branch) *) (* MATSUSHITA: added H.range *)
-  | IfLE of H.range * Id.t * Id.t * t * t (* 比較 + 分岐 *) (* MATSUSHITA: added H.range *)
+  | IfLT of H.range * Id.t * Id.t * t * t (* 比較 + 分岐 *) (* MATSUSHITA: added H.range *)
   | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
   | LetRec of H.range * fundef * t (* MATSUSHITA: added H.range *)
@@ -31,78 +46,108 @@ and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 (* MATSUSHITA: added functions show and subst *)
 
 let rec show lines (range, body) = match body with
-  | Unit -> "()"^H.show_from_range' lines range
-  | Int n -> string_of_int n^H.show_from_range' lines range
-  | Float a -> string_of_float a^H.show_from_range' lines range
-  | Neg x -> "-"^x^H.show_from_range' lines range
-  | Add (x, x') -> x^" + "^x'^H.show_from_range' lines range
-  | Sub (x, x') -> x^" - "^x'^H.show_from_range' lines range
-  | FNeg x -> "-."^x^H.show_from_range' lines range
-  | FAdd (x, x') -> x^" +. "^x'^H.show_from_range' lines range
-  | FSub (x, x') -> x^" -. "^x'^H.show_from_range' lines range
-  | FMul (x, x') -> x^" *. "^x'^H.show_from_range' lines range
-  | FDiv (x, x') -> x^" /. "^x'^H.show_from_range' lines range
+  | Unit -> "()"^H.comment_from_range lines range
+  | Int n -> string_of_int n^H.comment_from_range lines range
+  | Float a -> string_of_float a^H.comment_from_range lines range
+  | Not x -> "not "^x^H.comment_from_range lines range
+  | Xor (x, x') -> x^" xor "^x'^H.comment_from_range lines range
+  | Neg x -> "-"^x^H.comment_from_range lines range
+  | Add (x, x') -> x^" + "^x'^H.comment_from_range lines range
+  | Sub (x, x') -> x^" - "^x'^H.comment_from_range lines range
+  | SllI (x, n) -> x^" sll "^string_of_int n^H.comment_from_range lines range
+  | SraI (x, n) -> x^" sra "^string_of_int n^H.comment_from_range lines range
+  | FNeg x -> "-."^x^H.comment_from_range lines range
+  | FAbs x -> "fabs "^x^H.comment_from_range lines range
+  | FFloor x -> "ffloor "^x^H.comment_from_range lines range
+  | IToF x -> "itof "^x^H.comment_from_range lines range
+  | FToI x -> "ftoi "^x^H.comment_from_range lines range
+  | FSqrt x -> "fsqrt "^x^H.comment_from_range lines range
+  | FCos x -> "fcos "^x^H.comment_from_range lines range
+  | FSin x -> "fsin "^x^H.comment_from_range lines range
+  | FTan x -> "ftan "^x^H.comment_from_range lines range
+  | FAtan x -> "fatan "^x^H.comment_from_range lines range
+  | FAdd (x, x') -> x^" +. "^x'^H.comment_from_range lines range
+  | FSub (x, x') -> x^" -. "^x'^H.comment_from_range lines range
+  | FMul (x, x') -> x^" *. "^x'^H.comment_from_range lines range
+  | FDiv (x, x') -> x^" /. "^x'^H.comment_from_range lines range
+  | FEq (x, x') -> x^" =. "^x'^H.comment_from_range lines range
+  | FLT (x, x') -> x^" <. "^x'^H.comment_from_range lines range
   | IfEq (range', x, x', e, e') ->
-      let s1 = "if "^x^" = "^x'^H.show_from_range' lines range'
-        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+      let s1 = "if "^x^" = "^x'^H.comment_from_range lines range'
+        ^" then"^H.comment_from_range lines (fst e)^H.down_right () in
       let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+      let s4 = s3^"else"^H.comment_from_range lines (fst e')^H.down_right () in
       let s5 = s4^show lines e' in
       s5^H.left ()
-  | IfLE (range', x, x', e, e') ->
-      let s1 = "if "^x^" <= "^x'^H.show_from_range' lines range'
-        ^" then"^H.show_from_range' lines (fst e)^H.down_right () in
+  | IfLT (range', x, x', e, e') ->
+      let s1 = "if "^x^" < "^x'^H.comment_from_range lines range'
+        ^" then"^H.comment_from_range lines (fst e)^H.down_right () in
       let s2 = s1^show lines e in
       let s3 = s2^H.down_left () in
-      let s4 = s3^"else"^H.show_from_range' lines (fst e')^H.down_right () in
+      let s4 = s3^"else"^H.comment_from_range lines (fst e')^H.down_right () in
       let s5 = s4^show lines e' in
       s5^H.left ()
   | Let (range', (x, t), e, e') -> (
       match snd e with Let _ | LetRec _ | LetTuple _ ->
         let s1 = "let "^x^":"^Type.show t
-          ^" ="^H.show_from_range' lines range'^H.down_right () in
+          ^" ="^H.comment_from_range lines range'^H.down_right () in
         let s2 = s1^show lines e^" in" in
         let s3 = s2^H.down_left () in
         s3^show lines e'
       | _ ->
         let s1 = "let "^x^":"^Type.show t
-          ^H.show_from_range' lines range'^" = "^show lines e^" in" in
+          ^H.comment_from_range lines range'^" = "^show lines e^" in" in
         let s2 = s1^H.down () in
         s2^show lines e')
-  | Var x -> x^H.show_from_range' lines range
+  | Var x -> x^H.comment_from_range lines range
   | LetRec (range', f, e) ->
       let s1 = "let rec"^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)
-        ^" ="^H.show_from_range' lines range'^H.down_right () in
+        ^" ="^H.comment_from_range lines range'^H.down_right () in
       let s2 = s1^show lines f.body^" in" in
       let s3 = s2^H.down_left () in
       s3^show lines e
-  | App (x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
-  | Tuple xs -> "("^String.concat ", " xs^")"^H.show_from_range' lines range
+  | App (x, xs) -> x^H.sep "" (fun x -> " "^x) xs^H.comment_from_range lines range
+  | Tuple xs -> "("^String.concat ", " xs^")"^H.comment_from_range lines range
   | LetTuple (range', xts, x, e) ->
       let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
-        ^x^H.show_from_range' lines range'^" in"^H.down () in
+        ^x^H.comment_from_range lines range'^" in"^H.down () in
       s1^show lines e
-  | Get (x, x') -> x^".("^x'^")"^H.show_from_range' lines range
-  | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.show_from_range' lines range
-  | ExtArray x -> "*"^x^"*"^H.show_from_range' lines range
-  | ExtFunApp (x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.show_from_range' lines range
+  | Get (x, x') -> x^".("^x'^")"^H.comment_from_range lines range
+  | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.comment_from_range lines range
+  | ExtArray x -> "*"^x^"*"^H.comment_from_range lines range
+  | ExtFunApp (x, xs) -> "*"^x^"*"^H.sep "" (fun x -> " "^x) xs^H.comment_from_range lines range
 
 (* env により変数を置換する *)
 let rec subst env (range, body) =
   let q x = try M.find x env with Not_found -> x in
   match body with
   | Unit | Int _ | Float _ -> range, body
+  | Not x -> range, Not (q x)
+  | Xor (x, x') -> range, Xor (q x, q x')
   | Neg x -> range, Neg (q x)
   | Add (x, x') -> range, Add (q x, q x')
   | Sub (x, x') -> range, Sub (q x, q x')
+  | SllI (x, n) -> range, SllI (q x, n)
+  | SraI (x, n) -> range, SraI (q x, n)
   | FNeg x -> range, FNeg (q x)
+  | FAbs x -> range, FAbs (q x)
+  | FFloor x -> range, FFloor (q x)
+  | IToF x -> range, IToF (q x)
+  | FToI x -> range, FToI (q x)
+  | FSqrt x -> range, FSqrt (q x)
+  | FCos x -> range, FCos (q x)
+  | FSin x -> range, FSin (q x)
+  | FTan x -> range, FTan (q x)
+  | FAtan x -> range, FAtan (q x)
   | FAdd (x, x') -> range, FAdd (q x, q x')
   | FSub (x, x') -> range, FSub (q x, q x')
   | FMul (x, x') -> range, FMul (q x, q x')
   | FDiv (x, x') -> range, FDiv (q x, q x')
+  | FEq (x, x') -> range, FEq (q x, q x')
+  | FLT (x, x') -> range, FLT (q x, q x')
   | IfEq (range', x, x', e, e') -> range, IfEq (range', q x, q x', subst env e, subst env e')
-  | IfLE (range', x, x', e, e') -> range, IfLE (range', q x, q x', subst env e, subst env e')
+  | IfLT (range', x, x', e, e') -> range, IfLT (range', q x, q x', subst env e, subst env e')
   | Let (range', (x, t), e, e') -> range, Let (range', (x, t), subst env e, subst env e')
   | Var x -> range, Var (q x)
   | LetRec (range', f, e) -> range, LetRec(range', { f with body = subst env f.body }, subst env e)
@@ -116,9 +161,9 @@ let rec subst env (range, body) =
 
 let rec fv (_, body) = match body with (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) -> S.empty
-  | Neg(x) | FNeg(x) -> S.singleton x
-  | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
-  | IfEq(_, x, y, e1, e2) | IfLE(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
+  | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) -> S.singleton x
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Get(x, y) -> S.of_list [x; y]
+  | IfEq(_, x, y, e1, e2) | IfLT(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
   | LetRec(_, { name = (x, t); args = yts; body = e1 }, e2) ->
@@ -142,7 +187,13 @@ let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html:
   | Syntax.Bool(b) -> (range, Int(if b then 1 else 0)), Type.Int (* 論理値true, falseを整数1, 0に変換 (caml2html: knormal_bool) *)
   | Syntax.Int(i) -> (range, Int(i)), Type.Int
   | Syntax.Float(d) -> (range, Float(d)), Type.Float
-  | Syntax.Not(e) -> g env (range, Syntax.If(e, (range, Syntax.Bool(false)), (range, Syntax.Bool(true))))
+  | Syntax.Not(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, Not(x)), Type.Int)
+  | Syntax.Xor(e1, e2) ->
+      insert_let range (g env e1)
+        (fun x -> insert_let range (g env e2)
+            (fun y -> (range, Xor(x, y)), Type.Int))
   | Syntax.Neg(e) ->
       insert_let range (g env e)
         (fun x -> (range, Neg(x)), Type.Int)
@@ -154,9 +205,44 @@ let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html:
       insert_let range (g env e1)
         (fun x -> insert_let range (g env e2)
             (fun y -> (range, Sub(x, y)), Type.Int))
+  | Syntax.SllI(e, n) ->
+      insert_let range (g env e)
+        (fun x -> (range, SllI(x, n)), Type.Int)
+  | Syntax.SraI(e, n) ->
+      insert_let range (g env e)
+        (fun x -> (range, SraI(x, n)), Type.Int)
+  | Syntax.Eq _ | Syntax.LT _ as cmp ->
+      g env (range, Syntax.If((range, cmp), (range, Syntax.Bool(true)), (range, Syntax.Bool(false))))
   | Syntax.FNeg(e) ->
       insert_let range (g env e)
         (fun x -> (range, FNeg(x)), Type.Float)
+  | Syntax.FAbs(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FAbs(x)), Type.Float)
+  | Syntax.FFloor(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FFloor(x)), Type.Float)
+  | Syntax.IToF(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, IToF(x)), Type.Float)
+  | Syntax.FToI(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FToI(x)), Type.Int)
+  | Syntax.FSqrt(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FSqrt(x)), Type.Float)
+  | Syntax.FCos(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FCos(x)), Type.Float)
+  | Syntax.FSin(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FSin(x)), Type.Float)
+  | Syntax.FTan(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FTan(x)), Type.Float)
+  | Syntax.FAtan(e) ->
+      insert_let range (g env e)
+        (fun x -> (range, FAtan(x)), Type.Float)
   | Syntax.FAdd(e1, e2) ->
       insert_let range (g env e1)
         (fun x -> insert_let range (g env e2)
@@ -173,8 +259,14 @@ let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html:
       insert_let range (g env e1)
         (fun x -> insert_let range (g env e2)
             (fun y -> (range, FDiv(x, y)), Type.Float))
-  | Syntax.Eq _ | Syntax.LE _ as cmp ->
-      g env (range, Syntax.If((range, cmp), (range, Syntax.Bool(true)), (range, Syntax.Bool(false))))
+  | Syntax.FEq(e1, e2) ->
+      insert_let range (g env e1)
+        (fun x -> insert_let range (g env e2)
+            (fun y -> (range, FEq(x, y)), Type.Bool))
+  | Syntax.FLT(e1, e2) ->
+      insert_let range (g env e1)
+        (fun x -> insert_let range (g env e2)
+            (fun y -> (range, FLT(x, y)), Type.Bool))
   | Syntax.If((_, Syntax.Not(e1)), e2, e3) -> g env (range, Syntax.If(e1, e3, e2)) (* notによる分岐を変換 (caml2html: knormal_not) *)
   | Syntax.If((range', Syntax.Eq(e1, e2)), e3, e4) ->
       insert_let range (g env e1)
@@ -183,13 +275,13 @@ let rec g env (range, body) = match body with (* K正規化ルーチン本体 (caml2html:
               let e3', t3 = g env e3 in
               let e4', t4 = g env e4 in
               (range, IfEq(range', x, y, e3', e4')), t3))
-  | Syntax.If((range', Syntax.LE(e1, e2)), e3, e4) ->
+  | Syntax.If((range', Syntax.LT(e1, e2)), e3, e4) ->
       insert_let range (g env e1)
         (fun x -> insert_let range (g env e2)
             (fun y ->
               let e3', t3 = g env e3 in
               let e4', t4 = g env e4 in
-              (range, IfLE(range', x, y, e3', e4')), t3))
+              (range, IfLT(range', x, y, e3', e4')), t3))
   | Syntax.If(e1, e2, e3) -> g env (range, Syntax.If((range, Syntax.Eq(e1, (range, Syntax.Bool(false)))), e3, e2)) (* 比較のない分岐を変換 (caml2html: knormal_if) *)
   | Syntax.Let(range', (x, t), e1, e2) ->
       let e1', t1 = g env e1 in

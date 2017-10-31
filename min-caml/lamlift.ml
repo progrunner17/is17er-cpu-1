@@ -4,7 +4,7 @@ open KNormal
 
 (* 引数無しの形で式に関数 y が現れるかどうか *)
 let rec appear y (_, body) = match body with
-  | IfEq(_, _, _, e1, e2) | IfLE(_, _, _, e1, e2)
+  | IfEq(_, _, _, e1, e2) | IfLT(_, _, _, e1, e2)
   | Let(_, _, e1, e2) | LetRec(_, { body = e1 }, e2) -> appear y e1 || appear y e2
   | Var(x) -> x = y
   | App(_, xs) | Tuple(xs) | ExtFunApp(_, xs) -> List.mem y xs
@@ -15,7 +15,7 @@ let rec appear y (_, body) = match body with
 (* 関数呼び出しに自由変数を加える *)
 let rec modify y fvs (range, body) = match body with
   | IfEq (range', x, x', e, e') -> range, IfEq (range', x, x', modify y fvs e, modify y fvs e')
-  | IfLE (range', x, x', e, e') -> range, IfLE (range', x, x', modify y fvs e, modify y fvs e')
+  | IfLT (range', x, x', e, e') -> range, IfLT (range', x, x', modify y fvs e, modify y fvs e')
   | Let (range', (x, t), e, e') -> range, Let (range', (x, t), modify y fvs e, modify y fvs e')
   | LetRec (range', ({ body = e } as f), e') ->
       range, LetRec (range', { f with body = modify y fvs e }, modify y fvs e')
@@ -26,7 +26,7 @@ let rec modify y fvs (range, body) = match body with
 (* 自由変数を持つ関数をラムダリフティングし、自由変数を無くす *)
 let rec g env known (range, body) = match body with
   | IfEq (range', x, x', e, e') -> range, IfEq (range', x, x', g env known e, g env known e')
-  | IfLE (range', x, x', e, e') -> range, IfLE (range', x, x', g env known e, g env known e')
+  | IfLT (range', x, x', e, e') -> range, IfLT (range', x, x', g env known e, g env known e')
   | Let (range', (x, t), e, e') -> range, Let (range', (x, t), g env known e, g (M.add x t env) known e')
   | LetRec (range', ({ name = (x, t); args = xts; body = e } as f), e') -> range,
       let known = S.add x known in
