@@ -1,13 +1,15 @@
 open Asm
 open Lexing
 
-(* MATSUSHITA: added function int32_of_float *)
+(* MATSUSHITA: added functions upper_float and lower_float instead of get_hi and get_lo *)
 external upper_float: float -> int32 = "upper_float"
 external lower_float: float -> int32 = "lower_float"
 
 (* MATSUSHITA: added functions upper and lower *)
-let upper n = n asr 12 + if n land 2048 = 0 then 0 else 1
-let lower n = (n lsl 19) asr 19 (* 符号拡張を行っている int が 31bit 整数であることに注意 *)
+let upper n = n asr 12 + if n land (1 lsl 11) = 0 then 0 else 1
+let lower n = (n lsl 19) asr 19 (* 符号拡張を行っている。int が 31bit 整数であることに注意 *)
+let upper' n = n asr 19 + if n land (1 lsl 18) = 0 then 0 else 1
+let lower' n = (n lsl 12) asr 12 (* 符号拡張を行っている。int が 31bit 整数であることに注意 *)
 
 (* MATSUSHITA: added pc and labels*)
 let pc = ref 0
@@ -286,14 +288,14 @@ and g' lines (dest, ((range, body) as exp)) =
       let s = g'_args range lines [] ys zs in
       pc := !pc + 1;
       let n = M.find x !labels - !pc in
-      if upper n = 0 then
+      if upper' n = 0 then
         s^
         Printf.sprintf "\tjal\tx0, %d%s" n (comment_range lines range)
       else
         s^
-        Printf.sprintf "\tauipc\tx31, %d%s" (upper n) (comment_range lines range)^
+        Printf.sprintf "\tauipc\tx31, %d%s" (upper' n) (comment_range lines range)^
         let _ = pc := !pc + 1 in
-        Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower n) (comment_range lines range)
+        Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower' n) (comment_range lines range)
   | NonTail(a), CallCls(x, ys, zs) ->
       let ss = stacksize () in
       let s1 = g'_args range lines [(x, "%x29")] ys zs in
@@ -317,12 +319,12 @@ and g' lines (dest, ((range, body) as exp)) =
       let s3 =
         let _ = pc := !pc + 1 in
         let n = M.find x !labels - !pc in
-        if upper n = 0 then
+        if upper' n = 0 then
           Printf.sprintf "\tjal\tx0, %d%s" n (comment_range lines range)
         else
-          Printf.sprintf "\tauipc\tx31, %d%s" (upper n) (comment_range lines range)^
+          Printf.sprintf "\tauipc\tx31, %d%s" (upper' n) (comment_range lines range)^
           let _ = pc := !pc + 1 in
-          Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower n) (comment_range lines range) in
+          Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower' n) (comment_range lines range) in
       let _ = pc := !pc + 3 in
       let s4 =
         Printf.sprintf "\tsubi\tx2, x2, %d%s" ss (comment_range lines range)^

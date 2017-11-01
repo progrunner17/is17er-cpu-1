@@ -7,8 +7,8 @@ let addtyp x = (x, Type.gentyp ())
 let symbol_range () = Some (Parsing.symbol_start_pos (), Parsing.symbol_end_pos ())
 
 let just body = None, body
-let letint x e e' = just @@ Let (None, ("x", Type.Int), e, e')
-let letfloat x e e' = just @@ Let (None, ("x", Type.Float), e, e')
+let letint x e e' = just @@ Let (None, (x, Type.Int), e, e')
+let letfloat x e e' = just @@ Let (None, (x, Type.Float), e, e')
 let (&!) e n = just @@ AndI(e, n)
 let var x = just @@ Var x
 let int n = just @@ Int n
