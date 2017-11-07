@@ -24,7 +24,7 @@ let rec iter lines n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
 let lexbuf outchan buf lines = (* バッファをコンパイルしてチャンネルへ出力する (caml2html: main_lexbuf) *)
   Id.counter := 0;
   Typing.extenv := M.empty;
-  Emit.f outchan lines
+  output_string outchan @@ Emit.f lines
     ((fun prog -> Printf.printf "[RegAlloc.f]\n%s\n\n" (Asm.show_prog lines prog)) <|| RegAlloc.f *|
     ((fun prog -> Printf.printf "[Simm.f]\n%s\n\n" (Asm.show_prog lines prog)) <|| Simm.f *|
     ((fun prog -> Printf.printf "[Virtual.f]\n%s\n\n" (Asm.show_prog lines prog)) <| Virtual.f

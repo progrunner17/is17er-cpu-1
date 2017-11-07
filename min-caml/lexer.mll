@@ -120,13 +120,14 @@ rule token = parse
     { COMMA }
 | '_'
     { IDENT(Id.genunit ()) }
-(* ごまかし *)
 | "create_array" | "Array.create" | "Array.make"
     { ARRAY_CREATE }
 | '.'
     { DOT }
 | "<-"
     { LESS_MINUS }
+| "open" { OPEN }
+| ";;" { SEMISEMI }
 | ';'
     { SEMICOLON }
 | eof

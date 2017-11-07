@@ -7,9 +7,9 @@ external lower_float: float -> int32 = "lower_float"
 
 (* MATSUSHITA: added functions upper and lower *)
 let upper n = n asr 12 + if n land (1 lsl 11) = 0 then 0 else 1
-let lower n = (n lsl 19) asr 19 (* 符号拡張を行っている。int が 31bit 整数であることに注意 *)
+let lower n = (n lsl 51) asr 51 (* 符号拡張を行っている。int が 63bit 整数であることに注意 *)
 let upper' n = n asr 19 + if n land (1 lsl 18) = 0 then 0 else 1
-let lower' n = (n lsl 12) asr 12 (* 符号拡張を行っている。int が 31bit 整数であることに注意 *)
+let lower' n = (n lsl 44) asr 44 (* 符号拡張を行っている。int が 63bit 整数であることに注意 *)
 
 (* MATSUSHITA: added pc and labels*)
 let pc = ref 0
@@ -305,7 +305,7 @@ and g' lines (dest, ((range, body) as exp)) =
       Printf.sprintf "\taddi\tx2, x2, %d%s" ss (comment_range lines range)^
       Printf.sprintf "\tlw\tx31, 0(x29)%s" (comment_range lines range)^
       Printf.sprintf "\tjalr\tx1, x31, 0%s" (comment_range lines range)^
-      Printf.sprintf "\tsubi\tx2, x2, %d%s" ss (comment_range lines range)^
+      Printf.sprintf "\taddi\tx2, x2, %d%s" (-ss) (comment_range lines range)^
       Printf.sprintf "\tlw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range)^
       (match String.sub a 0 2 with
         | "%x" -> Printf.sprintf "\taddi\t%s, x4, 0%s" (reg a) (comment_range lines range)
@@ -320,14 +320,14 @@ and g' lines (dest, ((range, body) as exp)) =
         let _ = pc := !pc + 1 in
         let n = M.find x !labels - !pc in
         if upper' n = 0 then
-          Printf.sprintf "\tjal\tx0, %d%s" n (comment_range lines range)
+          Printf.sprintf "\tjal\tx1, %d%s" n (comment_range lines range)
         else
           Printf.sprintf "\tauipc\tx31, %d%s" (upper' n) (comment_range lines range)^
           let _ = pc := !pc + 1 in
-          Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower' n) (comment_range lines range) in
+          Printf.sprintf "\tjalr\tx1, x31, %d%s" (lower' n) (comment_range lines range) in
       let _ = pc := !pc + 3 in
       let s4 =
-        Printf.sprintf "\tsubi\tx2, x2, %d%s" ss (comment_range lines range)^
+        Printf.sprintf "\taddi\tx2, x2, %d%s" (-ss) (comment_range lines range)^
         Printf.sprintf "\tlw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range)^
         match String.sub a 0 2 with
           | "%x" -> Printf.sprintf "\taddi\t%s, x4, 0%s" (reg a) (comment_range lines range)
@@ -380,7 +380,8 @@ and g'_args range lines x_reg_cl ys zs =
       ys in
   let s1 = List.fold_left
     (fun s (y, r) ->
-       pc := !pc + 1;
+       if r = y then "" else
+       let _ = pc := !pc + 1 in
        s^Printf.sprintf "\taddi\t%s, %s, 0%s" (reg r) (reg y) (comment_range lines range))
     ""
     (shuffle "%x30" yrs) in
@@ -391,38 +392,42 @@ and g'_args range lines x_reg_cl ys zs =
       zs in
   let s2 = List.fold_left
     (fun s (z, fr) ->
-       pc := !pc + 1;
+       if fr = z then "" else
+       let _ = pc := !pc + 1 in
        s^Printf.sprintf "\tfmv\t%s, %s%s" (freg fr) (freg z) (comment_range lines range))
     ""
     (shuffle "%f31" zfrs) in
   s1^s2
 
 (* MATSUSHITA: added range comments *)
-let h oc lines { range = range; name = Id.L(x); args = _; fargs = _; body = e; ret = _ } =
-  Printf.fprintf oc "# %s:%s" x (comment_range lines range);
+let h lines { range = range; name = Id.L(x); args = _; fargs = _; body = e; ret = _ } =
   labels := M.add x !pc !labels;
   stackset := S.empty;
   stackmap := [];
-  output_string oc @@ g lines (Tail, e)
+  Printf.sprintf "# %s:%s" x (comment_range lines range)^
+  g lines (Tail, e)
 
-let f oc lines (Prog(fundefs, e)) =
+let f lines (Prog(fundefs, e)) =
   Printf.printf "Generating assembly...\n";
-  Printf.fprintf oc "\t.globl _min_caml_start\n";
-  pc := 0;
-  (* ごまかし *)
-  labels :=
-    M.add "min_caml_create_array" (-1000) @@
-    M.add "min_caml_create_float_array" (-500) @@
-    M.empty;
-  List.iter (fun fundef -> h oc lines fundef) fundefs;
-  Printf.fprintf oc "_min_caml_start:\t# entry point\n";
+  pc := 2; (* 後のジャンプ命令のため *)
+  labels := M.empty;
+  let s2 = List.fold_left (fun s fundef -> s^h lines fundef) "" fundefs in
+  let s1 =
+    let n = !pc - 2 in
+    "# jump to entry point\n"^
+    Printf.sprintf "\tauipc\tx31, %d\n" (upper' n)^
+    Printf.sprintf "\tjalr\tx0, x31, %d\n" (lower' n) in
   pc := !pc + 3;
-  Printf.fprintf oc "\taddi x2, x0, 0\n";
-  Printf.fprintf oc "\tlui x3, %d\n" (upper 1048575);
-  Printf.fprintf oc "\taddi x3, x3, %d\n" (lower 1048575);
-  Printf.fprintf oc "# program starts\n";
+  let s3 =
+    "# entry point\n"^
+    "\taddi x2, x0, 0\n"^
+    Printf.sprintf "\tlui x3, %d\n" (upper 1048575)^
+    Printf.sprintf "\taddi x3, x3, %d\n" (lower 1048575)^
+    "# program begins\n" in
   stackset := S.empty;
   stackmap := [];
-  output_string oc @@ g lines (NonTail("%x4"), e);
-  Printf.fprintf oc "# program ends\n";
-  Printf.fprintf oc "\taddi x0, x0, 0\n";
+  let s4 =
+    g lines (NonTail("%x4"), e)^
+    "# program ends\n"^
+    "\thlt\n" in
+  s1^s2^s3^s4

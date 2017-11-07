@@ -108,6 +108,8 @@ let atan e =
 %token ARRAY_CREATE
 %token DOT
 %token LESS_MINUS
+%token OPEN
+%token SEMISEMI
 %token SEMICOLON
 %token LPAREN
 %token RPAREN
@@ -128,9 +130,19 @@ let atan e =
 %left DOT
 
 %type <Syntax.t> exp
-%start exp
+%type <(Id.t * Syntax.t) list> globals
+%start exp globals
 
 %%
+
+/* MATSUSHITA: added globals */
+
+globals:
+  OPEN IDENT SEMISEMI defs { $4 }
+
+defs:
+  | { [] }
+  | LET IDENT EQUAL exp defs { ($2, $4) :: $5 }
 
 /* MATSUSHITA: added simmple_body and body, altering simple_exp and exp */
 
