@@ -28,14 +28,13 @@ let lexbuf outchan buf lines = (* バッファをコンパイルしてチャンネルへ出力する (
     ((fun prog -> Printf.printf "[RegAlloc.f]\n%s\n\n" (Asm.show_prog lines prog)) <|| RegAlloc.f *|
     ((fun prog -> Printf.printf "[Simm.f]\n%s\n\n" (Asm.show_prog lines prog)) <|| Simm.f *|
     ((fun prog -> Printf.printf "[Virtual.f]\n%s\n\n" (Asm.show_prog lines prog)) <| Virtual.f
-    ((fun prog -> Printf.printf "[Flatten.f]\n%s\n\n" (Closure.show_prog lines prog)) <| Flatten.f
     ((fun prog -> Printf.printf "[Closure.f]\n%s\n\n" (Closure.show_prog lines prog)) <| Closure.f
     (iter lines !limit
     ((fun e -> Printf.printf "[Alpha.f]\n%s\n\n" (KNormal.show lines e)) <|| Alpha.f *|
     ((fun e -> Printf.printf "[KNormal.f]\n%s\n\n" (KNormal.show lines e)) <| KNormal.f
     ((fun e -> Printf.printf "[Typing.f]\n%s\n\n" (Syntax.show e)) <| Typing.f lines
     ((fun e -> Printf.printf "[Typing.f]\n%s\n\n" (Syntax.show e)) <|
-    (Parser.exp Lexer.token buf)))))))))))
+    (Parser.exp Lexer.token buf))))))))))
 
 let file f = (* ファイルをコンパイルしてファイルに出力する (caml2html: main_file) *)
   let inchan = open_in (f ^ ".ml") in

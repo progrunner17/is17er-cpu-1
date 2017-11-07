@@ -362,22 +362,21 @@ let f lines (Prog(fundefs, e)) =
   Printf.printf "Generating assembly...\n";
   pc := 2; (* 後のジャンプ命令のため *)
   labels := M.empty;
-  let s2 = List.fold_left (fun s fundef -> s^h lines fundef) "" fundefs in
-  let s1 =
+  let s = List.fold_left (fun s fundef -> s^h lines fundef) "" fundefs in
+  let s =
     let n = !pc - 1 in
     "# jump to entry point\n"^
     Printf.sprintf "\tauipc\tx31, %d # [0]\n" (upper' n)^
-    Printf.sprintf "\tjalr\tx0, x31, %d # [1]\n" (lower' n) in
-  let s3 =
+    Printf.sprintf "\tjalr\tx0, x31, %d # [1]\n" (lower' n)^
+    s in s^
+  let s =
     "# entry point\n"^
     let s = Printf.sprintf "\taddi x2, x0, 0 # [%d]\n" (pcincr ()) in s^
     let s = Printf.sprintf "\tlui x3, %d # [%d]\n" (upper 1048575) (pcincr ()) in s^
     Printf.sprintf "\taddi x3, x3, %d # [%d]\n" (lower 1048575) (pcincr ())^
-    "# program begins\n" in
-  stackset := S.empty;
-  stackmap := [];
-  let s4 =
-    g lines (NonTail("%x4"), e)^
-    "# program ends\n"^
-    "\thlt\n" in
-  s1^s2^s3^s4
+    "# program begins\n" in s^
+  let _ = stackset := S.empty in
+  let _ = stackmap := [] in
+  let s = g lines (NonTail("%x4"), e) in s^
+  "# program ends\n"^
+  Printf.sprintf "\thlt # [%d]\n" (pcincr ())
