@@ -416,7 +416,7 @@ let f oc lines (Prog(fundefs, e)) =
     M.empty;
   List.iter (fun fundef -> h oc lines fundef) fundefs;
   Printf.fprintf oc "_min_caml_start:\t# entry point\n";
-  pc := !pc + 2;
+  pc := !pc + 3;
   Printf.fprintf oc "\taddi x2, x0, 0\n";
   Printf.fprintf oc "\tlui x3, %d\n" (upper 1048575);
   Printf.fprintf oc "\taddi x3, x3, %d\n" (lower 1048575);

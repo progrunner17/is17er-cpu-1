@@ -75,7 +75,7 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
       let offset, store_fv =
         expand
           (List.map (fun y -> (y, M.find y env)) ys)
-          (4, e2')
+          (1, e2')
           (fun y offset store_fv -> seq(range, (range', FSW(y, x, offset)), store_fv))
           (fun y _ offset store_fv -> seq(range, (range', SW(y, x, offset)), store_fv)) in
       range, Let(None, (x, t), (range', Mv("%x3")),
@@ -134,7 +134,7 @@ let h { Closure.range = range; Closure.name = (Id.L(x), t); Closure.args = yts; 
   let (offset, load) =
     expand
       zts
-      (4, g (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
+      (1, g (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
       (fun z offset load -> fletd(range, None, z, (range, FLW(x, offset)), load))
       (fun z t offset load -> range, Let(None, (z, t), (range, LW(x, offset)), load)) in
   match t with

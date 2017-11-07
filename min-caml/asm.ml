@@ -157,7 +157,7 @@ let seq(range, e1, e2) = range, Let(None, (Id.genunit (), Type.Unit), e1, e2)
 let regs =
   [| "%x4"; "%x5"; "%x6"; "%x7"; "%x8"; "%x9"; "%x10";
      "%x11"; "%x12"; "%x13"; "%x14"; "%x15"; "%x16"; "%x17"; "%x18"; "%x19"; "%x20";
-     "%x21"; "%x22"; "%x23"; "%x24"; "%x25"; "%x26"; "%x27"; "%x28"; "%x29" |]
+     "%x21"; "%x22"; "%x23"; "%x24"; "%x25"; "%x26"; "%x27"; "%x28" |]
 let reg_const n = match n with
   | 0 -> "%x0"
   | _ -> raise Not_found
