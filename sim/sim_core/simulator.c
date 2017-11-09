@@ -4,9 +4,8 @@
 #include <time.h>
 #include <errno.h>
 #include "include.h"
+#include "size.h"
 
-#define PROMPT ">>"
-#define BUF_SIZE
 
 // freeが適当だからしっかり
 // ブレイクポイントの一覧も表示したい。
@@ -35,91 +34,167 @@
 	// ブレークポイント設定。ラベルや行番号。
 
 
-int main(int argc, char const *argv[])
+int main(int argc, char **argv)
 {
-	Program program;
-	Mem memory;//配列
+	Program program;//配列
+	Mem memory = NULL;//配列
 	struct timespec ts;
-	double t = 0;
-	Reg reg;
-	int base_addr = BASE_ADDR;
-	int count,cmd,cmd1,cmd2;
-	int option = 0;
+	double t = 0;//時間計測用
+	Reg reg = NULL;//レジスタ
+	files files;
+	Data d = NULL;
+	// int count = 0;
 
-	memory = initialize_memory(MEMORY_SIZE);
-	reg = initialize_reg(base_addr);
-	program = load_assembly(argv[1],0);
+	char buff[BUF_SIZE];
+	char* tmp;
+	char command[BUF_SIZE];
+ 	Instr instr;
 
-	print_prgram(program);
-	Instr inst;
 
-	while(1){
-		printf("以下の数字を入力してください\n");
-		printf("全実行:\t\t\t0\n");
-		printf("ステップ実行:\t\t1\n");
-		printf("メモリ表示:\t\t2\n");
-		printf("レジスタ表示:\t\t3\n");
-		printf("処理時間表示:\t\t4\n");
-		printf("命令数を指定して実行:\t5\n");
-		printf("オプション指定:\t\t6\n");
-		printf("1億命令あたりの実行時間測定:7\n");
-		if(scanf("%d",&cmd)  == EOF) break;
-		if(cmd == 0){
+	d = initialize_data(NULL);
+
+	files = parse_commandline_arg(argc,argv);
+	printf("load program \n\n");
+ 	program = load_assembly(files->source_filename,d);
+	memory = initialize_memory(MEMORY_SIZE,NULL);
+	reg = initialize_reg(NULL);
+
+	// print_prgram(program);
+
+// initial header print
+	while(get_line(buff,BUF_SIZE)){
+		tmp = buff +  strspn(buff," \t");
+		sscanf(tmp,"%s",command);
+		if(*buff=='\n')continue;
+
+		if(strcmp("run",command) == 0 || strcmp("r",command) == 0){
+			memory = initialize_memory(MEMORY_SIZE,memory);
+			reg = initialize_reg(reg);
+			reg->pc = 0;
 			GETTIME_FROM(ts,t);
-			count = exec_program(program,reg,memory,base_addr,option);
+			exec_program(program,reg,memory,d);
 			GETTIME_TO(ts,t);
-		}else if(cmd == 1){
-			inst = program[(reg->pc - base_addr)/4];
-			if(inst != NULL) {
-				exec_instr(inst,memory,reg,option);
-				count++;
+			printf("execution:\t%lfsec\n",t);
+		}else if(strcmp("next",command) == 0 || strcmp("n",command) == 0){
+			int n = 1;
+			tmp += strlen(command);
+			if(!sscanf(tmp," %d",&n)) n = 1;
+			for(int i = 0 ; i < n; i++){
+
+			if((instr = program[reg->pc]) == NULL){
+				fprintf(stderr,"end of program\n");
+				break;
 			}
-		}else if (cmd == 2) {
-			printf("アドレス(16進) サイズ\n");
-			scanf("%x %d",&cmd1,&cmd2);
-			print_memory(memory,cmd1,cmd2);
-		}else if(cmd == 3){
-			print_reg(reg);
-		}else if (cmd == 4) {
-			printf("処理時間:%lf\n",t);
-		}else if(cmd == 5){
-			printf("命令数\n");
-			scanf("%d",&cmd1);
-			for(int i = 0; i<cmd1;i++){
-				inst = program[(reg->pc - base_addr)/4];
-				if(inst != NULL) {
-					exec_instr(inst,memory,reg,option);
-					count++;
-				}else{
-					printf("end of program\n");
-					break;
+				printf("0x%08x\t",reg->pc);
+				print_instr(instr);
+				exec_instr(instr,memory,reg,d);
+
+			}
+
+		}else if(strcmp("countinue",command) == 0 || strcmp("c",command) == 0){
+
+			// continue_program(program,reg,memory);
+
+		}else if(strcmp("set",command) == 0 || strcmp("s",command) == 0){
+
+			tmp += strlen(command);
+			int n;
+			word data;
+			if(sscanf(tmp," x%d",&n) ){
+				if(n > 0 && n < 32){
+					if((tmp  = strchr(tmp,'=')) != NULL){
+						tmp++;
+						if(sscanf(tmp," 0x%x",&data) || sscanf(tmp," %d",&data) )reg->x[n] = data;
+						else fprintf(stderr,"data error");
+					}else {
+						fprintf(stderr,"format error\n");
+					}
+
+				}else fprintf(stderr,"x%d cannot be over written\n",n);
+			}else if(sscanf(tmp," f%d",&n)){
+				if(n > 0 && n <11){
+
+					if((tmp  = strchr(tmp,'=')) != NULL){
+						tmp++;
+					if(!sscanf(tmp," %f",&reg->f[n]))fprintf(stderr,"data error");
+					}else {
+						fprintf(stderr,"format error\n");
+					}
+				}else fprintf(stderr,"f%d cannot be over written\n",n);
+			}
+		}else if(strcmp("info",command) == 0 || strcmp("i",command) == 0){
+			tmp += strlen(command);
+			sscanf(tmp,"%s",command);
+			if(strcmp(command,"x") == 0){
+				print_reg(reg,PRINT_REG_X_X);
+			}else if(strcmp(command,"f") == 0){
+				print_reg(reg,PRINT_REG_F);
+			}else if(strcmp(command,"r") == 0){
+				print_reg(reg,PRINT_REG_F | PRINT_REG_X_X | PRINT_REG_PC);
+			}else if(strcmp(command,"p") == 0 || strcmp(command,"program") == 0){
+				print_prgram(program);
+			}else if(strcmp(command,"n") == 0 || strcmp(command,"next") == 0){
+				tmp += strlen(command);
+				int n = 0;
+				if(!sscanf(tmp,"%d",&n)) n = 1;
+				for(int i = 0;i < n;i++){
+				print_instr(program[reg->pc + i]);
 				}
+			}else if(strcmp(command,"l") == 0 || strcmp(command,"label") == 0){
+				print_labels(d->llist);
 			}
-		}else if(cmd == 6){
-			printf("オプション指定\n");
-			printf("レジスタ表示:1\n命令表示:2\npc表示:4\nのxor\n");
-			scanf("%d",&cmd1);
-			option = cmd1;
-		}else if(cmd == 7){
-			inst = initialize_instr();
-			inst->opcode = OP_ALUI;
-			inst->funct3 = ALU_ADD;
-			inst->rs1 = 1;
-			inst->rs2 = 1;
-			inst->rd = 1;
-			inst->imm = 1;
-			GETTIME_FROM(ts,t);
-			for(int i = 0;i < 100000000;i++){
-				exec_instr(inst,memory,reg,option);
+
+		}else if(strcmp("break",command) == 0 || strcmp("b",command) == 0){
+
+		}else if(strcmp("delete",command) == 0 || strcmp("d",command) == 0){
+
+		}else if(strcmp("display",command) == 0){
+			// pc
+			// x, xn
+			// f, fn
+			// mem
+
+		}else if(strcmp("print",command) == 0 || strcmp("p",command) == 0){
+
+			tmp += strlen(command);
+			sscanf(tmp,"%s",command);
+			int n;
+			if(sscanf(tmp," x%d",&n) ){
+
+				printf(" x%d:\t0x%08x\n",n,reg->x[n]);
+
+			}else if(sscanf(tmp," f%d",&n)){
+				printf(" f%d:\t%f\n",n,reg->f[n]);
+			}else if(strcmp(command,"pc") == 0){
+				printf(" pc:\t%08x\n",reg->pc);
 			}
-			GETTIME_TO(ts,t);
-			printf("1億命令あたり%lfsec\n",t);
+		}else if(strcmp("reset",command) == 0 || strcmp("r",command) == 0){
+
+			tmp += strlen(command);
+
+
+
+
+
+		}else if(strcmp("load",command) == 0 || strcmp("l",command) == 0){
+
+
+
+
+
+		}else if(strcmp("help",command) == 0 || strcmp("h",command) == 0){
+				system("less ./readme.txt");
+
+		}else if(strcmp("quit",command) == 0 || strcmp("q",command) == 0){
+			exit(EXIT_SUCCESS);
+
+		}else if(strncmp(command,"x/",2) == 0 ){//メモリ表示
+			int size = 0;
+			char c;
+			if(sscanf(tmp,"x/%d %c",&size,&c) != 2) fprintf(stderr,"error 1");
 		}else{
-			return 0;
+			fprintf(stderr,"command error\n");
 		}
-
 	}
-			free(inst);
-
 	return 0;
 }
