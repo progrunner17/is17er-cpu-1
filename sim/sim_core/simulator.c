@@ -6,7 +6,6 @@
 #include "include.h"
 #include "size.h"
 
-
 // freeが適当だからしっかり
 // ブレイクポイントの一覧も表示したい。
 // 今はオプション指定方法が適当だからちゃんとしたい。cf exex_instr
@@ -58,7 +57,7 @@ int main(int argc, char **argv)
 	runtime = initialize_runtime(NULL);
 
 	files = parse_commandline_arg(argc,argv);
-	printf("load program \n\n");
+	// printf("load program \n\n");
  	program = load_asm_file(files->source_filename);
 	memory = initialize_memory(MEMORY_SIZE,NULL);
 	reg = initialize_reg(NULL);
@@ -87,6 +86,8 @@ int main(int argc, char **argv)
 			tmp += strlen(command);
 			if(!sscanf(tmp," %d",&n)) n = 1;
 			for(int i = 0 ; i < n; i++){
+
+
 
 			if((instr = program[reg->pc]) == NULL){
 				fprintf(stderr,"end of program\n");

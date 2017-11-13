@@ -107,6 +107,7 @@ struct _runtime {
   Files files;
   Reg reg;
   Program program;
+  int max_instr;
   Mem memory;
 };
 

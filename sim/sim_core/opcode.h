@@ -11,10 +11,11 @@
 #define OP_STORE	   0b0100011
 #define OP_ALUI		   0b0010011
 #define OP_ALU		   0b0110011
-#define OP_MULDIV	   0b0110011
+// #define OP_MULDIV	   0b0110011
 #define OP_LOAD_FP     0b0000111
 #define OP_STORE_FP    0b0100111
 #define OP_FP          0b1010011
+#define OP_HLT		   0b0000001
 
 
 //funct3_branch

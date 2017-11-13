@@ -73,11 +73,6 @@ void resolve_label(Instr *program, LList llist) {
 }
 
 
-
-
-
-
-
 // 命令関係
 Instr initialize_instr(void) {
 	Instr i;
@@ -348,6 +343,7 @@ Runtime initialize_runtime(Runtime d) {
 	d->reg = NULL;
 	d->program = NULL;
 	d->memory = NULL;
+	d->max_instr = 0;
 
 	return d;
 }

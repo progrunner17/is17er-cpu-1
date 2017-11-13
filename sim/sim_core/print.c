@@ -220,10 +220,13 @@ void print_memory(word *memory, int base, unsigned int n) {
 
 void print_prgram(Program program) {
 	int pc = BASE_ADDR;
-	for (int i = 0; program[i] != NULL; i++) {
+	printf("%d\n",runtime->max_instr);
+	for (int i = 0; i < runtime->max_instr ; i++) {
 		pc = i + BASE_ADDR;
 		printf("0x%08x:\t", pc);
-		print_instr(program[i]);
+		if(program[i] != NULL)print_instr(program[i]);
+		else printf("hlt\n");
+
 	}
 }
 

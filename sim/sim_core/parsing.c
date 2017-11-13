@@ -30,6 +30,9 @@ char* get_line(char *s, int size) {
 // コマンドライン引数からファイル名を受け取る
 Files parse_commandline_arg(int argc, char **argv) {
   Files args;
+  log_fp = stderr;
+
+
   args = (Files )malloc(sizeof(struct _files));
   bzero(args, sizeof(struct _files));
   int opt;
@@ -38,26 +41,26 @@ Files parse_commandline_arg(int argc, char **argv) {
     //コマンドライン引数のオプションがなくなるまで繰り返す
     switch (opt) {
       case 'm':
-        args->machine_filename = malloc(strlen(optarg));
+        args->machine_filename = malloc(strlen(optarg) + 1);
         strcpy(args->machine_filename, optarg);
         break;
       case 's':
-        args->source_filename = malloc(strlen(optarg));
+        args->source_filename = malloc(strlen(optarg) + 1);
         strcpy(args->source_filename, optarg);
         break;
       case 'l':
-        args->log_filename = malloc(strlen(optarg));
+        args->log_filename = malloc(strlen(optarg) + 1);
         strcpy(args->log_filename, optarg);
-        log_fp =  fopen(optarg, "a");
+        log_fp = fopen(optarg,"a");
         break;
 
       case 'i':
-        args->input_filename = malloc(strlen(optarg));
+        args->input_filename = malloc(strlen(optarg) + 1);
         strcpy(args->input_filename, optarg);
         break;
 
       case 'o':
-        args->output_filename = malloc(strlen(optarg));
+        args->output_filename = malloc(strlen(optarg) + 1);
         strcpy(args->output_filename, optarg);
         break;
 
@@ -71,6 +74,7 @@ Files parse_commandline_arg(int argc, char **argv) {
 
 
   fprintf(log_fp, "-- files ---------------------------------------------------------------\n");
+  fflush(stdout);
 
   if (!args->source_filename) {
     char buff[BUF_SIZE];
@@ -81,7 +85,7 @@ Files parse_commandline_arg(int argc, char **argv) {
   }
 
   fprintf(log_fp, "source_file:\t\t%s\n", args->source_filename);
-
+  fflush(stdout);
 
   fprintf(log_fp, "machine_code_file\t");
   if (args->machine_filename)printf("%s\n", args->machine_filename); //NULLじゃなかったら
@@ -186,6 +190,7 @@ int create_opcode(const char* mnemonic) {
             (strcmp(mnemonic, "xtof") == 0) ? OP_FP :
             (strcmp(mnemonic, "fsw") == 0) ? OP_STORE_FP :
             (strcmp(mnemonic, "flw") == 0) ? OP_LOAD_FP :
+            (strcmp(mnemonic, "hlt") == 0) ? OP_HLT:
             -1;
   return opcode;
 }
@@ -303,7 +308,6 @@ Instr load_asm_line(char * buff) {
   char tmp[BUF_SIZE];
   int error = 0;
 
-
   strcpy(tmp, buff); //元のデータを壊さないように、ラベルもあるし...
   if ((mnemonic =  strtok(tmp, " \t\n")) == NULL ) return NULL; //空行ならNULL
   op1 = strtok(NULL, ",");
@@ -349,6 +353,7 @@ Instr load_asm_line(char * buff) {
 
         }
         break;
+      case OP_HLT:break;
       default:
         fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 1st oprand:\t invalid opcode\n");
         error = 1;
@@ -399,6 +404,8 @@ Instr load_asm_line(char * buff) {
         }
         break;
         fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 2nd oprand:\t invalid opcode\n");
+      case OP_HLT:break;
+
     }
 
 
@@ -461,6 +468,7 @@ Instr load_asm_line(char * buff) {
             }
         }
         break;
+      case OP_HLT:break;
       default: {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 3rd oprand:\t invalid opcode\n");
           error = 1;
@@ -499,7 +507,6 @@ Program load_asm_file(const char* filename) {
   program = calloc(PROGRAM_SIZE, sizeof(Instr));
   llist = initialize_llist();
 
-
   if ((fp = fopen(filename, "r")) == NULL) {
     fprintf(log_fp, "[ERROR]@load_asm_file:\tcannot open file %s\n", filename);
     return NULL ;
@@ -510,39 +517,38 @@ Program load_asm_file(const char* filename) {
     if ((p = strchr(buff, '\n'))) * p = '\0';   //remove comment
     p = buff + strspn(buff, " \t\n");
     if (strlen(p) == 0 )continue;               //empty line
-    puts(buff);
 
     if ((instr = load_asm_line(p))) {
+
+       if(instr->opcode == OP_HLT){
+        program[pc] = NULL;
+        pc++;
+        free(instr);
+        continue;
+      }
+
       instr->line = line;//行番号保存
       program[pc] = instr;
       pc++;
       src_break = 0;
-      printf("0x%08x:", pc);
-      print_instr(instr);
     } else { //オペコードが取得できなかったら
-      if (strstr(buff, "hlt")) {
-        break;
-      }
-      // else if(strchr(buff,':'))
-      // printf("hello\n");
-      fflush(stdout);
       char label[128];
-      // p = strtod(p," \t:");
+      char * p2 = NULL;
+      p2 = strtok(p," \t:");
       sscanf(p, "%s", label);
       add_label(label, pc, line, llist);
-      // printf("hello\n");
-      // print_labels(llist);
-      fflush(stdout);
-      // else
-      fprintf(log_fp, "[ERROR]@load_asm_file:\tinvalid assembly %s\n", p);
+      // fprintf(log_fp, "[ERROR]@load_asm_file:\tinvalid assembly %s\n", p);
     }
   } //for
+  printf("label list\n");
   print_labels(llist);
 
   resolve_label(program, llist);
   printf("命令数:\t%d\n", pc);
   fclose(fp);
   runtime->llist = llist;
+  runtime->max_instr = pc;
+  // printf("max_instr = %d\n",runtime->max_instr);
   return program;
 }
 
