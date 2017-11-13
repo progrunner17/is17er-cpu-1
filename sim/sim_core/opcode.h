@@ -29,7 +29,7 @@
 //funct3_load
 #define LOAD_BYTE_S 0b000
 #define LOAD_HALF_S	0b001
-#define LOAD_WORD	0b010
+#define LOAD_WORD    0b010
 #define LOAD_BYTE_Z	0b100
 #define LOAD_HALF_Z	0b101
 
@@ -58,8 +58,8 @@
 
 // funct3 fsgnj
 #define F3_FSGNJ 	0b000	//fmv
-#define F3_FSGNJN	0b000   //fneg
-#define F3_FSGNJX	0b000   //fabs
+#define F3_FSGNJN	0b001   //fneg
+#define F3_FSGNJX	0b010   //fabs
 
 
 

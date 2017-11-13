@@ -34,45 +34,52 @@
 	// ブレークポイント設定。ラベルや行番号。
 
 
+
+extern FILE *log_fp;
+extern FILE *out_fp;
+extern FILE *in_fp;
+
+Runtime runtime = NULL;
+
 int main(int argc, char **argv)
 {
-	Program program;//配列
-	Mem memory = NULL;//配列
+	Program program = NULL;
+	Mem memory = NULL;
 	struct timespec ts;
-	double t = 0;//時間計測用
-	Reg reg = NULL;//レジスタ
-	files files;
-	Data d = NULL;
-	// int count = 0;
-
+	double t = 0;
+	Reg reg = NULL;
+	Files files = NULL;
 	char buff[BUF_SIZE];
 	char* tmp;
 	char command[BUF_SIZE];
  	Instr instr;
+ 	// int display_opt = 0;
 
-
-	d = initialize_data(NULL);
+	runtime = initialize_runtime(NULL);
 
 	files = parse_commandline_arg(argc,argv);
 	printf("load program \n\n");
- 	program = load_assembly(files->source_filename,d);
+ 	program = load_asm_file(files->source_filename);
 	memory = initialize_memory(MEMORY_SIZE,NULL);
 	reg = initialize_reg(NULL);
 
+	runtime->files = files;
+	runtime->reg = reg;
+	runtime->program = program;
+	runtime->memory = memory;
 	// print_prgram(program);
-
 // initial header print
 	while(get_line(buff,BUF_SIZE)){
-		tmp = buff +  strspn(buff," \t");
-		sscanf(tmp,"%s",command);
-		if(*buff=='\n')continue;
+		tmp = buff +  strspn(buff," \t\n");
+		if(strlen(tmp) == 0)continue;
 
+		sscanf(tmp,"%s",command);
 		if(strcmp("run",command) == 0 || strcmp("r",command) == 0){
-			memory = initialize_memory(MEMORY_SIZE,memory);
-			reg = initialize_reg(reg);
+			// memory = initialize_memory(MEMORY_SIZE,memory);
+			// reg = initialize_reg(reg);
 			reg->pc = 0;
 			GETTIME_FROM(ts,t);
-			exec_program(program,reg,memory,d);
+			exec_program(program,reg,memory);
 			GETTIME_TO(ts,t);
 			printf("execution:\t%lfsec\n",t);
 		}else if(strcmp("next",command) == 0 || strcmp("n",command) == 0){
@@ -87,8 +94,7 @@ int main(int argc, char **argv)
 			}
 				printf("0x%08x\t",reg->pc);
 				print_instr(instr);
-				exec_instr(instr,memory,reg,d);
-
+				exec_instr(instr,memory,reg);
 			}
 
 		}else if(strcmp("countinue",command) == 0 || strcmp("c",command) == 0){
@@ -99,7 +105,7 @@ int main(int argc, char **argv)
 
 			tmp += strlen(command);
 			int n;
-			word data;
+			int data;
 			if(sscanf(tmp," x%d",&n) ){
 				if(n > 0 && n < 32){
 					if((tmp  = strchr(tmp,'=')) != NULL){
@@ -122,6 +128,7 @@ int main(int argc, char **argv)
 					}
 				}else fprintf(stderr,"f%d cannot be over written\n",n);
 			}
+
 		}else if(strcmp("info",command) == 0 || strcmp("i",command) == 0){
 			tmp += strlen(command);
 			sscanf(tmp,"%s",command);
@@ -133,6 +140,8 @@ int main(int argc, char **argv)
 				print_reg(reg,PRINT_REG_F | PRINT_REG_X_X | PRINT_REG_PC);
 			}else if(strcmp(command,"p") == 0 || strcmp(command,"program") == 0){
 				print_prgram(program);
+			}else if(strcmp(command,"l") == 0 || strcmp(command,"label") == 0){
+				print_labels(runtime->llist);
 			}else if(strcmp(command,"n") == 0 || strcmp(command,"next") == 0){
 				tmp += strlen(command);
 				int n = 0;
@@ -141,7 +150,7 @@ int main(int argc, char **argv)
 				print_instr(program[reg->pc + i]);
 				}
 			}else if(strcmp(command,"l") == 0 || strcmp(command,"label") == 0){
-				print_labels(d->llist);
+				print_labels(runtime->llist);
 			}
 
 		}else if(strcmp("break",command) == 0 || strcmp("b",command) == 0){
@@ -168,18 +177,24 @@ int main(int argc, char **argv)
 			}else if(strcmp(command,"pc") == 0){
 				printf(" pc:\t%08x\n",reg->pc);
 			}
+
 		}else if(strcmp("reset",command) == 0 || strcmp("r",command) == 0){
 
 			tmp += strlen(command);
-
-
-
-
+			sscanf(tmp,"%s",command);
 
 		}else if(strcmp("load",command) == 0 || strcmp("l",command) == 0){
 
+			tmp += strlen(command);
+			char filename[128];
+			if(!sscanf(tmp," %s %s",command,filename)){
+				fprintf(stderr,"error the usage of load command\n");
+				continue;
+			}
 
+			if(strcmp(command,"source") == 0 ||strcmp(command,"src") == 0 ||strcmp(command,"s") == 0 ){
 
+			}
 
 
 		}else if(strcmp("help",command) == 0 || strcmp("h",command) == 0){
@@ -194,6 +209,7 @@ int main(int argc, char **argv)
 			if(sscanf(tmp,"x/%d %c",&size,&c) != 2) fprintf(stderr,"error 1");
 		}else{
 			fprintf(stderr,"command error\n");
+
 		}
 	}
 	return 0;
