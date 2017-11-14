@@ -107,8 +107,6 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 		return;
 	}
 
-
-
 	switch (i->opcode) {
 		case OP_LUI: if ( 0 < i->rd && i->rd < 32) reg->x[i->rd] = i->imm << 12; break;
 		case OP_AUIPC: if ( 0 < i->rd && i->rd < 32)reg->x[i->rd] = reg->pc + i->imm; break;
@@ -152,8 +150,9 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						memory[addr].x = reg->x[i->rs2];
 						// printf("store x%d(%d) to mem[%d]\n",i->rs2,reg->x[i->rs2],reg->x[i->rs1] + i->imm);
 						// printf("stored data == %d\n",memory[i->rs1 + i->imm].x);
-					} else if (addr << 2 == 0xFFFFF000) { //output
-						fwrite(&(reg->x[i->rs2]), 4, 1, out_fp);
+					} else if (addr == -63) { //output
+						// fwrite(&(reg->x[i->rs2]), 4, 1, out_fp);
+						printf("output:%08x\n",reg->x[i->rs2]);
 					} else {
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
 						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is  0x%08x\n", addr );
@@ -231,6 +230,10 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 			}
 	}
 	reg->pc++;
+	// print_reg(reg,PRINT_REG_PC);
+	// printf("imm:%d,x[%d]:%d\n",i->imm,i->rd,reg->x[i->rd]);
+
+
 }
 
 
