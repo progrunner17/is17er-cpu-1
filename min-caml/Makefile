@@ -16,7 +16,7 @@ $(RESULT): debug-code top
 SOURCES = float.c h.mli h.ml type.mli type.ml id.mli id.ml m.mli m.ml s.mli s.ml \
 syntax.mli syntax.ml parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
 alpha.mli alpha.ml beta.mli beta.ml assoc.mli assoc.ml \
-inline.mli inline.ml constFold.mli constFold.ml elim.mli elim.ml cse.mli cse.ml lamlift.mli lamlift.ml \
+inline.mli inline.ml constFold.mli constFold.ml elim.mli elim.ml cse.mli cse.ml \
 closure.mli closure.ml asm.mli asm.ml virtual.mli virtual.ml \
 simm.mli simm.ml regAlloc.mli regAlloc.ml emit.mli emit.ml \
 main.mli main.ml

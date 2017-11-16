@@ -236,12 +236,13 @@ and g' lines (dest, ((range, body) as exp)) =
       Printf.sprintf "\tjalr\tx0, x31, 0%s" (comment_range lines range)
   | Tail, CallDir(Id.L(x), ys, zs) -> (* 末尾呼び出し *)
       let s = g'_args range lines [] ys zs in s^
-      let n = M.find x !labels - !pc in
-      if upper' n = 0 then
-        Printf.sprintf "\tjal\tx0, %d%s" n (comment_range lines range)
+      let n = M.find x !labels in
+      let d = M.find x !labels - !pc in
+      if upper' d = 0 then
+        Printf.sprintf "\tjal\tx0, %d%s" d (comment_range lines range)
       else
-        let s = Printf.sprintf "\tauipc\tx31, %d%s" (upper' n) (comment_range lines range) in s^
-        Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower' n) (comment_range lines range)
+        let s = Printf.sprintf "\tauipc\tx31, %d%s" (upper n) (comment_range lines range) in s^
+        Printf.sprintf "\tjalr\tx0, x31, %d%s" (lower n) (comment_range lines range)
   | NonTail(a), CallCls(x, ys, zs) ->
       let ss = stacksize () in
       let s = g'_args range lines [(x, "%x29")] ys zs in s^
@@ -261,12 +262,13 @@ and g' lines (dest, ((range, body) as exp)) =
       let s = Printf.sprintf "\tsw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range) in s^
       let s = Printf.sprintf "\taddi\tx2, x2, %d%s" ss (comment_range lines range) in s^
       let s =
-        let n = M.find x !labels - !pc in
-        if upper' n = 0 then
-          Printf.sprintf "\tjal\tx1, %d%s" n (comment_range lines range)
+        let n = M.find x !labels in
+        let d = M.find x !labels - !pc in
+        if upper' d = 0 then
+          Printf.sprintf "\tjal\tx1, %d%s" d (comment_range lines range)
         else
-          let s = Printf.sprintf "\tauipc\tx31, %d%s" (upper' n) (comment_range lines range) in s^
-          Printf.sprintf "\tjalr\tx1, x31, %d%s" (lower' n) (comment_range lines range) in s^
+          let s = Printf.sprintf "\tauipc\tx31, %d%s" (upper n) (comment_range lines range) in s^
+          Printf.sprintf "\tjalr\tx1, x31, %d%s" (lower n) (comment_range lines range) in s^
       let s = Printf.sprintf "\taddi\tx2, x2, %d%s" (-ss) (comment_range lines range) in s^
       let s = Printf.sprintf "\tlw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range) in s^
       match String.sub a 0 2 with
@@ -367,10 +369,10 @@ let f lines (Prog(fundefs, e)) =
   labels := M.empty;
   let s = List.fold_left (fun s fundef -> s^h lines fundef) "" fundefs in
   let s =
-    let n = !pc - 1 in
+    let n = !pc in
     "# jump to entry point\n"^
-    Printf.sprintf "\tauipc\tx31, %d # [0]\n" (upper' n)^
-    Printf.sprintf "\tjalr\tx0, x31, %d # [1]\n" (lower' n)^
+    Printf.sprintf "\tauipc\tx31, %d # [0]\n" (upper n)^
+    Printf.sprintf "\tjalr\tx0, x31, %d # [1]\n" (lower n)^
     s in s^
   let s =
     "# entry point\n"^

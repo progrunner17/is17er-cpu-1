@@ -126,13 +126,16 @@ rule token = parse
     { DOT }
 | "<-"
     { LESS_MINUS }
-| "open" { OPEN }
-| ";;" { SEMISEMI }
 | ';'
     { SEMICOLON }
+(* MATSUSHITA: added "open", ";;", "fun" and "->" *)
+| "open" { OPEN }
+| ";;" { SEMISEMI }
+| "fun" { FUN }
+| "->" { MINUS_GREATER }
 | eof
     { EOF }
-| lower (digit|lower|upper|'_')* (* 他の「予約語」より後でないといけない *)
+| lower (digit|lower|upper|'_'|''')* (* 他の「予約語」より後でないといけない *)
     { IDENT(Lexing.lexeme lexbuf) }
 | _
     { (* MATSUSHITA: modified error message *)

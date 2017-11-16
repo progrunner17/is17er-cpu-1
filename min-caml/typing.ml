@@ -19,7 +19,7 @@ let rec deref_typ = function (* 型変数を中身でおきかえる関数 (caml2html: typing_
       let t' = deref_typ t in
       r := Some(t');
       t'
-  | t -> t
+  | Type.Unit | Type.Bool | Type.Int | Type.Float as t -> t
 let rec deref_id_typ (x, t) = (x, deref_typ t)
 let rec deref_term (range, body) = range, match body with
   | Not(e) -> Not(deref_term e)
@@ -64,7 +64,7 @@ let rec deref_term (range, body) = range, match body with
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
   | Write e -> Write (deref_term e)
   | FWrite e -> FWrite (deref_term e)
-  | (Unit | Bool _ | Int _ | Float _ | Var _ | Read | FRead) as e -> e
+  | Unit | Bool _ | Int _ | Float _ | Var _ | Read | FRead as e -> e
 
 let rec occur r1 = function (* occur check (caml2html: typing_occur) *)
   | Type.Fun(t2s, t2) -> List.exists (occur r1) t2s || occur r1 t2

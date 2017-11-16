@@ -110,6 +110,8 @@ let atan e =
 %token LESS_MINUS
 %token OPEN
 %token SEMISEMI
+%token FUN
+%token MINUS_GREATER
 %token SEMICOLON
 %token LPAREN
 %token RPAREN
@@ -124,7 +126,7 @@ let atan e =
 %left COMMA
 %left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL
 %left PLUS MINUS PLUS_DOT MINUS_DOT
-%left AST_DOT SLASH_DOT
+%left AST SLASH AST_DOT SLASH_DOT
 %right prec_unary_minus
 %left prec_app
 %left DOT
@@ -281,14 +283,24 @@ exp:
     { (* MATSUSHITA: added range *)
       if snd $6 = Int 0 then $4 else
       symbol_range (), Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4), addtyp $2, $4, $6) }
+/* MATUSHITA: ignore xor and tan */
 | LET REC XOR formal_args EQUAL exp IN exp
+    %prec prec_let
     { $8 }
 | LET REC TAN formal_args EQUAL exp IN exp
+    %prec prec_let
     { $8 }
 | LET REC fundef IN exp
     %prec prec_let
     { (* MATSUSHITA: added range *)
       symbol_range (), LetRec(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 3), $3, $5) }
+/* MATUSHITA: added lambda expression */
+| FUN formal_args MINUS_GREATER exp
+    %prec prec_let
+    {
+      let f = Id.gentmp () in
+      symbol_range (), LetRec(symbol_range (), { name = addtyp f; args = $2; body = $4 }, (symbol_range (), Var f))
+    }
 | simple_exp actual_args
     %prec prec_app
     { symbol_range (), App($1, $2) }
@@ -302,8 +314,6 @@ exp:
     { symbol_range (), Put($1, $4, $7) }
 | exp SEMICOLON exp
     { symbol_range (), Let(None, (Id.genunit (), Type.Unit), $1, $3) }
-| exp SEMICOLON
-    { symbol_range (), Let(None, (Id.genunit (), Type.Unit), $1, (None, Unit)) }
 | ARRAY_CREATE simple_exp simple_exp
     %prec prec_app
     { symbol_range (), Array($2, $3) }
