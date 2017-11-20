@@ -128,11 +128,13 @@ rule token = parse
     { LESS_MINUS }
 | ';'
     { SEMICOLON }
-(* MATSUSHITA: added "open", ";;", "fun" and "->" *)
+(* MATSUSHITA: added "open", ";;", "fun", "->", "+@" and "-!" *)
 | "open" { OPEN }
 | ";;" { SEMISEMI }
 | "fun" { FUN }
 | "->" { MINUS_GREATER }
+| "+@" { PLUS_AT }
+| "-!" { MINUS_BANG }
 | eof
     { EOF }
 | lower (digit|lower|upper|'_'|''')* (* 他の「予約語」より後でないといけない *)

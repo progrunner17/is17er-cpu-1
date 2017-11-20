@@ -1,5 +1,5 @@
 (* MATSUSHITA: added to t H.range *)
-type t = H.range * body (* MinCamlの構文を表現するデータ型 (caml2html: syntax_t) *)
+type t = H.range * body
 and body =
   | Unit
   | Bool of bool
@@ -45,6 +45,8 @@ and body =
   | Write of t
   | FRead
   | FWrite of t
+  | IFAdd of t * t
+  | NotNeg of t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added function show *)
@@ -93,3 +95,5 @@ let rec show (_, body) = match body with
   | FRead -> "fread"
   | Write e -> "write "^show e
   | FWrite e -> "fwrite "^show e
+  | IFAdd (e, e') -> "("^show e^" +@ "^show e'^")"
+  | NotNeg e -> "(-! "^show e^")"
