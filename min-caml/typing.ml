@@ -119,7 +119,8 @@ let rec g lines env ((range, body) as e) = (* 型推論ルーチン (caml2html: typing_
         unify Type.Int (g lines env e2);
         Type.Int
     | Eq(e1, e2) | LT(e1, e2) ->
-        unify (g lines env e1) (g lines env e2); (* 両方とも Type.Int の可能性も、Type.Bool の可能性もある *)
+        unify Type.Int (g lines env e1);
+        unify Type.Int (g lines env e2);
         Type.Bool
     | FNeg(e) | FAbs(e) | FFloor(e) | FSqrt(e) | FCos(e) | FSin(e) | FTan(e) | FAtan(e) ->
         unify Type.Float (g lines env e);
