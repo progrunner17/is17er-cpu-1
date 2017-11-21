@@ -64,6 +64,8 @@ let rec deref_term (range, body) = range, match body with
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
   | Write e -> Write (deref_term e)
   | FWrite e -> FWrite (deref_term e)
+  | IFAdd (e, e') -> IFAdd (deref_term e, deref_term e')
+  | NotNeg e -> NotNeg (deref_term e)
   | Unit | Bool _ | Int _ | Float _ | Var _ | Read | FRead as e -> e
 
 let rec occur r1 = function (* occur check (caml2html: typing_occur) *)
@@ -97,7 +99,7 @@ let rec unify t1 t2 = (* 型が合うように、型変数への代入をする (caml2html: typing
       r2 := Some(t1)
   | _, _ -> raise (Unify(t1, t2))
 
-let rec g lines env ((range, body) as e) = (* 型推論ルーチン (caml2html: typing_g) *)
+let rec g lines env (range, body) = (* 型推論ルーチン (caml2html: typing_g) *)
   try
     match body with
     | Unit -> Type.Unit
@@ -188,10 +190,20 @@ let rec g lines env ((range, body) as e) = (* 型推論ルーチン (caml2html: typing_
     | FWrite e ->
         unify Type.Float (g lines env e);
         Type.Unit
-  with Unify(t1, t2) -> let e' = deref_term e in
+    (* MATUSHITA: added polymorphic operators *)
+    | IFAdd (e1, e2) ->
+        let t = Type.gentyp () in
+        unify t (g lines env e1);
+        unify t (g lines env e2);
+        t
+    | NotNeg e ->
+        let t = Type.gentyp () in
+        unify t (g lines env e);
+        t
+  with Unify(t1, t2) ->
     (* MATSUSHITA: modified error message *)
     Printf.printf "Type unification error occurred at %s '%s': conflict between %s and %s\n"
-      (H.show_range range) (H.show_from_range lines (fst e')) (Type.show (deref_typ t1)) (Type.show (deref_typ t2));
+      (H.show_range range) (H.show_from_range lines range) (Type.show (deref_typ t1)) (Type.show (deref_typ t2));
     exit 1
 
 let f lines e =

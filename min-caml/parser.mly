@@ -62,27 +62,6 @@ let atan e =
 %token <int> INT
 %token <float> FLOAT
 %token NOT
-%token XOR
-%token FISZERO
-%token FLESS
-%token FISPOS
-%token FISNEG
-%token FNEG
-%token FABS
-%token FHALF
-%token FSQR
-%token FLOOR
-%token FLOATOFINT
-%token INTOFFLOAT
-%token SQRT
-%token COS
-%token SIN
-%token TAN
-%token ATAN
-%token READINT
-%token READFLOAT
-%token PRINTINT
-%token PRINTFLOAT
 %token PLUS
 %token MINUS
 %token AST
@@ -112,10 +91,35 @@ let atan e =
 %token SEMISEMI
 %token FUN
 %token MINUS_GREATER
+%token MI
 %token SEMICOLON
 %token LPAREN
 %token RPAREN
 %token EOF
+/* MATSUSHITA: added tokens */
+%token XOR
+%token FISZERO
+%token FLESS
+%token FISPOS
+%token FISNEG
+%token FNEG
+%token FABS
+%token FHALF
+%token FSQR
+%token FLOOR
+%token FLOATOFINT
+%token INTOFFLOAT
+%token SQRT
+%token COS
+%token SIN
+%token TAN
+%token ATAN
+%token READINT
+%token READFLOAT
+%token PRINTINT
+%token PRINTFLOAT
+%token PLUS_AT
+%token MINUS_BANG
 
 %nonassoc IN
 %right prec_let
@@ -125,7 +129,7 @@ let atan e =
 %nonassoc prec_tuple
 %left COMMA
 %left EQUAL LESS_GREATER LESS GREATER LESS_EQUAL GREATER_EQUAL
-%left PLUS MINUS PLUS_DOT MINUS_DOT
+%left PLUS MINUS PLUS_DOT MINUS_DOT PLUS_AT
 %left AST SLASH AST_DOT SLASH_DOT
 %right prec_unary_minus
 %left prec_app
@@ -317,6 +321,12 @@ exp:
 | ARRAY_CREATE simple_exp simple_exp
     %prec prec_app
     { symbol_range (), Array($2, $3) }
+/* MATUSHITA: added polymorphic operators */
+| exp PLUS_AT exp
+    { symbol_range (), IFAdd($1, $3) }
+| MINUS_BANG exp
+    %prec prec_unary_minus
+    { symbol_range (), NotNeg($2) }
 | error
     { Printf.printf "Parse error at %s\n" (H.show_range (symbol_range ()));
       exit 1 }

@@ -45,6 +45,8 @@ and body =
   | Write of t
   | FRead
   | FWrite of t
+  | IFAdd of t * t
+  | NotNeg of t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added function show *)

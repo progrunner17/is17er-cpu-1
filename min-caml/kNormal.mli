@@ -51,4 +51,4 @@ val show : string array -> t -> string
 val subst : Id.t M.t -> t -> t
 
 val fv : t -> S.t
-val f : Syntax.t -> t
+val f : string array -> Syntax.t -> t

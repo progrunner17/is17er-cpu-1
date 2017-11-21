@@ -31,7 +31,7 @@ let lexbuf outchan buf lines = (* バッファをコンパイルしてチャンネルへ出力する (
     ((fun prog -> Printf.printf "[Closure.f]\n%s\n\n" (Closure.show_prog lines prog)) <| Closure.f
     (iter lines !limit
     ((fun e -> Printf.printf "[Alpha.f]\n%s\n\n" (KNormal.show lines e)) <|| Alpha.f *|
-    ((fun e -> Printf.printf "[KNormal.f]\n%s\n\n" (KNormal.show lines e)) <| KNormal.f
+    ((fun e -> Printf.printf "[KNormal.f]\n%s\n\n" (KNormal.show lines e)) <| KNormal.f lines
     ((fun e -> Printf.printf "[Typing.f]\n%s\n\n" (Syntax.show e)) <| Typing.f lines
     ((fun e -> Printf.printf "[Parser.exp Lexer.token]\n%s\n\n" (Syntax.show e)) <|
     (Parser.exp Lexer.token buf))))))))))
