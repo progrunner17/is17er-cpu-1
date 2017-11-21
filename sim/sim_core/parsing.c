@@ -459,6 +459,7 @@ Instr load_asm_line(char * buff) {
             break;
           // no 3rd operand but sama as rs1
           case F5_FSGNJ:
+            printf("buff = %s\n",buff);
             instr->rs2 = instr->rs1;
             break;
 
@@ -513,8 +514,10 @@ Program load_asm_file(const char* filename) {
   }
 
   for (int line = 1; fgets(buff, BUF_SIZE, fp); line++) {
-    if ((p = strchr(buff, '#'))) * p = '\0';   //remove comment
-    if ((p = strchr(buff, '\n'))) * p = '\0';   //remove comment
+    if ((p = strchr(buff, '#'))) *p = '\0';   //remove comment
+    if ((p = strchr(buff, '\n'))) *p = '\0';   //remove comment
+
+    if ( p != NULL && strlen(p) == 0 )continue;               //empty line
     p = buff + strspn(buff, " \t\n");
     if (strlen(p) == 0 )continue;               //empty line
 

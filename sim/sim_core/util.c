@@ -203,6 +203,13 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 					reg->x[i->rd] = (i->funct3 == F3_FEQ && reg->f[i->rs1] == reg->f[i->rs2] ) ||
 					                (i->funct3 == F3_FLT && reg->f[i->rs1] <  reg->f[i->rs2] ) ||
 					                (i->funct3 == F3_FLE && reg->f[i->rs1] <= reg->f[i->rs2] ); break;
+				case F5_FSGNJ:
+					switch(i->funct3){
+						case F3_FSGNJ: reg->f[i->rd] = reg->f[i->rs1];break;
+						case F3_FSGNJN: reg->f[i->rd] = -reg->f[i->rs1];break;
+						case F3_FSGNJX: reg->f[i->rd] = fabs(reg->f[i->rs1]);break;
+					}
+					break;
 				case  F5_FTOI:
 					reg->x[i->rd] = (int)reg->f[i->rs1]; break;
 				case  F5_FTOX: reg->x[i->rd] = ((unsigned int *) reg->f)[i->rs1]; break;
