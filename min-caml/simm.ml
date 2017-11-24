@@ -27,7 +27,7 @@ and g' env fenv ((range, body) as e) = match body with (* 各命令の即値最適化 (ca
   | FMul(x, y) -> range, FMul(fmodify fenv x, fmodify fenv y)
   | FDiv(x, y) -> range, FDiv(fmodify fenv x, fmodify fenv y)
   | FEq(x, y) -> range, FEq(fmodify fenv x, fmodify fenv y)
-  | FLT(x, y) -> range, FLT(fmodify fenv y, fmodify fenv y)
+  | FLT(x, y) -> range, FLT(fmodify fenv x, fmodify fenv y)
   | FLWA(x, y) when good env (-2048) 2047 y -> range, FLW(x, M.find y env)
   | FSWA(x, y, z) when good env (-2048) 2047 z -> range, FSW(x, y, M.find z env)
   | IfEq(range', x, y, e1, e2)
