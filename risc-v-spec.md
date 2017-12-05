@@ -2,6 +2,9 @@
 IS17erCPU実験第1班コア係 五反田正太郎
 
 ## 変更履歴
+- 2017-12-5
+	- fmv.x.fやfmv.f.xをftoxやxtofにニーモニックを変更
+	- 末尾に入出力用命令ib(input byte)及びob(output byte)の説明を追加
 - 2017-10-31
 	- ワードアドレッシングへ対応
 - 2017-10-29
@@ -30,6 +33,7 @@ IS17erCPU実験第1班コア係 五反田正太郎
 
 ### 注意点
 
+- オペコードの下位2bitは32bit命令なので0b11で固定
 
 ### 命令一覧
 
@@ -404,7 +408,7 @@ immは命令単位の差分を設定
 	- funct3: 0b010
 	- 意味: rd = \|rs1\|
 
-#### ftoi(u)　
+#### ftoi(u)
 - funct5: 0b11000
 - 命令形式: _ftoi(u) rd, rs1_
 - レジスタ: rd:xn, rs1:fn
@@ -413,13 +417,13 @@ immは命令単位の差分を設定
 	rs2 == 0b00000でsigned
 	rs2 == 0b00001でunsigned(未実装)
 
-#### fmv.f.x
+#### ftox
 - funct5: 0b11100
 - funct3: 0b000
 - rs2: 0b00000
-- 命令形式: _fmv.f.x rd, rs1_
+- 命令形式: _ftox rd, rs1_
 - レジスタ: rd:xn, rs1:fn
-- 意味: rd = rs1
+- 意味: rd = rs1 (xn = fn)
 	(ビット列コピー)
 
 #### float比較系命令
@@ -451,13 +455,31 @@ immは命令単位の差分を設定
 	rs2 == 0b00000で rs1をsignedとして
 	rs2 == 0b00001で rs1をunsignedとして(未実装)
 
-#### fmv.x.f
+#### xtof
 - funct5: 0b11110
 - funct3: 0b000
 - rs2: 0b00000
-- 命令形式: _fmv.x.f rd, rs1_
+- 命令形式: _xtof rd, rs1_
 - レジスタ: rd:fn, rs1:xn
-- 意味: rd = rs1
+- 意味: rd = rs1 (fn = xn)
 	(ビット列コピー)
 
+
+
+## 入出力拡張命令
+___xレジスタを使用___
+
+### ob
+- オペコード:0b00101
+- funct3: 0b000 (sbと同じ)
+- 命令形式: _ob rs2_
+
+output byteの略。例えば _ob x1_ とするとx1レジスタの下位8bitを出力
+
+### ib
+- オペコード:0b00101
+- funct3: 0b100 (lbuと同じ)
+- 命令形式: _ib rd_
+
+input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼロ拡張してx1に入れる。
 
