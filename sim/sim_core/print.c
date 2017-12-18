@@ -1,12 +1,5 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include "include.h"
-#include "opcode.h"
-#include "size.h"
-
-
-extern FILE *log_fp;
-extern Runtime runtime;
 
 // // print.c
 // void  print_labels(LList label_list);
@@ -129,6 +122,9 @@ void print_mnemonic(Instr i) {
 		case F5_XTOF: printf("xtof"); break;
 		}
 		break;
+	case OP_STORE_IO:printf("ob");break;
+	case OP_LOAD_IO:printf("ib");break;
+	case OP_HLT:printf("hlt");break;
 	default:
 		fprintf(log_fp,"[ERROR]@print_mnemonic:\tinvalid opcode\n");
 	}
@@ -169,17 +165,23 @@ void print_instr(Instr instr) {
 			case F5_ITOF:
 			case F5_XTOF: printf("f%d, x%d", instr->rd, instr->rs1); break;
 			}
+			
 			break;
+	case OP_STORE_IO: printf("x%d",instr->rs2);break;
+	case OP_LOAD_IO: printf("x%d",instr->rd);break;
+	case OP_HLT:break;
 	default: fprintf(log_fp,"[ERROR]@print_instr: opcode error\n");
 	}
 	putchar('\n');
+	fflush(stdout);
 }
 
 
 void print_reg(Reg reg, int opt) {
 	printf("register:\n");
-	if (opt && PRINT_REG_PC)
-		printf("pc:\t%08x\n\n", reg->pc);
+	if (opt & PRINT_REG_PC){
+		printf("pc:\t%08x\n", reg->pc);
+	}
 
 
 	if (opt & PRINT_REG_X_D) {
@@ -197,22 +199,65 @@ void print_reg(Reg reg, int opt) {
 		}
 		putchar('\n');
 	}
+
+	if (opt & PRINT_REG_X_B) {
+		for (int i = 0; i < 32 ; i++) {
+			for(int j = 31; j>=0;j--){
+				if(reg->x[i] & 1<<j )putchar('1');else putchar('0');
+				if(j % 8 == 0)putchar('|');
+			}
+			putchar('\n');
+		}
+	}
+
 	if (opt & PRINT_REG_F) {
 		for (int i = 0; i < 32 ; i++) {
-			printf("x%d:\t%f\t", i, reg->f[i]);
+			printf("f%d:\t%f\t", i, reg->f[i]);
 			if (i % 2) putchar('\n');
 		}
 		putchar('\n');
 	}
+	if (opt & PRINT_REG_F_X) {
+		for (int i = 0; i < 32 ; i++) {
+			printf("f%d:\t%08x\t//%f\n", i, ((uint32_t *) reg->f)[i],reg->f[i]);
+		}
+	}
+
+	if (opt & PRINT_REG_F_B) {
+		printf("  \ts|   e    |          m            |\n");
+		for (int i = 0; i < 32 ; i++) {
+			printf("f%d:\t",i);
+			for(int j = 31; j>=0;j--){
+				if(((uint32_t *) reg->f)[i] & 1<<j )putchar('1');else putchar('0');
+				if(j ==31 || j == 23 || j == 0 )putchar('|');
+			}
+			printf("\t// %f\n",reg->f[i]);
+		}
+	}
+
 
 }
 
-void print_memory(word *memory, int base, unsigned int n) {
+void print_memory(word *memory, int base, unsigned int n,int option) {
 	int pc = 0;
 	for (int i = base; i < base + n ; i++) {
 		pc = i + BASE_ADDR;
-		printf("0x%08x: %08x\t", pc, memory[i].x);
-		if ((i + 1) % 8 == 0) putchar('\n');
+		printf("0x%08x: ",pc);
+		if(option == 'f')
+		printf("%f\n",  memory[i].f);
+
+		if(option == 'd')
+		printf("%d\n", memory[i].d);
+
+		if(option == 'x')
+		printf("%08x\n", memory[i].x);
+		if( option == 'b'){
+			for(int i =31; i >= 0; i--){
+				if( memory[i].x & (1<<i) )putchar('1'); else putchar('0');
+			}
+			putchar('\n');
+
+		}
 	}
 	putchar('\n');
 };
@@ -220,13 +265,13 @@ void print_memory(word *memory, int base, unsigned int n) {
 
 void print_prgram(Program program) {
 	int pc = BASE_ADDR;
-	printf("%d\n",runtime->max_instr);
-	for (int i = 0; i < runtime->max_instr ; i++) {
+	// printf("%d\n",runtime->max_instr);
+	fflush(stdout);
+	for (int i = 0; program[i] != NULL ; i++) {
 		pc = i + BASE_ADDR;
 		printf("0x%08x:\t", pc);
 		if(program[i] != NULL)print_instr(program[i]);
 		else printf("hlt\n");
-
 	}
 }
 
@@ -241,18 +286,11 @@ void print_labels(LList llist) {
 
 void fprint_bin(FILE *fp, int d, int max, int min) {
 	int b = 0;
-	printf("0b");
+	// printf("0b");
 	for (int i = max ; i >= min; i--) {
 		b = ((1 << i) & d) != 0 ? 1 : 0;
 		fputc('0' + b, fp);
 	}
-}
-
-void print_help(void) {
-	FILE *fp = fopen("readme.txt", "r");
-	char line[128];
-	fgets(line, 128, fp);
-	puts(line);
 }
 
 

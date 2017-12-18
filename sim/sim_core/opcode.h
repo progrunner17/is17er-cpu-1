@@ -15,7 +15,10 @@
 #define OP_LOAD_FP     0b0000111
 #define OP_STORE_FP    0b0100111
 #define OP_FP          0b1010011
-#define OP_HLT		   0b0000001
+#define OP_LOAD_IO	   0b0001011
+#define OP_STORE_IO	   0b0101011
+#define OP_HLT		   0b0000000
+
 
 
 //funct3_branch

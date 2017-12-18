@@ -4,15 +4,11 @@
 #include <time.h>
 #include <math.h>
 #include "include.h"
-#include "size.h"
-#include "opcode.h"
 
 
-extern FILE *log_fp;
-extern FILE *out_fp;
-extern FILE *in_fp;
-extern Runtime runtime;
-
+Runtime runtime = NULL;
+struct timespec ts;
+double t = 0;
 // ラベル関係
 // ラベルリストにラベルを追加
 LList add_label(const char *name, int pc, int line, LList llist) {
@@ -20,13 +16,13 @@ LList add_label(const char *name, int pc, int line, LList llist) {
 		fprintf(log_fp, "[ERROR]@add_label:\t llist is NULL\n");
 		return NULL;
 	} else if (llist->next == NULL) {
-
+		fprintf(log_fp,"[LOG]@add_label:\tlabel %s is added to list \n",name);
+		fflush(log_fp);
 		LList label;
 		label = initialize_label();
 		label->addr = pc;
 		label->line = line;
 		strcpy(label->name, name);
-		// label->next = llist;
 		llist->next = label;
 		return llist;
 	} else {
@@ -35,6 +31,7 @@ LList add_label(const char *name, int pc, int line, LList llist) {
 }
 
 LList initialize_llist(void) {
+	fprintf(log_fp,"[LOG]@initialize_label: called\n");
 	LList llist ;
 	llist = initialize_label();
 	llist->addr = 0;
@@ -46,6 +43,7 @@ LList initialize_llist(void) {
 LList initialize_label(void) {
 	return calloc(1, sizeof(struct _label));
 }
+
 //ラベルの文字列を渡して、アドレスを返す関数
 int search_label(const char* name, LList llist) {
 	if (llist == NULL) {
@@ -61,17 +59,24 @@ int search_label(const char* name, LList llist) {
 // ラベルの解決。
 void resolve_label(Instr *program, LList llist) {
 	int opcode;
+	int label_addr = 0;
 	for (int pc = 0; program[pc] != NULL; pc++) {
 		opcode = program[pc]->opcode;
 		if ((opcode == OP_JAL || opcode == OP_JALR || opcode == OP_BRANCH ) && program[pc]->label) {//ラベルがNULLでないとき
-			program[pc]->label_addr = search_label(program[pc]->label, llist);
-			program[pc]->imm = program[pc]->label_addr - pc;
-			printf("%s,%d\n", program[pc]->label, program[pc]->imm);
-			fflush(stdout);
+			label_addr = search_label(program[pc]->label, llist);
+			program[pc]->imm = label_addr - pc;
+			fprintf(log_fp,"[LOG]@resolve_label:label %s corresponds to addr%d\n",program[pc]->label,label_addr);
+			fprintf(log_fp,"                   :pc = %d\n then imm = %d\n",pc, program[pc]->imm);
 		}
 	}
 }
 
+
+void  print_label_of_pc(int pc,LList llist){
+	if(llist == NULL) return;
+	if(llist->addr == pc)printf("%s\n", llist->name);
+	else print_label_of_pc(pc,llist->next);
+}
 
 // 命令関係
 Instr initialize_instr(void) {
@@ -99,11 +104,11 @@ Instr initialize_instr(void) {
 void exec_instr(Instr i, Mem memory, Reg reg) {
 
 	if (i == NULL) {
-		fprintf(log_fp, "[ERROR]@exec_instr:\tinstr is NULL\n");
+		fprintf(log_fp, "[ERROR]@exec_instr:\tinstr is NULL\n");fflush(log_fp);
 		return;
 	}
 	if (reg == NULL) {
-		fprintf(log_fp, "[ERROR]@exec_instr:\treg is NULL\n");
+		fprintf(log_fp, "[ERROR]@exec_instr:\treg is NULL\n");fflush(log_fp);
 		return;
 	}
 
@@ -131,9 +136,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 				int addr = reg->x[i->rs1] + i->imm;
 				if (i->funct3 == LOAD_WORD && 0 < i->rd && i->rd < 32  ) {
 					if ( addr < MEMORY_SIZE )reg->x[i->rd] = memory[addr].x;
-					else if ( addr << 2 == 0xFFFFF001) {
-						printf("インプット命令は未対応");
-					} else {
+					else {
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
 						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is  0x%08x\n", addr );
 						fprintf(log_fp, "[ERROR]@exec_instr:\tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
@@ -150,13 +153,10 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						memory[addr].x = reg->x[i->rs2];
 						// printf("store x%d(%d) to mem[%d]\n",i->rs2,reg->x[i->rs2],reg->x[i->rs1] + i->imm);
 						// printf("stored data == %d\n",memory[i->rs1 + i->imm].x);
-					} else if (addr == -63) { //output
-						// fwrite(&(reg->x[i->rs2]), 4, 1, out_fp);
-						printf("output:%08x\n",reg->x[i->rs2]);
 					} else {
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
-						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is  0x%08x\n", addr );
-						fprintf(log_fp, "[ERROR]@exec_instr:\tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
+						fprintf(log_fp, "                   \taccess addr is  0x%08x\n", addr );
+						fprintf(log_fp, "                   \tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
 					}
 				}
 			}
@@ -169,7 +169,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 					case ALU_SLT : reg->x[i->rd] =  ((int)reg->x[i->rs1] < i->imm ? 1 : 0) ; break;
 					case ALU_SLTU : reg->x[i->rd] =  ((unsigned int)reg->x[i->rs1] < (unsigned int)i->imm ? 1 : 0 ) ; break;
 					case ALU_XOR : reg->x[i->rd] =  reg->x[i->rs1] ^ i->imm ; break;
-					case ALU_SRX : reg->x[i->rd] =  ( i->is_sra_sub ? reg->x[i->rs1] >> i->imm : reg->x[i->rs1] >> i->imm) ; break;
+					case ALU_SRX : reg->x[i->rd] =  ( i->is_sra_sub ? reg->x[i->rs1] >> i->imm : (unsigned int)reg->x[i->rs1] >> (unsigned int)i->imm) ; break;
 					case ALU_OR : reg->x[i->rd] =  reg->x[i->rs1] | i->imm ; break;
 					case ALU_AND : reg->x[i->rd] =  reg->x[i->rs1] & i->imm ; break;
 					default: fprintf(stderr, "error in exec alui\n");
@@ -186,7 +186,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 					case  ALU_SLT : reg->x[i->rd] =  ((int)reg->x[i->rs1] < reg->x[i->rs2] ? 1 : 0) ; break;
 					case  ALU_SLTU : reg->x[i->rd] =  ((unsigned int)reg->x[i->rs1] < (unsigned int)reg->x[i->rs2] ? 1 : 0 ) ; break;
 					case  ALU_XOR : reg->x[i->rd] =  reg->x[i->rs1] ^ reg->x[i->rs2] ; break;
-					case  ALU_SRX : reg->x[i->rd] =  ( i->is_sra_sub ? reg->x[i->rs1] >> reg->x[i->rs2] : reg->x[i->rs1] >> reg->x[i->rs2]) ; break;
+					case  ALU_SRX : reg->x[i->rd] =  ( i->is_sra_sub ? reg->x[i->rs1] >> reg->x[i->rs2] : (unsigned int )reg->x[i->rs1] >> (unsigned int )reg->x[i->rs2]) ; break;
 					case  ALU_OR : reg->x[i->rd] =  reg->x[i->rs1] | reg->x[i->rs2] ; break;
 					case  ALU_AND : reg->x[i->rd] =  reg->x[i->rs1] & reg->x[i->rs2] ; break;
 				}
@@ -206,15 +206,16 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 				case F5_FSGNJ:
 					switch(i->funct3){
 						case F3_FSGNJ: reg->f[i->rd] = reg->f[i->rs1];break;
-						case F3_FSGNJN: reg->f[i->rd] = -reg->f[i->rs1];break;
+						case F3_FSGNJN: reg->f[i->rd] = - (reg->f[i->rs1]);break;
 						case F3_FSGNJX: reg->f[i->rd] = fabs(reg->f[i->rs1]);break;
 					}
 					break;
 				case  F5_FTOI:
 					reg->x[i->rd] = (int)reg->f[i->rs1]; break;
-				case  F5_FTOX: reg->x[i->rd] = ((unsigned int *) reg->f)[i->rs1]; break;
-				case  F5_ITOF: reg->f[i->rd] = (float)reg->x[i->rd]; break;
-				case  F5_XTOF: reg->f[i->rd] = ((float *) reg->x)[i->rd]; break;
+				case  F5_FTOX: ((float *)reg->x)[i->rd] = reg->f[i->rs1]; break;
+				case  F5_ITOF: reg->f[i->rd] = (float)reg->x[i->rs1]; break;
+				case  F5_XTOF: ((int *) reg->f)[i->rd] = reg->x[i->rs1];break;
+
 				default:
 					fprintf(stderr, "invalid operation of F_OP\n");
 					return;
@@ -228,6 +229,27 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 		case OP_LOAD_FP : {
 				int addr  = reg->x[i->rs1] + i->imm;
 				reg->f[i->rd] = memory[addr].f;
+			}
+			break;
+		case OP_STORE_IO :{
+				if(i->funct3 == STORE_BYTE){
+					if(!out_fp){
+						fprintf(log_fp,"[LOG]@exec_instr:\toutput file is not declared\n");
+						printf("please input output file name\n>> ");
+						char filename[BUF_SIZE];
+						scanf("%s",filename);
+						out_fp = fopen(filename,"w");
+					}
+					fwrite(&(reg->x[i->rs2]),1,1,out_fp);
+					// printf("%d\n",reg->x[i->rs2]);
+				}else{
+					fprintf(log_fp,"[ERROR]@exec_instr\t:funct3 of ob should be STORE_BYTE\n");
+				}
+
+			}
+			break;
+		case OP_LOAD_IO :{
+
 			}
 			break;
 		default: {
@@ -250,8 +272,9 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 int  exec_program(Program program, Reg reg, Mem mem) {
 	Instr instr;
 	int instr_count = 0;
-	while ((instr = program[reg->pc]) != NULL) {
+	while ((instr = program[reg->pc]) != NULL && instr->opcode != OP_HLT) {
 		exec_instr(instr, mem, reg);
+		instr_count++;
 	}
 	return instr_count;
 }
@@ -334,7 +357,6 @@ Reg initialize_reg(Reg reg) {
 	reg->f[29] = 30.0 / M_PI;
 	reg->f[30] = 0;
 	reg->f[31] = 0;
-
 	return reg;
 }
 
@@ -354,9 +376,7 @@ Runtime initialize_runtime(Runtime d) {
 	d->program = NULL;
 	d->memory = NULL;
 	d->max_instr = 0;
-
 	return d;
 }
-
 
 

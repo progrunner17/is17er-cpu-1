@@ -4,21 +4,20 @@
 #include <unistd.h>
 #include <errno.h>
 #include "include.h"
-#include "size.h"
-#include "include.h"
-#include "opcode.h"
 #define PROMPT ">> "
-
 
 FILE *log_fp = NULL;
 FILE *out_fp = NULL;
 FILE *in_fp = NULL;
-extern Runtime runtime;
+char *machine_filename = NULL;
+char *source_filename = NULL;
+char *input_filename = NULL;
+char *output_filename = NULL;
+char *log_filename = NULL;
 
 /* 標準入力から最大size-1個の文字を改行またはEOFまで読み込み、sに設定する */
 char* get_line(char *s, int size) {
   printf(PROMPT);
-
   while (fgets(s, size, stdin) == NULL) {
     if (errno == EINTR)
       continue;
@@ -27,10 +26,13 @@ char* get_line(char *s, int size) {
   return s;
 }
 
+
 // コマンドライン引数からファイル名を受け取る
 Files parse_commandline_arg(int argc, char **argv) {
   Files args;
   log_fp = stderr;
+  out_fp = stdout;
+  in_fp = stdin;
 
 
   args = (Files )malloc(sizeof(struct _files));
@@ -41,27 +43,27 @@ Files parse_commandline_arg(int argc, char **argv) {
     //コマンドライン引数のオプションがなくなるまで繰り返す
     switch (opt) {
       case 'm':
-        args->machine_filename = malloc(strlen(optarg) + 1);
-        strcpy(args->machine_filename, optarg);
+        machine_filename = (char *) malloc(strlen(optarg) + 1);
+        strcpy(machine_filename, optarg);
         break;
       case 's':
-        args->source_filename = malloc(strlen(optarg) + 1);
-        strcpy(args->source_filename, optarg);
+        source_filename = (char *) malloc(strlen(optarg) + 1);
+        strcpy(source_filename, optarg);
         break;
       case 'l':
-        args->log_filename = malloc(strlen(optarg) + 1);
-        strcpy(args->log_filename, optarg);
+        log_filename = (char *) malloc(strlen(optarg) + 1);
+        strcpy(log_filename, optarg);
         log_fp = fopen(optarg,"a");
         break;
 
       case 'i':
-        args->input_filename = malloc(strlen(optarg) + 1);
-        strcpy(args->input_filename, optarg);
+        input_filename = (char *) malloc(strlen(optarg) + 1);
+        strcpy(input_filename, optarg);
         break;
 
       case 'o':
-        args->output_filename = malloc(strlen(optarg) + 1);
-        strcpy(args->output_filename, optarg);
+        output_filename = (char *) malloc(strlen(optarg) + 1);
+        strcpy(output_filename, optarg);
         break;
 
 
@@ -76,38 +78,38 @@ Files parse_commandline_arg(int argc, char **argv) {
   fprintf(log_fp, "-- files ---------------------------------------------------------------\n");
   fflush(stdout);
 
-  if (!args->source_filename) {
+  if (!source_filename) {
     char buff[BUF_SIZE];
     printf("please input source file name\n>> ");
     fgets(buff, BUF_SIZE, stdin);
-    args->source_filename = malloc(BUF_SIZE);
-    sscanf(buff, "%s", args->source_filename);
+    source_filename =(char *)  malloc(BUF_SIZE);
+    sscanf(buff, "%s", source_filename);
   }
 
-  fprintf(log_fp, "source_file:\t\t%s\n", args->source_filename);
+  fprintf(log_fp, "source_file:\t\t%s\n", source_filename);
   fflush(stdout);
 
   fprintf(log_fp, "machine_code_file\t");
-  if (args->machine_filename)printf("%s\n", args->machine_filename); //NULLじゃなかったら
+  if (machine_filename)printf("%s\n", machine_filename); //NULLじゃなかったら
   else {
-    if (args->machine_filename) args->machine_filename = realloc(args->machine_filename , strlen("machine.cpu") + 1);
-    else args->machine_filename =  malloc(strlen("machine.cpu") + 1);
+    if (machine_filename) machine_filename = (char *) realloc(machine_filename , strlen("machine.cpu") + 1);
+    else machine_filename =  (char *)malloc(strlen("machine.cpu") + 1);
     fprintf(log_fp, "machine.cpu(default)\n");
   }
 
 
   fprintf(log_fp, "log_file:\t\t");
-  if (args->log_filename) {
-    fprintf(log_fp, "%s\n", args->log_filename);
+  if (log_filename) {
+    fprintf(log_fp, "%s\n", log_filename);
   } else {
     fprintf(log_fp, "stderr\n");
   }
 
 
   fprintf(log_fp, "input_file:\t\t");
-  if (args->input_filename){
-    fprintf(log_fp, "%s\n", args->input_filename);
-    in_fp = fopen(args->input_filename, "r");
+  if (input_filename){
+    fprintf(log_fp, "%s\n", input_filename);
+    in_fp = fopen(input_filename, "r");
   }
   else{
     fprintf(log_fp, "unset\n");
@@ -116,19 +118,18 @@ Files parse_commandline_arg(int argc, char **argv) {
 
 
   fprintf(log_fp, "output_file:\t\t");
-  if (args->output_filename) {
-    fprintf(log_fp, "%s\n", args->output_filename);
+  if (output_filename) {
+    fprintf(log_fp, "%s\n", output_filename);
   } else {
-    if (args->output_filename) args->output_filename = realloc(args->output_filename , strlen("sim.out") + 1);
-    else args->output_filename =  malloc(strlen("sim.out") + 1);
-    strcpy(args->output_filename, "sim.out");
+    if (output_filename) output_filename = (char *)realloc(output_filename , strlen("sim.out") + 1);
+    else output_filename =  (char *)malloc(strlen("sim.out") + 1);
+    strcpy(output_filename, "sim.out");
     fprintf(log_fp, "sim.out(default)\n");
   }
-  out_fp =  fopen(args->output_filename, "a");
+  out_fp =  fopen(output_filename, "w");
 
   fprintf(log_fp, "------------------------------------------------------------------------\n");
-
-  return args;
+  return NULL;
 }
 
 
@@ -190,6 +191,8 @@ int create_opcode(const char* mnemonic) {
             (strcmp(mnemonic, "xtof") == 0) ? OP_FP :
             (strcmp(mnemonic, "fsw") == 0) ? OP_STORE_FP :
             (strcmp(mnemonic, "flw") == 0) ? OP_LOAD_FP :
+            (strcmp(mnemonic, "ob") == 0) ? OP_STORE_IO :
+            (strcmp(mnemonic, "ib") == 0) ? OP_LOAD_IO :
             (strcmp(mnemonic, "hlt") == 0) ? OP_HLT:
             -1;
   return opcode;
@@ -198,7 +201,8 @@ int create_opcode(const char* mnemonic) {
 // オペコードとニーモニックを渡して,funct3を返す関数。
 int create_funct3(const char * mnemonic) {
   int funct3 = 0;
-  funct3 =  (strcmp(mnemonic, "beq") == 0) ? B_EQ :
+  funct3 =  (strcmp(mnemonic, "jalr") == 0) ? 0b000 :
+            (strcmp(mnemonic, "beq") == 0) ? B_EQ :
             (strcmp(mnemonic, "bne") == 0) ? B_NE :
             (strcmp(mnemonic, "blt") == 0) ? B_LT :
             (strcmp(mnemonic, "bge") == 0) ? B_GE :
@@ -248,6 +252,8 @@ int create_funct3(const char * mnemonic) {
             // (strcmp(mnemonic,"xtof") == 0) ? F5_XTOF:
             (strcmp(mnemonic, "fsw") == 0) ? STORE_WORD :
             (strcmp(mnemonic, "flw") == 0) ? LOAD_WORD :
+            (strcmp(mnemonic, "ob") == 0) ? STORE_BYTE :
+            (strcmp(mnemonic, "ib") == 0) ? LOAD_BYTE_Z :
             -1;
   return funct3;
 }
@@ -256,7 +262,14 @@ int create_funct3(const char * mnemonic) {
 
 int create_funct5(const char *mnemonic) {
   int funct5 = 0;
-  funct5 = (strcmp(mnemonic, "fadd") == 0) ? F5_FADD :
+
+  funct5 = (strcmp(mnemonic, "add") == 0) ||
+           (strcmp(mnemonic, "srl") == 0) ||
+           (strcmp(mnemonic, "srli") == 0) ? 0 :
+           (strcmp(mnemonic, "sub") == 0) ||
+           (strcmp(mnemonic, "srai") == 0) ||
+           (strcmp(mnemonic, "sra") == 0) ||
+           (strcmp(mnemonic, "fadd") == 0) ? F5_FADD :
            (strcmp(mnemonic, "fsub") == 0) ? F5_FSUB :
            (strcmp(mnemonic, "fmul") == 0) ? F5_FMUL :
            (strcmp(mnemonic, "fdiv") == 0) ? F5_FDIV :
@@ -286,17 +299,6 @@ int create_is_sra_sub(const char *mnemonic) {
                 (strcmp(mnemonic, "srai") == 0) ? 1 : 0;
   return is_sra_sub;
 }
-
-
-
-typedef enum _operands operands;
-enum _operands {
-  RS1,
-  RS2,
-  RD,
-  IMM,
-  MEM
-};
 
 
 
@@ -332,23 +334,25 @@ Instr load_asm_line(char * buff) {
 
     // read 1st operand
     switch (opcode) {
-      case OP_LUI: case OP_AUIPC: case OP_JAL: case OP_JALR: case OP_LOAD: case OP_ALUI: case OP_ALU: case OP_LOAD_FP: case OP_FP:
+      case OP_LUI: case OP_AUIPC: case OP_JAL: case OP_JALR: case OP_LOAD: case OP_ALUI: case OP_ALU: case OP_LOAD_FP: case OP_FP: case OP_LOAD_IO:
         if ( !sscanf(op1, " x%d", &instr->rd) && !sscanf(op1, " f%d", &instr->rd) ) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 1st oprand:\t cannot read rd\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
         }
         break;
-      case OP_STORE:
-      case OP_STORE_FP:
+      case OP_STORE: case OP_STORE_FP:case OP_STORE_IO:
         if ( !sscanf(op1, " x%d", &instr->rs2) && !sscanf(op1, " f%d", &instr->rs2) ) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 1st oprand:\t cannot read rs2\n");
-          error = 1;
+           fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
+         error = 1;
         }
         break;
 
       case OP_BRANCH:
         if ( !sscanf(op1, " x%d", &instr->rs1) ) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 1st oprand:\t cannot read rs1\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
 
         }
@@ -356,6 +360,7 @@ Instr load_asm_line(char * buff) {
       case OP_HLT:break;
       default:
         fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 1st oprand:\t invalid opcode\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
         error = 1;
     }
 
@@ -365,6 +370,7 @@ Instr load_asm_line(char * buff) {
       case OP_AUIPC:
         if (!sscanf(op2, " 0x%x", &instr->imm) && !sscanf(op2, " %d", &instr->imm)) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 2nd oprand:\t cannot read imm\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
         }
         break;
@@ -375,6 +381,7 @@ Instr load_asm_line(char * buff) {
             strcpy(instr->label, label);
           } else {
             fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 2nd oprand:\t cannot read imm & label\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
             error = 1;
           }
         }
@@ -385,12 +392,14 @@ Instr load_asm_line(char * buff) {
       case OP_FP:
         if ( !sscanf(op2, " x%d", &instr->rs1) && !sscanf(op2, " f%d", &instr->rs1) ) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 2nd oprand:\t cannot read rs1\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
         }
         break;
       case OP_BRANCH:
         if ( !sscanf(op2, " x%d", &instr->rs2) ) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 2nd oprand:\t cannot read rs2\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
         }
         break;
@@ -400,10 +409,13 @@ Instr load_asm_line(char * buff) {
       case OP_STORE_FP:
         if ( sscanf(op2, " 0x%x(x%d)", &instr->imm, &instr->rs1) != 2 && sscanf(op2, " %d(x%d)", &instr->imm, &instr->rs1) != 2 ) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 2nd oprand:\t cannot read imm(base)\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
         }
         break;
         fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 2nd oprand:\t invalid opcode\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
+
       case OP_HLT:break;
 
     }
@@ -412,7 +424,7 @@ Instr load_asm_line(char * buff) {
     // read 3rd operand
     switch (opcode) {
       // no 3rd operand
-      case OP_LUI: case OP_AUIPC: case OP_JAL:  case OP_LOAD: case OP_STORE: case OP_LOAD_FP: case OP_STORE_FP:
+      case OP_LUI: case OP_AUIPC: case OP_JAL:  case OP_LOAD: case OP_STORE: case OP_LOAD_FP: case OP_STORE_FP: case OP_LOAD_IO:case OP_STORE_IO:
         break;
       // label
       case OP_BRANCH:
@@ -422,6 +434,7 @@ Instr load_asm_line(char * buff) {
             strcpy(instr->label, label);
           } else {
             fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 3rd oprand:\t cannot read imm & label\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
             error = 1;
 
           }
@@ -430,12 +443,14 @@ Instr load_asm_line(char * buff) {
       case OP_ALUI: case OP_JALR:
         if (!sscanf(op3, " 0x%x", &instr->imm) && !sscanf(op3, " %d", &instr->imm)) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 3rd oprand:\t cannot read imm\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
         }
         break;
       case OP_ALU:
         if (!sscanf(op3, " x%d", &instr->rs2 )) {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 3rd oprand:\t cannot read rs2\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
 
         }
@@ -448,23 +463,25 @@ Instr load_asm_line(char * buff) {
           case F5_FSUB:
           case F5_FMUL:
           case F5_FDIV:
+          case F5_FCMP:
             if ( !sscanf(op3, " f%d", &instr->rs2) ) {
               fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 3rd oprand of OP_FP:\t invalid funct5\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
               error = 1;
 
             }
             break;
           // no 3rd operand
-          case F5_FSQRT: case F5_FTOI: case F5_FTOX: case F5_FCMP: case F5_ITOF: case F5_XTOF:
-            break;
+          case F5_FSQRT:case F5_FTOI: case F5_FTOX: case F5_ITOF: case F5_XTOF:instr->rs2 = 0b00000;break;
           // no 3rd operand but sama as rs1
           case F5_FSGNJ:
-            printf("buff = %s\n",buff);
+            // printf("buff = %s\n",buff);
             instr->rs2 = instr->rs1;
             break;
 
           default: {
               fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 3rd oprand of OP_FP:\t invalid funct5\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
               error = 1;
             }
         }
@@ -472,6 +489,7 @@ Instr load_asm_line(char * buff) {
       case OP_HLT:break;
       default: {
           fprintf(log_fp, "[ERROR]@load_asm_line:\tparse 3rd oprand:\t invalid opcode\n");
+          fprintf(log_fp, "                      \t                :\t buff = \"%s\"\n",buff);
           error = 1;
         }
     }
@@ -484,6 +502,8 @@ Instr load_asm_line(char * buff) {
   } // if opcode
 
   if (error) {
+    // print_instr(instr);
+    // printf("free!!!\n");
     free(instr);
     instr = NULL;
   }
@@ -495,15 +515,15 @@ Instr load_asm_line(char * buff) {
 
 
 //アセンブリのファイルを読みこみ命令(へのポインタ)の配列を返す関数
-Program load_asm_file(const char* filename) {
+Program load_asm_file(const char* filename,LList llist) {
   FILE *fp;
   Instr instr;
   Program program;
   char buff[BUF_SIZE];
   int pc = 0;
-  LList llist;
   int src_break = 0;
   char *p;
+
 
   program = calloc(PROGRAM_SIZE, sizeof(Instr));
   llist = initialize_llist();
@@ -513,23 +533,18 @@ Program load_asm_file(const char* filename) {
     return NULL ;
   }
 
-  for (int line = 1; fgets(buff, BUF_SIZE, fp); line++) {
+  for (int line = 1; fgets(buff, BUF_SIZE, fp) ; line++) {
+
+
     if ((p = strchr(buff, '#'))) *p = '\0';   //remove comment
-    if ((p = strchr(buff, '\n'))) *p = '\0';   //remove comment
-
-    if ( p != NULL && strlen(p) == 0 )continue;               //empty line
     p = buff + strspn(buff, " \t\n");
-    if (strlen(p) == 0 )continue;               //empty line
-
+    if ( p != NULL && strlen(p) == 0 )continue;               //empty line
+    if(strncmp("(*break*)", buff,9) == 0 ){
+      src_break = 1;
+      continue;
+    }
     if ((instr = load_asm_line(p))) {
-
-       if(instr->opcode == OP_HLT){
-        program[pc] = NULL;
-        pc++;
-        free(instr);
-        continue;
-      }
-
+      instr->src_break = src_break;
       instr->line = line;//行番号保存
       program[pc] = instr;
       pc++;
@@ -540,8 +555,10 @@ Program load_asm_file(const char* filename) {
       p2 = strtok(p," \t:");
       sscanf(p, "%s", label);
       add_label(label, pc, line, llist);
+
       // fprintf(log_fp, "[ERROR]@load_asm_file:\tinvalid assembly %s\n", p);
     }
+    print_instr(instr);
   } //for
   printf("label list\n");
   print_labels(llist);
@@ -549,8 +566,10 @@ Program load_asm_file(const char* filename) {
   resolve_label(program, llist);
   printf("命令数:\t%d\n", pc);
   fclose(fp);
-  runtime->llist = llist;
-  runtime->max_instr = pc;
+  print_prgram(program);
+  fflush(stdout);
+  // runtime->llist = llist;
+  // runtime->max_instr = pc;
   // printf("max_instr = %d\n",runtime->max_instr);
   return program;
 }
