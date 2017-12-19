@@ -147,7 +147,6 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
   | Read -> (range, Ans(range, Read)), regenv
   | FRead -> (range, Ans(range, FRead)), regenv
   | Write x -> (range, Ans(range, Write (find x Type.Int regenv))), regenv
-  | FWrite x -> (range, Ans(range, FWrite (find x Type.Float regenv))), regenv
   | IfEq(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfEq(range', find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
   | IfLT(range', x, y, e1, e2) as exp -> g'_if range range' dest cont regenv exp (fun e1' e2' -> IfLT(range', find x Type.Int regenv, find y Type.Int regenv, e1', e2')) e1 e2
   | CallCls(x, ys, zs) as exp ->

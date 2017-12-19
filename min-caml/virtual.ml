@@ -130,7 +130,6 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
   | Closure.Read -> range, Ans(range, Read)
   | Closure.FRead -> range, Ans(range, FRead)
   | Closure.Write x -> range, Ans(range, Write x)
-  | Closure.FWrite x -> range, Ans(range, FWrite x)
 
 (* 関数の仮想マシンコード生成 (caml2html: virtual_h) *)
 let h { Closure.range = range; Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =

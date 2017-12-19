@@ -46,7 +46,6 @@ and body =
   | Read
   | Write of Id.t
   | FRead
-  | FWrite of Id.t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added functions show and subst *)
@@ -128,7 +127,6 @@ let rec show lines (range, body) = match body with
   | Read -> "read"^H.comment_from_range lines range
   | FRead -> "fread"^H.comment_from_range lines range
   | Write x -> "write "^x^H.comment_from_range lines range
-  | FWrite x -> "fwrite "^x^H.comment_from_range lines range
 
 (* env ¤Ë¤è¤êÊÑ¿ô¤òÃÖ´¹¤¹¤ë *)
 let rec subst env (range, body) =
@@ -175,13 +173,12 @@ let rec subst env (range, body) =
   | Read -> range, Read
   | FRead -> range, FRead
   | Write x -> range, Write (q x)
-  | FWrite x -> range, FWrite (q x)
 
 let rec fv (_, body) = match body with (* ¼°¤Ë½Ğ¸½¤¹¤ë¡Ê¼«Í³¤Ê¡ËÊÑ¿ô (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) | Read | FRead -> S.empty
   | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | AndI(x, _)
   | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x)
-  | Write(x) | FWrite(x) -> S.singleton x
+  | Write(x) -> S.singleton x
   | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Array(x, y) | Get(x, y) -> S.of_list [x; y]
   | IfEq(_, x, y, e1, e2) | IfLT(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
@@ -389,9 +386,6 @@ let rec g toplevel addrenv lines env (range, body) = match body with (* KÀµµ¬²½¥
   | Syntax.Write(e) ->
       insert_let range (g false addrenv lines env e)
         (fun x -> (range, Write(x)), Type.Unit)
-  | Syntax.FWrite(e) ->
-      insert_let range (g false addrenv lines env e)
-        (fun x -> (range, FWrite(x)), Type.Unit)
   (* MATUSHITA: added polymorphic operators *)
   | Syntax.IFAdd (e1, e2) ->
       let x, t = g false addrenv lines env e1 in (

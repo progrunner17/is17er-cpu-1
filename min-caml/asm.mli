@@ -49,7 +49,6 @@ and ebody =
   | Read
   | Write of Id.t
   | FRead
-  | FWrite of Id.t
   (* virtual instructions *)
   | IfEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
   | IfLT of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)

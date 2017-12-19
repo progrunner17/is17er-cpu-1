@@ -63,7 +63,6 @@ let rec deref_term (range, body) = range, match body with
   | Get(e1, e2) -> Get(deref_term e1, deref_term e2)
   | Put(e1, e2, e3) -> Put(deref_term e1, deref_term e2, deref_term e3)
   | Write e -> Write (deref_term e)
-  | FWrite e -> FWrite (deref_term e)
   | IFAdd (e, e') -> IFAdd (deref_term e, deref_term e')
   | NotNeg e -> NotNeg (deref_term e)
   | Unit | Bool _ | Int _ | Float _ | Var _ | Read | FRead as e -> e
@@ -186,9 +185,6 @@ let rec g lines env (range, body) = (* 型推論ルーチン (caml2html: typing_g) *)
     | FRead -> Type.Float
     | Write e ->
         unify Type.Int (g lines env e);
-        Type.Unit
-    | FWrite e ->
-        unify Type.Float (g lines env e);
         Type.Unit
     (* MATUSHITA: added polymorphic operators *)
     | IFAdd (e1, e2) ->

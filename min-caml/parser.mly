@@ -79,7 +79,7 @@ let atan e =
 %token XOR
 %token FISZERO FLESS FISPOS FISNEG
 %token FNEG FABS FHALF FSQR FLOOR FLOATOFINT INTOFFLOAT SQRT COS SIN TAN ATAN
-%token READINT READFLOAT PRINTCHAR PRINTINT PRINTFLOAT
+%token READINT READFLOAT PRINTCHAR
 %token PLUS_AT MINUS_BANG
 
 %nonassoc IN
@@ -197,16 +197,9 @@ exp:
 | READFLOAT simple_exp
     %prec prec_app
     { symbol_range (), FRead }
-/* MATSUSHITA: ignore print_char */
 | PRINTCHAR simple_exp
     %prec prec_app
-    { symbol_range (), Unit }
-| PRINTINT simple_exp
-    %prec prec_app
-    { symbol_range (), Write($2) }
-| PRINTFLOAT simple_exp
-    %prec prec_app
-    { symbol_range (), FWrite($2) }
+    { symbol_range (), Write $2 }
 | MINUS exp
     %prec prec_unary_minus
     { symbol_range (), match $2 with

@@ -44,7 +44,6 @@ and body =
   | Read
   | Write of Id.t
   | FRead
-  | FWrite of Id.t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 (* MATSUSHITA: added functions show and subst *)

@@ -45,7 +45,6 @@ and body =
   | Read
   | Write of Id.t
   | FRead
-  | FWrite of Id.t
 type fundef = { range : H.range; (* MATSUSHITA: added H.range *)
                 name : Id.l * Type.t;
                 args : (Id.t * Type.t) list;
@@ -123,7 +122,6 @@ let rec show lines (range, body) = match body with
   | Read -> "read"^H.comment_from_range lines range
   | FRead -> "fread"^H.comment_from_range lines range
   | Write x -> "write "^x^H.comment_from_range lines range
-  | FWrite x -> "fwrite "^x^H.comment_from_range lines range
 
 let show_prog lines (Prog (fs, e)) =
   let s1 = H.sep "" (fun {range = range; name = Id.L f, t; args = xts; formal_fv = yts; body = e} ->
@@ -139,7 +137,7 @@ let rec fv (_, body) = match body with
   | Unit | Int(_) | Float(_) | ExtArray(_)| Read | FRead -> S.empty
   | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | AndI(x, _)
   | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x)
-  | Write(x) | FWrite(x) -> S.singleton x
+  | Write(x) -> S.singleton x
   | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Array(x, y) | Get(x, y) -> S.of_list [x; y]
   | IfEq(_, x, y, e1, e2)| IfLT(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
@@ -227,7 +225,6 @@ let rec g env known (range, body) = match body with (* クロージャ変換ル�
   | KNormal.Read -> range, Read
   | KNormal.FRead -> range, FRead
   | KNormal.Write x -> range, Write x
-  | KNormal.FWrite x -> range, FWrite x
 
 let f e =
   toplevel := [];

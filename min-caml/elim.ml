@@ -13,9 +13,8 @@ let get_ffs e =
     | Var x -> register preffs [x]
     | LetRec (_, { name = x, _; body = e }, e') -> go (S.add x preffs) e; go preffs e'
     | App (x, xs) -> register preffs (x :: xs)
-    | Tuple xs -> register preffs xs
     | LetTuple (_, _, _, e) -> go preffs e
-    | Put _ | ExtFunApp _ -> S.iter (fun x -> ffs := S.add x !ffs) preffs
+    | Tuple _ | Array _ | Read _ | FRead _ | Write _ | Put _ | ExtFunApp _ -> S.iter (fun x -> ffs := S.add x !ffs) preffs
     | _ -> () in
   go S.empty e;
   !ffs
@@ -26,8 +25,7 @@ let rec effect ffs (_, body) = match body with
   | Var x -> S.mem x ffs
   | LetRec (_, _, e) | LetTuple (_, _, _, e) -> effect ffs e
   | App (x, xs) -> List.exists (fun x -> S.mem x ffs) (x :: xs)
-  | Tuple xs -> List.exists (fun x -> S.mem x ffs) xs
-  | Put _ | ExtFunApp _ -> true
+  | Tuple _ | Array _ | Read _ | FRead _ | Write _ | Put _ | ExtFunApp _ -> true
   | _ -> false
 
 let rec g ffs (range, body) = match body with

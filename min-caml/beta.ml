@@ -54,6 +54,5 @@ let rec g env (range, body) = match body with (* β簡約ルーチン本体 (caml2html: 
   | Read -> range, Read
   | FRead -> range, FRead
   | Write x -> range, Write (find x env)
-  | FWrite x -> range, FWrite (find x env)
 
 let f = g M.empty

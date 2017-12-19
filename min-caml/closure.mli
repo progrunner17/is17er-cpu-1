@@ -45,7 +45,6 @@ and body =
   | Read
   | Write of Id.t
   | FRead
-  | FWrite of Id.t
 type fundef = { range : H.range; (* MATSUSHITA: added H.range *)
                 name : Id.l * Type.t;
                 args : (Id.t * Type.t) list;

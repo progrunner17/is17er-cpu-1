@@ -44,7 +44,6 @@ and body =
   | Read
   | Write of t
   | FRead
-  | FWrite of t
   | IFAdd of t * t
   | NotNeg of t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
@@ -94,6 +93,5 @@ let rec show (_, body) = match body with
   | Read -> "(read ())"
   | FRead -> "(fread ())"
   | Write e -> "(write "^show e^")"
-  | FWrite e -> "(fwrite "^show e^")"
   | IFAdd (e, e') -> "("^show e^" +@ "^show e'^")"
   | NotNeg e -> "(-! "^show e^")"

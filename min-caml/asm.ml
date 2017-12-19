@@ -51,7 +51,6 @@ and ebody =
   | Read
   | Write of Id.t
   | FRead
-  | FWrite of Id.t
   (* virtual instructions *)
   | IfEq of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
   | IfLT of H.range * Id.t * Id.t * t * t (* MATSUSHITA: added H.range *)
@@ -121,7 +120,6 @@ and show_ebody lines range = function
   | Read -> "read"^H.comment_from_range lines range
   | FRead -> "fread"^H.comment_from_range lines range
   | Write x -> "write "^x^H.comment_from_range lines range
-  | FWrite x -> "fwrite "^x^H.comment_from_range lines range
   | IfEq (range', x, y, e, e') ->
     let s1 = "if eq "^x^" "^y^H.comment_from_range lines range'
       ^" then"^H.comment_from_range lines (fst e)^H.down_right () in
@@ -214,7 +212,7 @@ let rec fv_exp (range, ebody) = match ebody with
   | Nop | LI(_) | FLI(_) | LIL(_) | Restore(_) | FRestore(_) | Read | FRead -> []
   | LW(x, _) | FLW(x, _) | Mv(x) | Not(x) | Neg(x) | AddI(x, _) | SllI(x, _) | SraI(x, _) | AndI(x, _)
   | FMv(x) | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x)
-  | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) | Write(x) | FWrite(x) | Save(x, _) | FSave(x, _) -> [x]
+  | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) | Write(x) | Save(x, _) | FSave(x, _) -> [x]
   | Xor(x, y) | Add(x, y) | Sub(x, y) | LWA(x, y) | SW(x, y, _) | Array(x, y)
   | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | FLWA(x, y) | FSW(x, y, _) | FArray(x, y) -> [x; y]
   | SWA(x, y, z) | FSWA(x, y, z) -> [x; y; z]
