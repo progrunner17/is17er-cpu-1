@@ -21,6 +21,6 @@ closure.mli closure.ml asm.mli asm.ml virtual.mli virtual.ml \
 simm.mli simm.ml regAlloc.mli regAlloc.ml emit.mli emit.ml \
 main.mli main.ml
 
-TRASH = test/*.s raytracer/*.s
+TRASH = test/*.s raytracer/*.s raytracer/min-rt-globals.ml
 
 include OCamlMakefile

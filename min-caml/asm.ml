@@ -25,6 +25,7 @@ and ebody =
   | LWA of Id.t * Id.t
   | SW of Id.t * Id.t * int
   | SWA of Id.t * Id.t * Id.t
+  | Array of Id.t * Id.t
   | FMv of Id.t
   | FNeg of Id.t
   | FAbs of Id.t
@@ -46,6 +47,7 @@ and ebody =
   | FLWA of Id.t * Id.t
   | FSW of Id.t * Id.t * int
   | FSWA of Id.t * Id.t * Id.t
+  | FArray of Id.t * Id.t
   | Read
   | Write of Id.t
   | FRead
@@ -60,6 +62,7 @@ and ebody =
   | FSave of Id.t * Id.t
   | Restore of Id.t (* スタック変数から値を復元 *)
   | FRestore of Id.t
+type global
 type fundef = { (* MATSUSHITA: added H.range *) range : H.range; name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
 type prog = Prog of fundef list * t
 
@@ -92,6 +95,7 @@ and show_ebody lines range = function
   | LWA (x, y) -> "lwa ("^x^", "^y^")"^H.comment_from_range lines range
   | SW (x, y, n) -> "sw "^x^" "^string_of_int n^"("^y^")"^H.comment_from_range lines range
   | SWA (x, y, z) -> "swa "^x^" ("^y^", "^z^")"^H.comment_from_range lines range
+  | Array (x, y) -> "array "^x^" "^y^H.comment_from_range lines range
   | FMv x -> "fmv "^x^H.comment_from_range lines range
   | FNeg x -> "-. "^x^H.comment_from_range lines range
   | FAbs x -> "fabs "^x^H.comment_from_range lines range
@@ -113,6 +117,7 @@ and show_ebody lines range = function
   | FLWA (x, y) -> "flwa ("^x^", "^y^")"^H.comment_from_range lines range
   | FSW (x, y, n) -> "fsw "^x^" "^string_of_int n^"("^y^")"^H.comment_from_range lines range
   | FSWA (x, y, z) -> "fswa "^x^" ("^y^", "^z^")"^H.comment_from_range lines range
+  | FArray (x, y) -> "farray "^x^" "^y^H.comment_from_range lines range
   | Read -> "read"^H.comment_from_range lines range
   | FRead -> "fread"^H.comment_from_range lines range
   | Write x -> "write "^x^H.comment_from_range lines range
@@ -163,7 +168,7 @@ let reg_const n = match n with
   | _ -> raise Not_found
 (* %x1 はリンクレジスタ、%x2 はスタックポインタ、%x3 はヒープのポインタに使う *)
 (* %x4 は返り値のレジスタ *)
-(* %x31 は一時変数用に多用途で使い、%x30 はシャッフルの一時変数に使い、%x29 はクロージャの保存場所に使う *)
+(* %x31 は一時変数用に多用途で使い、%x30 はシャッフルと入出力のための一時変数に使い、%x29 はクロージャの保存場所に使う *)
 
 let fregs =
   [| "%f1"; "%f2"; "%f3"; "%f4"; "%f5"; "%f6"; "%f7"; "%f8"; "%f9"; "%f10";
@@ -210,9 +215,9 @@ let rec fv_exp (range, ebody) = match ebody with
   | LW(x, _) | FLW(x, _) | Mv(x) | Not(x) | Neg(x) | AddI(x, _) | SllI(x, _) | SraI(x, _) | AndI(x, _)
   | FMv(x) | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x)
   | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) | Write(x) | FWrite(x) | Save(x, _) | FSave(x, _) -> [x]
-  | Xor(x, y) | Add(x, y) | Sub(x, y) | LWA(x, y) | SW(x, y, _) | FLWA(x, y) | FSW(x, y, _) -> [x; y]
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | LWA(x, y) | SW(x, y, _) | Array(x, y)
+  | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | FLWA(x, y) | FSW(x, y, _) | FArray(x, y) -> [x; y]
   | SWA(x, y, z) | FSWA(x, y, z) -> [x; y; z]
-  | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) -> [x; y]
   | IfEq(_, x, y, e1, e2) | IfLT(_, x, y, e1, e2) ->  x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
   | CallCls(x, ys, zs) -> x :: ys @ zs
   | CallDir(_, ys, zs) -> ys @ zs

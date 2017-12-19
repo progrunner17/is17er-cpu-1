@@ -38,6 +38,7 @@ and body =
   | App of Id.t * Id.t list
   | Tuple of Id.t list
   | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t (* MATSUSHITA: added H.range *)
+  | Array of Id.t * Id.t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t
@@ -119,6 +120,7 @@ let rec show lines (range, body) = match body with
       let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
         ^x^H.comment_from_range lines range'^" in"^H.down () in
       s1^show lines e
+  | Array(x, x') -> "array "^x^" "^x'^H.comment_from_range lines range
   | Get (x, x') -> x^".("^x'^")"^H.comment_from_range lines range
   | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.comment_from_range lines range
   | ExtArray x -> "*"^x^"*"^H.comment_from_range lines range
@@ -165,6 +167,7 @@ let rec subst env (range, body) =
   | App (x, xs) -> range, App (q x, List.map (fun x -> q x) xs)
   | Tuple xs -> range, Tuple (List.map (fun x -> q x) xs)
   | LetTuple (range', xts, x, e) -> range, LetTuple(range', xts, q x, subst env e)
+  | Array (x, x') -> range, Array (q x, q x')
   | Get (x, x') -> range, Get (q x, q x')
   | Put (x, x', x'') -> range, Put (q x, q x', q x'')
   | ExtArray x -> range, ExtArray (q x)
@@ -179,7 +182,7 @@ let rec fv (_, body) = match body with (* 式に出現する（自由な）変数 (caml2html:
   | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | AndI(x, _)
   | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x)
   | Write(x) | FWrite(x) -> S.singleton x
-  | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Array(x, y) | Get(x, y) -> S.of_list [x; y]
   | IfEq(_, x, y, e1, e2) | IfLT(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -199,114 +202,121 @@ let insert_let range ((_, body) as e, t) k = (* letを挿入する補助関数 (caml2html
       let e', t' = k x in
       (range, Let(None, (x, t), e, e')), t'
 
-let rec g lines env (range, body) = match body with (* K正規化ルーチン本体 (caml2html: knormal_g) *)
+let heap = ref 0
+
+let deInt = function
+  | _, Syntax.Int n -> n
+  | _ -> failwith "kNormal.deInt: here only integer literal is allowed"
+
+let rec g toplevel addrenv lines env (range, body) = match body with (* K正規化ルーチン本体 (caml2html: knormal_g) *)
   | Syntax.Unit -> (range, Unit), Type.Unit
   | Syntax.Bool(b) -> (range, Int(if b then 1 else 0)), Type.Int (* 論理値true, falseを整数1, 0に変換 (caml2html: knormal_bool) *)
   | Syntax.Int(i) -> (range, Int(i)), Type.Int
   | Syntax.Float(d) -> (range, Float(d)), Type.Float
   | Syntax.Not(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, Not(x)), Type.Int)
   | Syntax.Xor(e1, e2) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, Xor(x, y)), Type.Int))
   | Syntax.Neg(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, Neg(x)), Type.Int)
   | Syntax.Add(e1, e2) -> (* 足し算のK正規化 (caml2html: knormal_add) *)
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, Add(x, y)), Type.Int))
   | Syntax.Sub(e1, e2) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, Sub(x, y)), Type.Int))
   | Syntax.SllI(e, n) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, SllI(x, n)), Type.Int)
   | Syntax.SraI(e, n) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, SraI(x, n)), Type.Int)
   | Syntax.AndI(e, n) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, AndI(x, n)), Type.Int)
   | Syntax.Eq _ | Syntax.LT _ as cmp ->
-      g lines env (range, Syntax.If((range, cmp), (range, Syntax.Bool(true)), (range, Syntax.Bool(false))))
+      g false addrenv lines env (range, Syntax.If((range, cmp), (range, Syntax.Bool(true)), (range, Syntax.Bool(false))))
   | Syntax.FNeg(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FNeg(x)), Type.Float)
   | Syntax.FAbs(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FAbs(x)), Type.Float)
   | Syntax.FFloor(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FFloor(x)), Type.Float)
   | Syntax.IToF(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, IToF(x)), Type.Float)
   | Syntax.FToI(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FToI(x)), Type.Int)
   | Syntax.FSqrt(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FSqrt(x)), Type.Float)
   | Syntax.FCos(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FCos(x)), Type.Float)
   | Syntax.FSin(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FSin(x)), Type.Float)
   | Syntax.FTan(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FTan(x)), Type.Float)
   | Syntax.FAtan(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FAtan(x)), Type.Float)
   | Syntax.FAdd(e1, e2) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, FAdd(x, y)), Type.Float))
   | Syntax.FSub(e1, e2) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, FSub(x, y)), Type.Float))
   | Syntax.FMul(e1, e2) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, FMul(x, y)), Type.Float))
   | Syntax.FDiv(e1, e2) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, FDiv(x, y)), Type.Float))
   | Syntax.FEq(e1, e2) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, FEq(x, y)), Type.Bool))
   | Syntax.FLT(e1, e2) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y -> (range, FLT(x, y)), Type.Bool))
-  | Syntax.If((_, (Syntax.Not(e1) | Syntax.NotNeg(e1))), e2, e3) -> g lines env (range, Syntax.If(e1, e3, e2))
+  | Syntax.If((_, (Syntax.Not(e1) | Syntax.NotNeg(e1))), e2, e3) -> g false addrenv lines env (range, Syntax.If(e1, e3, e2))
   | Syntax.If((range', Syntax.Eq(e1, e2)), e3, e4) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y ->
-              let e3', t3 = g lines env e3 in
-              let e4', t4 = g lines env e4 in
+              let e3', t3 = g false addrenv lines env e3 in
+              let e4', t4 = g false addrenv lines env e4 in
               (range, IfEq(range', x, y, e3', e4')), t3))
   | Syntax.If((range', Syntax.LT(e1, e2)), e3, e4) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
             (fun y ->
-              let e3', t3 = g lines env e3 in
-              let e4', t4 = g lines env e4 in
+              let e3', t3 = g false addrenv lines env e3 in
+              let e4', t4 = g false addrenv lines env e4 in
               (range, IfLT(range', x, y, e3', e4')), t3))
-  | Syntax.If(e1, e2, e3) -> g lines env (range, Syntax.If((range, Syntax.Eq(e1, (range, Syntax.Bool(false)))), e3, e2)) (* 比較のない分岐を変換 (caml2html: knormal_if) *)
+  | Syntax.If(e1, e2, e3) -> g false addrenv lines env (range, Syntax.If((range, Syntax.Eq(e1, (range, Syntax.Bool(false)))), e3, e2)) (* 比較のない分岐を変換 (caml2html: knormal_if) *)
   | Syntax.Let(range', (x, t), e1, e2) ->
-      let e1', t1 = g lines env e1 in
-      let e2', t2 = g lines (M.add x t env) e2 in
+      let e1', t1 = g toplevel addrenv lines env e1 in
+      let e2', t2 = g toplevel (if toplevel then M.add x !heap addrenv else addrenv) lines (M.add x t env) e2 in
       (range, Let(range', (x, t), e1', e2')), t2
+  | Syntax.Var(x) when M.mem x addrenv -> (range, Int(M.find x addrenv)), M.find x env
   | Syntax.Var(x) when M.mem x env -> (range, Var(x)), M.find x env
   | Syntax.Var(x) ->
       (match M.find x !Typing.extenv with
@@ -314,8 +324,8 @@ let rec g lines env (range, body) = match body with (* K正規化ルーチン本体 (caml
       | _ -> failwith (Printf.sprintf "external variable %s does not have an array type" x))
   | Syntax.LetRec(range', { Syntax.name = (x, t); Syntax.args = yts; Syntax.body = e1 }, e2) ->
       let env' = M.add x t env in
-      let e2', t2 = g lines env' e2 in
-      let e1', t1 = g lines (M.add_list yts env') e1 in
+      let e2', t2 = g false addrenv lines env' e2 in
+      let e1', t1 = g false addrenv lines (M.add_list yts env') e1 in
       (range, LetRec(range', { name = (x, t); args = yts; body = e1' }, e2')), t2
   | Syntax.App((_, Syntax.Var(f)), e2s) when not (M.mem f env) ->
       (match M.find f !Typing.extenv with
@@ -323,19 +333,19 @@ let rec g lines env (range, body) = match body with (* K正規化ルーチン本体 (caml
           let rec bind xs = function (* "xs" are identifiers for the arguments *)
             | [] -> (range, ExtFunApp(f, xs)), t
             | e2 :: e2s ->
-                insert_let range (g lines env e2)
+                insert_let range (g false addrenv lines env e2)
                   (fun x -> bind (xs @ [x]) e2s) in
           bind [] e2s (* left-to-right evaluation *)
       | _ -> assert false)
   | Syntax.App(e1, e2s) ->
-      (match g lines env e1 with
+      (match g false addrenv lines env e1 with
       | _, Type.Fun(_, t) as g_e1 ->
           insert_let range g_e1
             (fun f ->
               let rec bind xs = function (* "xs" are identifiers for the arguments *)
                 | [] -> (range, App(f, xs)), t
                 | e2 :: e2s ->
-                    insert_let range (g lines env e2)
+                    insert_let range (g false addrenv lines env e2)
                       (fun x -> bind (xs @ [x]) e2s) in
               bind [] e2s) (* left-to-right evaluation *)
       | _ -> assert false)
@@ -343,64 +353,63 @@ let rec g lines env (range, body) = match body with (* K正規化ルーチン本体 (caml
       let rec bind xs ts = function (* "xs" and "ts" are identifiers and types for the elements *)
         | [] -> (range, Tuple(xs)), Type.Tuple(ts)
         | e :: es ->
-            let _, t as g_e = g lines env e in
+            let _, t as g_e = g false addrenv lines env e in
             insert_let range g_e
               (fun x -> bind (xs @ [x]) (ts @ [t]) es) in
-      bind [] [] es
+      let res = bind [] [] es in
+      let _ = if toplevel then heap := !heap + List.length es in
+      res
   | Syntax.LetTuple(range', xts, e1, e2) ->
-      insert_let range (g lines env e1)
+      insert_let range (g false addrenv lines env e1)
         (fun y ->
-          let e2', t2 = g lines (M.add_list xts env) e2 in
+          let e2', t2 = g false addrenv lines (M.add_list xts env) e2 in
           (range, LetTuple(range', xts, y, e2')), t2)
   | Syntax.Array(e1, e2) ->
-      insert_let range (g lines env e1)
+      let res = insert_let range (g false addrenv lines env e1)
         (fun x ->
-          let _, t2 as g_e2 = g lines env e2 in
+          let _, t2 as g_e2 = g false addrenv lines env e2 in
           insert_let range g_e2
-            (fun y ->
-              let l =
-                match t2 with
-                | Type.Float -> "create_float_array"
-                | _ -> "create_array" in
-              (range, ExtFunApp(l, [x; y])), Type.Array(t2)))
+            (fun y -> (range, Array(x, y)), Type.Array t2)) in
+      let _ = if toplevel then heap := !heap + deInt e1 in
+      res
   | Syntax.Get(e1, e2) ->
-      (match g lines env e1 with
+      (match g false addrenv lines env e1 with
       |        _, Type.Array(t) as g_e1 ->
           insert_let range g_e1
-            (fun x -> insert_let range (g lines env e2)
+            (fun x -> insert_let range (g false addrenv lines env e2)
                 (fun y -> (range, Get(x, y)), t))
       | _ -> assert false)
   | Syntax.Put(e1, e2, e3) ->
-      insert_let range (g lines env e1)
-        (fun x -> insert_let range (g lines env e2)
-            (fun y -> insert_let range (g lines env e3)
+      insert_let range (g false addrenv lines env e1)
+        (fun x -> insert_let range (g false addrenv lines env e2)
+            (fun y -> insert_let range (g false addrenv lines env e3)
                 (fun z -> (range, Put(x, y, z)), Type.Unit)))
   | Syntax.Read -> (range, Read), Type.Int
   | Syntax.FRead -> (range, FRead), Type.Float
   | Syntax.Write(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, Write(x)), Type.Unit)
   | Syntax.FWrite(e) ->
-      insert_let range (g lines env e)
+      insert_let range (g false addrenv lines env e)
         (fun x -> (range, FWrite(x)), Type.Unit)
   (* MATUSHITA: added polymorphic operators *)
   | Syntax.IFAdd (e1, e2) ->
-      let x, t = g lines env e1 in (
+      let x, t = g false addrenv lines env e1 in (
       match t with
         | Type.Int ->
             insert_let range (x, t)
-              (fun x -> insert_let range (g lines env e2)
+              (fun x -> insert_let range (g false addrenv lines env e2)
                   (fun y -> (range, Add(x, y)), Type.Int))
         | Type.Float ->
             insert_let range (x, t)
-              (fun x -> insert_let range (g lines env e2)
+              (fun x -> insert_let range (g false addrenv lines env e2)
                   (fun y -> (range, FAdd(x, y)), Type.Float))
         | _ ->
             Printf.printf "Type error occurred at %s '%s': +@ is for Int or Float\n"
               (H.show_range range) (H.show_from_range lines range);
             exit 1)
   | Syntax.NotNeg e ->
-      let x, t = g lines env e in (
+      let x, t = g false addrenv lines env e in (
       match t with
         | Type.Bool ->
             insert_let range (x, t)
@@ -413,4 +422,6 @@ let rec g lines env (range, body) = match body with (* K正規化ルーチン本体 (caml
               (H.show_range range) (H.show_from_range lines range);
             exit 1)
 
-let f lines e = fst (g lines M.empty e)
+let f lines e =
+  let _ = heap := 1048575 in
+  fst (g true M.empty lines M.empty e)

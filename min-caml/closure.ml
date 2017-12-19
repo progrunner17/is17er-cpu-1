@@ -38,6 +38,7 @@ and body =
   | AppDir of Id.l * Id.t list
   | Tuple of Id.t list
   | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t (* MATSUSHITA: added H.range *)
+  | Array of Id.t * Id.t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.l
@@ -115,6 +116,7 @@ let rec show lines (range, body) = match body with
       let s1 = "let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "
         ^x^H.comment_from_range lines range'^" in"^H.down () in
       s1^show lines e
+  | Array (x, x') -> "array "^x^" "^x'^H.comment_from_range lines range
   | Get (x, x') -> x^".("^x'^")"^H.comment_from_range lines range
   | Put (x, x', x'') -> x^".("^x'^") <- "^x''^H.comment_from_range lines range
   | ExtArray (Id.L x) -> "*"^x^"*"^H.comment_from_range lines range
@@ -138,7 +140,7 @@ let rec fv (_, body) = match body with
   | Not(x) | Neg(x) | SllI(x, _) | SraI(x, _) | AndI(x, _)
   | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x) | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x)
   | Write(x) | FWrite(x) -> S.singleton x
-  | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | Array(x, y) | Get(x, y) -> S.of_list [x; y]
   | IfEq(_, x, y, e1, e2)| IfLT(_, x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let(_, (x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -217,6 +219,7 @@ let rec g env known (range, body) = match body with (* クロージャ変換ル�
   | KNormal.App(f, xs) -> range, AppCls(f, xs)
   | KNormal.Tuple(xs) -> range, Tuple(xs)
   | KNormal.LetTuple(range', xts, y, e) -> range, LetTuple(range', xts, y, g (M.add_list xts env) known e)
+  | KNormal.Array(x, y) -> range, Array(x, y)
   | KNormal.Get(x, y) -> range, Get(x, y)
   | KNormal.Put(x, y, z) -> range, Put(x, y, z)
   | KNormal.ExtArray(x) -> range, ExtArray(Id.L(x))

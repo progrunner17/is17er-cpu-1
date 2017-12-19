@@ -61,65 +61,26 @@ let atan e =
 %token <bool> BOOL
 %token <int> INT
 %token <float> FLOAT
-%token NOT
-%token PLUS
-%token MINUS
-%token AST
-%token SLASH
-%token PLUS_DOT
-%token MINUS_DOT
-%token AST_DOT
-%token SLASH_DOT
-%token EQUAL
-%token LESS_GREATER
-%token LESS_EQUAL
-%token GREATER_EQUAL
-%token LESS
-%token GREATER
-%token IF
-%token THEN
-%token ELSE
+%token NOT PLUS MINUS AST SLASH
+%token PLUS_DOT MINUS_DOT AST_DOT SLASH_DOT
+%token EQUAL LESS_GREATER LESS_EQUAL GREATER_EQUAL LESS GREATER
+%token IF THEN ELSE
 %token <Id.t> IDENT
-%token LET
-%token IN
-%token REC
+%token LET IN REC
 %token COMMA
-%token ARRAY_CREATE
-%token DOT
-%token LESS_MINUS
-%token OPEN
-%token SEMISEMI
-%token FUN
-%token MINUS_GREATER
-%token MI
+%token ARRAY_CREATE DOT LESS_MINUS
+%token <Id.t> UIDENT
+%token OPEN SEMISEMI DELIM
+%token FUN MINUS_GREATER
 %token SEMICOLON
-%token LPAREN
-%token RPAREN
+%token LPAREN RPAREN
 %token EOF
 /* MATSUSHITA: added tokens */
 %token XOR
-%token FISZERO
-%token FLESS
-%token FISPOS
-%token FISNEG
-%token FNEG
-%token FABS
-%token FHALF
-%token FSQR
-%token FLOOR
-%token FLOATOFINT
-%token INTOFFLOAT
-%token SQRT
-%token COS
-%token SIN
-%token TAN
-%token ATAN
-%token READINT
-%token READFLOAT
-%token PRINTINT
-%token PRINTFLOAT
-%token PLUS_AT
-%token MINUS_BANG
+%token FISZERO FLESS FISPOS FISNEG
+%token FNEG FABS FHALF FSQR FLOOR FLOATOFINT INTOFFLOAT SQRT COS SIN TAN ATAN
+%token READINT READFLOAT PRINTCHAR PRINTINT PRINTFLOAT
+%token PLUS_AT MINUS_BANG
 
 %nonassoc IN
 %right prec_let
@@ -135,20 +96,23 @@ let atan e =
 %left prec_app
 %left DOT
 
-%type <Syntax.t> exp
-%type <(Id.t * Syntax.t) list> globals
-%start exp globals
+%type <Syntax.t> prog
+%start prog
 
 %%
 
-/* MATSUSHITA: added globals */
+/* MATSUSHITA: added prog and glob */
 
-globals:
-  OPEN IDENT SEMISEMI defs { $4 }
+prog:
+| OPEN UIDENT SEMISEMI glob { $4 }
+| exp { $1 }
 
-defs:
-  | { [] }
-  | LET IDENT EQUAL exp defs { ($2, $4) :: $5 }
+glob:
+| LET IDENT EQUAL exp glob
+    %prec prec_let
+    { symbol_range (), Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4),
+        addtyp $2, $4, $5) }
+| DELIM exp { $2 }
 
 /* MATSUSHITA: added simmple_body and body, altering simple_exp and exp */
 
@@ -233,6 +197,10 @@ exp:
 | READFLOAT simple_exp
     %prec prec_app
     { symbol_range (), FRead }
+/* MATSUSHITA: ignore print_char */
+| PRINTCHAR simple_exp
+    %prec prec_app
+    { symbol_range (), Unit }
 | PRINTINT simple_exp
     %prec prec_app
     { symbol_range (), Write($2) }
@@ -280,13 +248,15 @@ exp:
     { symbol_range (), FMul($1, $3) }
 | exp SLASH_DOT exp
     { symbol_range (), FDiv($1, $3) }
+/* MATSUSHITA: ignore true and false */
 | LET BOOL EQUAL exp IN exp
     { $6 }
 | LET IDENT EQUAL exp IN exp
     %prec prec_let
     { (* MATSUSHITA: added range *)
       if snd $6 = Int 0 then $4 else
-      symbol_range (), Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4), addtyp $2, $4, $6) }
+      symbol_range (), Let(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 4),
+        addtyp $2, $4, $6) }
 /* MATUSHITA: ignore xor and tan */
 | LET REC XOR formal_args EQUAL exp IN exp
     %prec prec_let
@@ -297,13 +267,15 @@ exp:
 | LET REC fundef IN exp
     %prec prec_let
     { (* MATSUSHITA: added range *)
-      symbol_range (), LetRec(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 3), $3, $5) }
+      symbol_range (), LetRec(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 3),
+        $3, $5) }
 /* MATUSHITA: added lambda expression */
 | FUN formal_args MINUS_GREATER exp
     %prec prec_let
     {
       let f = Id.gentmp () in
-      symbol_range (), LetRec(symbol_range (), { name = addtyp f; args = $2; body = $4 }, (symbol_range (), Var f))
+      symbol_range (), LetRec(symbol_range (),
+        { name = addtyp f; args = $2; body = $4 }, (symbol_range (), Var f))
     }
 | simple_exp actual_args
     %prec prec_app
@@ -313,11 +285,14 @@ exp:
     { symbol_range (), Tuple($1) }
 | LET LPAREN pat RPAREN EQUAL exp IN exp
     { (* MATSUSHITA: added range *)
-      symbol_range (), LetTuple(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 6), $3, $6, $8) }
+      symbol_range (), LetTuple(Some (Parsing.symbol_start_pos (), Parsing.rhs_end_pos 6),
+        $3, $6, $8) }
 | simple_exp DOT LPAREN exp RPAREN LESS_MINUS exp
     { symbol_range (), Put($1, $4, $7) }
 | exp SEMICOLON exp
     { symbol_range (), Let(None, (Id.genunit (), Type.Unit), $1, $3) }
+| exp SEMICOLON
+    { symbol_range (), Let(None, (Id.genunit (), Type.Unit), $1, (None, Unit)) }
 | ARRAY_CREATE simple_exp simple_exp
     %prec prec_app
     { symbol_range (), Array($2, $3) }

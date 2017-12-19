@@ -23,6 +23,7 @@ and ebody =
   | LWA of Id.t * Id.t
   | SW of Id.t * Id.t * int
   | SWA of Id.t * Id.t * Id.t
+  | Array of Id.t * Id.t
   | FMv of Id.t
   | FNeg of Id.t
   | FAbs of Id.t
@@ -44,6 +45,7 @@ and ebody =
   | FLWA of Id.t * Id.t
   | FSW of Id.t * Id.t * int
   | FSWA of Id.t * Id.t * Id.t
+  | FArray of Id.t * Id.t
   | Read
   | Write of Id.t
   | FRead

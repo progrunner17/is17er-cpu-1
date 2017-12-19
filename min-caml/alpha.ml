@@ -54,6 +54,7 @@ let rec g env (range, body) = match body with (* α変換ルーチン本体 (caml2html: 
       range, LetTuple(range', List.map (fun (x, t) -> (find x env', t)) xts,
                find y env,
                g env' e)
+  | Array(x, y) -> range, Array(find x env, find y env)
   | Get(x, y) -> range, Get(find x env, find y env)
   | Put(x, y, z) -> range, Put(find x env, find y env, find z env)
   | ExtArray(x) -> range, ExtArray(x)

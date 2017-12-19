@@ -121,6 +121,7 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
   | LWA(x, y) -> (range, Ans(range, LWA(find x Type.Int regenv, find y Type.Int regenv))), regenv
   | SW(x, y, n) -> (range, Ans(range, SW(find x Type.Int regenv, find y Type.Int regenv, n))), regenv
   | SWA(x, y, z) -> (range, Ans(range, SWA(find x Type.Int regenv, find y Type.Int regenv, find z Type.Int regenv))), regenv
+  | Array(x, y) -> (range, Ans(range, Array(find x Type.Int regenv, find y Type.Int regenv))), regenv
   | FMv(x) -> (range, Ans(range, FMv(find x Type.Float regenv))), regenv
   | FNeg(x) -> (range, Ans(range, FNeg(find x Type.Float regenv))), regenv
   | FAbs(x) -> (range, Ans(range, FAbs(find x Type.Float regenv))), regenv
@@ -142,6 +143,7 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
   | FLWA(x, y) -> (range, Ans(range, FLWA(find x Type.Int regenv, find y Type.Int regenv))), regenv
   | FSW(x, y, n) -> (range, Ans(range, FSW(find x Type.Float regenv, find y Type.Int regenv, n))), regenv
   | FSWA(x, y, z) -> (range, Ans(range, FSWA(find x Type.Float regenv, find y Type.Int regenv, find z Type.Int regenv))), regenv
+  | FArray(x, y) -> (range, Ans(range, FArray(find x Type.Int regenv, find y Type.Float regenv))), regenv
   | Read -> (range, Ans(range, Read)), regenv
   | FRead -> (range, Ans(range, FRead)), regenv
   | Write x -> (range, Ans(range, Write (find x Type.Int regenv))), regenv

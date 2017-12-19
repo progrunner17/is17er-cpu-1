@@ -112,6 +112,10 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
             if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
             range, Let(range', (x, t), (range', LW(y, offset)), load)) in
       load
+  | Closure.Array(x, y) -> (match M.find y env with
+      | Type.Unit -> range, Ans(range, Nop)
+      | Type.Float -> range, Ans(range, FArray(x, y))
+      | _ -> range, Ans(range, Array(x, y)))
   | Closure.Get(x, y) -> (match M.find x env with
       | Type.Array(Type.Unit) -> range, Ans(range, Nop)
       | Type.Array(Type.Float) -> range, Ans(range, FLWA(x, y))

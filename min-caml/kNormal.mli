@@ -36,6 +36,7 @@ and body =
   | App of Id.t * Id.t list
   | Tuple of Id.t list
   | LetTuple of H.range * (Id.t * Type.t) list * Id.t * t (* MATSUSHITA: added H.range *)
+  | Array of Id.t * Id.t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
   | ExtArray of Id.t

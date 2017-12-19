@@ -45,6 +45,7 @@ let rec g env (range, body) = match body with (* β簡約ルーチン本体 (caml2html: 
   | Var(x) -> range, Var(find x env) (* 変数を置換 (caml2html: beta_var) *)
   | Tuple(xs) -> range, Tuple(List.map (fun x -> find x env) xs)
   | LetTuple(range', xts, y, e) -> range, LetTuple(range', xts, find y env, g env e)
+  | Array(x, y) -> range, Array(find x env, find y env)
   | Get(x, y) -> range, Get(find x env, find y env)
   | Put(x, y, z) -> range, Put(find x env, find y env, find z env)
   | App(g, xs) -> range, App(find g env, List.map (fun x -> find x env) xs)

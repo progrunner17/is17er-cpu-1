@@ -68,6 +68,8 @@ rule token = parse
     { READINT }
 | "read_float"
     { READFLOAT }
+| "print_char"
+    { PRINTCHAR }
 | "print_int"
     { PRINTINT }
 | "print_float"
@@ -128,9 +130,10 @@ rule token = parse
     { LESS_MINUS }
 | ';'
     { SEMICOLON }
-(* MATSUSHITA: added "open", ";;", "fun", "->", "+@" and "-!" *)
+(* MATSUSHITA: added "open", ";;", "@@@@@", "fun", "->", "+@" and "-!" *)
 | "open" { OPEN }
 | ";;" { SEMISEMI }
+| "@@@@@" { DELIM }
 | "fun" { FUN }
 | "->" { MINUS_GREATER }
 | "+@" { PLUS_AT }
@@ -139,6 +142,8 @@ rule token = parse
     { EOF }
 | lower (digit|lower|upper|'_'|''')* (* 他の「予約語」より後でないといけない *)
     { IDENT(Lexing.lexeme lexbuf) }
+| upper (digit|lower|upper|'_'|''')*
+    { UIDENT(Lexing.lexeme lexbuf) }
 | _
     { (* MATSUSHITA: modified error message *)
       Printf.printf "Lex error: Unknown token %s at %s\n" (Lexing.lexeme lexbuf) (H.show_range (Some (lexbuf.Lexing.lex_start_p, lexbuf.Lexing.lex_curr_p)));

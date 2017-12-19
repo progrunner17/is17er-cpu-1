@@ -88,12 +88,12 @@ let rec show (_, body) = match body with
   | App (e, es) -> "("^show e^H.sep "" (fun e -> " "^show e) es^")"
   | Tuple es -> "("^H.sep ", " show es^")"
   | LetTuple (_, xts, e, e') -> "(let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^show e^" in "^show e'^")"
-  | Array (e, e') -> "Array.make "^show e^" "^show e'
+  | Array (e, e') -> "(array "^show e^" "^show e'^")"
   | Get (e, e') -> show e^".("^show e'^")"
   | Put (e, e', e'') -> "("^show e^".("^show e'^") <- "^show e''^")"
-  | Read -> "read"
-  | FRead -> "fread"
-  | Write e -> "write "^show e
-  | FWrite e -> "fwrite "^show e
+  | Read -> "(read ())"
+  | FRead -> "(fread ())"
+  | Write e -> "(write "^show e^")"
+  | FWrite e -> "(fwrite "^show e^")"
   | IFAdd (e, e') -> "("^show e^" +@ "^show e'^")"
   | NotNeg e -> "(-! "^show e^")"
