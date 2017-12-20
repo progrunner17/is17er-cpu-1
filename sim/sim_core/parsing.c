@@ -59,6 +59,7 @@ Files parse_commandline_arg(int argc, char **argv) {
       case 'i':
         input_filename = (char *) malloc(strlen(optarg) + 1);
         strcpy(input_filename, optarg);
+        load_sld_file(input_filename,1);
         break;
 
       case 'o':

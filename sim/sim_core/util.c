@@ -5,6 +5,7 @@
 #include <math.h>
 #include "include.h"
 
+extern uint8_t sld_bytes[];
 
 Runtime runtime = NULL;
 struct timespec ts;
@@ -102,6 +103,7 @@ Instr initialize_instr(void) {
 
 // 命令を実行する。
 void exec_instr(Instr i, Mem memory, Reg reg) {
+	static int input_index = 0;
 
 	if (i == NULL) {
 		fprintf(log_fp, "[ERROR]@exec_instr:\tinstr is NULL\n");fflush(log_fp);
@@ -114,7 +116,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 
 	switch (i->opcode) {
 		case OP_LUI: if ( 0 < i->rd && i->rd < 32) reg->x[i->rd] = i->imm << 12; break;
-		case OP_AUIPC: if ( 0 < i->rd && i->rd < 32)reg->x[i->rd] = reg->pc + i->imm; break;
+		case OP_AUIPC: if ( 0 < i->rd && i->rd < 32)reg->x[i->rd] = reg->pc + (i->imm<<12); break;
 		case OP_JAL:						//opcode rd, label
 			if ( 0 < i->rd && i->rd < 32)reg->x[i->rd] = reg->pc + 1;						//rd is usually 1 or 5 risc-v p14
 			reg->pc = reg->pc + i->imm ;
@@ -137,6 +139,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 				if (i->funct3 == LOAD_WORD && 0 < i->rd && i->rd < 32  ) {
 					if ( addr < MEMORY_SIZE )reg->x[i->rd] = memory[addr].x;
 					else {
+						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_LOAD\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
 						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is  0x%08x\n", addr );
 						fprintf(log_fp, "[ERROR]@exec_instr:\tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
@@ -154,6 +157,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						// printf("store x%d(%d) to mem[%d]\n",i->rs2,reg->x[i->rs2],reg->x[i->rs1] + i->imm);
 						// printf("stored data == %d\n",memory[i->rs1 + i->imm].x);
 					} else {
+						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_STORE\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
 						fprintf(log_fp, "                   \taccess addr is  0x%08x\n", addr );
 						fprintf(log_fp, "                   \tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
@@ -223,12 +227,29 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 			break;
 		case  OP_STORE_FP: {
 				int addr  = reg->x[i->rs1] + i->imm;
-				memory[addr].f = reg->f[i->rs2];
+					if ((unsigned int )addr < MEMORY_SIZE) {
+						memory[addr].f = reg->f[i->rs2];
+						// printf("store x%d(%d) to mem[%d]\n",i->rs2,reg->x[i->rs2],reg->x[i->rs1] + i->imm);
+						// printf("stored data == %d\n",memory[i->rs1 + i->imm].x);
+					} else {
+						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_STORE_FP\n",reg->pc,reg->pc);
+						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
+						fprintf(log_fp, "                   \taccess addr is  0x%08x\n", addr );
+						fprintf(log_fp, "                   \tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
+					}
+
 			}
 			break;
 		case OP_LOAD_FP : {
 				int addr  = reg->x[i->rs1] + i->imm;
-				reg->f[i->rd] = memory[addr].f;
+					if ( addr < MEMORY_SIZE )
+						reg->f[i->rd] = memory[addr].f;
+					else {
+						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_LOAD\n",reg->pc,reg->pc);
+						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
+						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is  0x%08x\n", addr );
+						fprintf(log_fp, "[ERROR]@exec_instr:\tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
+					}
 			}
 			break;
 		case OP_STORE_IO :{
@@ -249,7 +270,9 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 			}
 			break;
 		case OP_LOAD_IO :{
-
+			uint32_t data =  (uint32_t)sld_bytes[input_index++];
+				fprintf(log_fp,"input[%d]: %02x\n", input_index-1,data);
+				reg->f[i->rd] =data;
 			}
 			break;
 		default: {

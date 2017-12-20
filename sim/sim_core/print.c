@@ -179,8 +179,12 @@ void print_instr(Instr instr) {
 
 void print_reg(Reg reg, int opt) {
 	printf("register:\n");
-	if (opt & PRINT_REG_PC){
+	if (opt & PRINT_REG_PC_X){
 		printf("pc:\t%08x\n", reg->pc);
+	}
+	printf("register:\n");
+	if (opt & PRINT_REG_PC_D){
+		printf("pc:\t%08d\n", reg->pc);
 	}
 
 

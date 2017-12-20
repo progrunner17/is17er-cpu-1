@@ -3,6 +3,7 @@
 #include <stdio.h>  //for FILE *
 #include <stdint.h> // for uint32_t
 
+
 typedef union _word word;
 typedef word *Mem;
 typedef struct _instruction *Instr;
@@ -14,6 +15,7 @@ union _word {
   float f;
   unsigned int x;
   int d;
+  uint8_t u8;
 };
 
 struct _instruction {
@@ -133,4 +135,7 @@ Runtime     initialize_runtime(Runtime d);
 Instr load_asm_line(char * buff);
 uint32_t create_machine_code(Instr i);
 void print_machine_code(FILE *fp,uint32_t code,int option);
+
+
+void load_sld_file(const char* sld_file_name, int conv_to_big_endian);
 #endif

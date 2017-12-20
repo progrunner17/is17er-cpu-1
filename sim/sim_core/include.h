@@ -11,12 +11,10 @@
 #include "debug.h"
 #include "my_time.h"
 
-#endif
 
-#ifndef _RUNTIME
-#define _RUNTIME
+typedef struct {
+	int big_endian;
+}config;
 
-
-extern Runtime runtime;
 
 #endif
