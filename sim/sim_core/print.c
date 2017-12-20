@@ -267,11 +267,13 @@ void print_memory(word *memory, int base, unsigned int n,int option) {
 };
 
 
-void print_prgram(Program program) {
+void print_program(Program program,int start,int end) {
 	int pc = BASE_ADDR;
+	if(start < 0)start = 0;
+	if(end < 0)end = PROGRAM_SIZE ;
 	// printf("%d\n",runtime->max_instr);
 	fflush(stdout);
-	for (int i = 0; program[i] != NULL ; i++) {
+	for (int i = start; program[i] != NULL && i <= end ; i++) {
 		pc = i + BASE_ADDR;
 		printf("0x%08x:\t", pc);
 		if(program[i] != NULL)print_instr(program[i]);

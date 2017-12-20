@@ -99,7 +99,7 @@ char* get_line(char *s, int size);
 void  print_labels(LList label_list);
 void  print_mnemonic(Instr i);
 void  print_instr(Instr instr);
-void  print_prgram(Program program);
+void  print_program(Program program,int start, int end);
 void  print_memory(word *memory, int base_addr, unsigned int n,int option);
 void  print_reg(Reg reg, int opt);
 void  print_binary(int d);

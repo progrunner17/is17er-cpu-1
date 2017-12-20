@@ -133,12 +133,15 @@ int main(int argc, char **argv)
 			}else if(strcmp(command,"r") == 0){
 				print_reg(reg,PRINT_REG_F | PRINT_REG_X_X | PRINT_REG_PC);
 			}else if(strcmp(command,"p") == 0 || strcmp(command,"program") == 0){
-				print_prgram(program);
+				tmp +=  strlen(command) + 1;
+				// printf("%s",tmp);
+				n = PROGRAM_SIZE;
+				sscanf(tmp,"%d",&n);
+				print_program(program,0,n);
 			}else if(strcmp(command,"l") == 0 || strcmp(command,"label") == 0){
 				print_labels(llist);
 			}else if(strcmp(command,"n") == 0 || strcmp(command,"next") == 0){
 				tmp += strlen(command);
-				int n = 0;
 				if(!sscanf(tmp,"%d",&n)) n = 0;
 				print_instr(program[reg->pc + n]);
 			}else if(strcmp(command,"l") == 0 || strcmp(command,"label") == 0){

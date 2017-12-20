@@ -537,7 +537,21 @@ Program load_asm_file(const char* filename,LList llist) {
   for (int line = 1; fgets(buff, BUF_SIZE, fp) ; line++) {
 
 
-    if ((p = strchr(buff, '#'))) *p = '\0';   //remove comment
+    if ((p = strchr(buff, '#'))){
+      // printf("strlen:%d\n",strlen(buff));
+      if(strlen(buff) == BUF_SIZE-1){
+            // printf("orver!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+            int c = 0;
+            while(1){
+                c = fgetc(fp);
+                if(c == '\n' || c== EOF ){
+                   ungetc(c,fp);
+                   break;
+                }
+            }
+        }
+      *p = '\0';
+    }   //remove comment
     p = buff + strspn(buff, " \t\n");
     if ( p != NULL && strlen(p) == 0 )continue;               //empty line
     if(strncmp("(*break*)", buff,9) == 0 ){
@@ -559,7 +573,7 @@ Program load_asm_file(const char* filename,LList llist) {
 
       // fprintf(log_fp, "[ERROR]@load_asm_file:\tinvalid assembly %s\n", p);
     }
-    print_instr(instr);
+    // print_instr(instr);
   } //for
   printf("label list\n");
   print_labels(llist);
@@ -567,7 +581,7 @@ Program load_asm_file(const char* filename,LList llist) {
   resolve_label(program, llist);
   printf("命令数:\t%d\n", pc);
   fclose(fp);
-  print_prgram(program);
+  // print_prgram(program);
   fflush(stdout);
   // runtime->llist = llist;
   // runtime->max_instr = pc;
