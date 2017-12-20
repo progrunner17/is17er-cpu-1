@@ -5,11 +5,21 @@
 #include <errno.h>
 #include "include.h"
 
+
+#define _BYTE1(x) (  x        & 0xFF )
+#define _BYTE2(x) ( (x >>  8) & 0xFF )
+#define _BYTE3(x) ( (x >> 16) & 0xFF )
+#define _BYTE4(x) ( (x >> 24) & 0xFF )
+#define BYTE_SWAP_16(x) ((uint16_t)( _BYTE1(x)<<8 | _BYTE2(x) ))
+#define BYTE_SWAP_32(x) ((uint32_t)( _BYTE1(x)<<24 | _BYTE2(x)<<16 | _BYTE3(x)<<8 | _BYTE4(x) ))
+extern uint8_t sld_bytes[];
+extern unsigned sld_n_bytes;
+
 int main(int argc, char **argv)
 {
 
 	parse_commandline_arg(argc,argv);
-	runtime = initialize_runtime(NULL);
+	// runtime = initialize_runtime(NULL);
 	Mem memory = initialize_memory(MEMORY_SIZE,NULL);
 	Reg reg = initialize_reg(NULL);
     LList llist = initialize_llist();
@@ -125,14 +135,27 @@ int main(int argc, char **argv)
 			}else if(strcmp(command,"p") == 0 || strcmp(command,"program") == 0){
 				print_prgram(program);
 			}else if(strcmp(command,"l") == 0 || strcmp(command,"label") == 0){
-				print_labels(runtime->llist);
+				print_labels(llist);
 			}else if(strcmp(command,"n") == 0 || strcmp(command,"next") == 0){
 				tmp += strlen(command);
 				int n = 0;
 				if(!sscanf(tmp,"%d",&n)) n = 0;
 				print_instr(program[reg->pc + n]);
 			}else if(strcmp(command,"l") == 0 || strcmp(command,"label") == 0){
-				print_labels(runtime->llist);
+				print_labels(llist);
+			}else if(strcmp(command,"sld") == 0){
+				printf("sld_n_bytes:%d\n",sld_n_bytes);
+				tmp += strlen(command) + 1;
+				// printf("%s",tmp);
+				n = sld_n_bytes / 4;
+				sscanf(tmp,"%d",&n);
+				uint32_t *p;
+				p = (uint32_t *)sld_bytes;
+				word w;
+				for(int i = 0; i<n; i++){
+					w.x = BYTE_SWAP_32(p[i]);
+					printf("%5d:%d,%f\n",i,w.x,w.f);
+				}
 			}
 
 		}else if(strcmp("break",command) == 0 || strcmp("b",command) == 0){
@@ -149,6 +172,8 @@ int main(int argc, char **argv)
 				printf(" f%d:\t%f\n",n,reg->f[n]);
 			}else if(strcmp(command,"pc") == 0){
 				printf(" pc:\t%08x\n",reg->pc);
+			}else if(strcmp(command,"pcd") == 0){
+				printf(" pc:\t%08d\n",reg->pc);
 			}
 		}else if(strcmp("reset",command) == 0 || strcmp("r",command) == 0){
 			sscanf(tmp,"%s",command);
