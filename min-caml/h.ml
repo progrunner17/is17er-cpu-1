@@ -2,6 +2,8 @@
 
 open Lexing
 
+let heap_start = 131071
+
 type pos = position
 type range = (pos * pos) option
 let show_pos pos = Printf.sprintf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)

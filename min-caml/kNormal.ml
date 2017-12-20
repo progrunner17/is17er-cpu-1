@@ -417,5 +417,5 @@ let rec g toplevel addrenv lines env (range, body) = match body with (* KÀµµ¬²½¥
             exit 1)
 
 let f lines e =
-  let _ = heap := 1048575 in
+  let _ = heap := H.heap_start in
   fst (g true M.empty lines M.empty e)

@@ -286,7 +286,7 @@ and g' lines (dest, ((range, body) as exp)) =
       let s = Printf.sprintf "\tlw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range) in s^
       (match String.sub a 0 2 with
         | "%x" -> if a = "%x4" then "" else Printf.sprintf "\taddi\t%s, x4, 0%s" (reg a) (comment_range lines range)
-        | "%f" -> if a = "%f1" then "" else Printf.sprintf "\tfmr\t%s, f1%s" (freg a) (comment_range lines range)
+        | "%f" -> if a = "%f1" then "" else Printf.sprintf "\tfmv\t%s, f1%s" (freg a) (comment_range lines range)
         | _ -> failwith @@ "invalid register"^a)
   | NonTail(a), CallDir(Id.L(x), ys, zs) ->
       let ss = stacksize () in
@@ -305,7 +305,7 @@ and g' lines (dest, ((range, body) as exp)) =
         let s = Printf.sprintf "\tlw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range) in s^
         match String.sub a 0 2 with
           | "%x" -> if a = "%x4" then "" else Printf.sprintf "\taddi\t%s, x4, 0%s" (reg a) (comment_range lines range)
-          | "%f" -> if a = "%f1" then "" else Printf.sprintf "\tfmr\t%s, f1%s" (freg a) (comment_range lines range)
+          | "%f" -> if a = "%f1" then "" else Printf.sprintf "\tfmv\t%s, f1%s" (freg a) (comment_range lines range)
           | _ -> failwith @@ "invalid register"^a
       with Not_found -> Printf.sprintf "\tLABEL %s NOT FOUND%s" x (comment_range lines range))
 (* MATSUSHITA: added range comments *)
@@ -410,8 +410,8 @@ let f lines (Prog(fundefs, e)) =
   let s =
     "# entry point\n"^
     let s = Printf.sprintf "\taddi\tx2, x0, 0 # [%d]\n" (pcincr ()) in s^
-    let s = Printf.sprintf "\tlui\tx3, %d # [%d]\n" (upper 1048575) (pcincr ()) in s^
-    Printf.sprintf "\taddi\tx3, x3, %d # [%d]\n" (lower 1048575) (pcincr ())^
+    let s = Printf.sprintf "\tlui\tx3, %d # [%d]\n" (upper H.heap_start) (pcincr ()) in s^
+    Printf.sprintf "\taddi\tx3, x3, %d # [%d]\n" (lower H.heap_start) (pcincr ())^
     "# program begins\n" in s^
   let _ = stackset := S.empty in
   let _ = stackmap := [] in

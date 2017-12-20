@@ -2,6 +2,8 @@
 
 open Lexing
 
+val heap_start : int
+
 type pos = position
 type range = (pos * pos) option
 val show_pos : pos -> string
