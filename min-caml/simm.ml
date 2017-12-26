@@ -4,7 +4,7 @@ let rec g env fenv (range, body) = match body with (* Ì¿ÎáÎó¤ÎÂ¨ÃÍºÇÅ¬²½ (caml2h
   | Ans(exp) -> range, Ans(g' env fenv exp)
   | Let(range', (x, t), (range'', LI(n)), e) ->
       let e' = g (M.add x n env) fenv e in
-      if not (List.mem x (fv e')) then e' else
+      if x <> "%x2" && not (List.mem x (fv e')) then e' else
       range, Let(range', (x, t), (range'', LI(n)), e')
   | Let(range', (x, t), (range'', FLI(a)), e) ->
       let e' = g env (M.add x a fenv) e in

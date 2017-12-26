@@ -80,26 +80,35 @@ and g' lines (dest, ((range, body) as exp)) =
   | NonTail(x), LI(n) ->
       let u = upper n in
       let l = lower n in
-      let s = if u = 0 then "" else Printf.sprintf "\tlui\t%s, %d%s" (reg x) u (comment_range lines range) in s^
-      if l = 0 then "" else Printf.sprintf "\taddi\t%s, %s, %d%s" (reg x) (reg x) l (comment_range lines range)
+      if u = 0 then
+        Printf.sprintf "\taddi\t%s, x0, %d%s" (reg x) l (comment_range lines range)
+      else
+        let s = Printf.sprintf "\tlui\t%s, %d%s" (reg x) u (comment_range lines range) in s^
+        if l = 0 then "" else Printf.sprintf "\taddi\t%s, %s, %d%s" (reg x) (reg x) l (comment_range lines range)
   | NonTail(x), FLI(a) ->
       let u = Int32.to_int @@ upper_float a in
       let l = Int32.to_int @@ lower_float a in
-      let s = if u = 0 then "" else Printf.sprintf "\tlui\tx31, %d%s" u (comment_range lines range) in s^
-      let s = if l = 0 then "" else Printf.sprintf "\taddi\tx31, x31, %d%s" l (comment_range lines range) in s^
+      let s = if u = 0 then
+        Printf.sprintf "\taddi\tx31, x0, %d%s" l (comment_range lines range)
+      else
+        let s = Printf.sprintf "\tlui\tx31, %d%s" u (comment_range lines range) in s^
+        if l = 0 then "" else Printf.sprintf "\taddi\tx31, x31, %d%s" l (comment_range lines range) in s^
       Printf.sprintf "\txtof\t%s, x31%s" (freg x) (comment_range lines range)
   | NonTail(x), LIL(Id.L(y)) -> (try
         let n = M.find y !labels in
         let u = upper n in
         let l = lower n in
-        let s = if u = 0 then "" else Printf.sprintf "\tlui\t%s, %d%s" (reg x) u (comment_range lines range) in s^
-        if l = 0 then "" else Printf.sprintf "\taddi\t%s, %s, %d%s" (reg x) (reg x) l (comment_range lines range)
+        if u = 0 then
+          Printf.sprintf "\taddi\t%s, x0, %d%s" (reg x) l (comment_range lines range)
+        else
+          let s = Printf.sprintf "\tlui\t%s, %d%s" (reg x) u (comment_range lines range) in s^
+          if l = 0 then "" else Printf.sprintf "\taddi\t%s, %s, %d%s" (reg x) (reg x) l (comment_range lines range)
       with Not_found -> Printf.sprintf "\tLABEL %s NOT FOUND%s" y (comment_range lines range))
   | NonTail(x), Mv(y) when x = y -> ""
   | NonTail(x), Mv(y) ->
       Printf.sprintf "\taddi\t%s, %s, 0%s" (reg x) (reg y) (comment_range lines range)
   | NonTail(x), Not(y) ->
-      Printf.sprintf "\txori\t%s, %s, -1%s" (reg x) (reg y) (comment_range lines range)
+      Printf.sprintf "\txori\t%s, %s, 1%s" (reg x) (reg y) (comment_range lines range)
   | NonTail(x), Xor(y, z) ->
       Printf.sprintf "\txor\t%s, %s, %s%s" (reg x) (reg y) (reg z) (comment_range lines range)
   | NonTail(x), Neg(y) ->
@@ -132,12 +141,14 @@ and g' lines (dest, ((range, body) as exp)) =
   | NonTail(_), SWA(x, y, z) ->
       let s = Printf.sprintf "\tadd\tx31, %s, %s%s" (reg y) (reg z) (comment_range lines range) in s^
       Printf.sprintf "\tsw\t%s, 0(x31)%s" (reg x) (comment_range lines range)
-  | NonTail(_), Array(x, y) ->
-      let s = Printf.sprintf "\tadd\tx31, x3, %s%s" (reg x) (comment_range lines range) in s^
+  | NonTail(x), Array(y, z) ->
+      let s = Printf.sprintf "\taddi\tx30, x3, 0%s" (comment_range lines range) in s^
+      let s = Printf.sprintf "\tadd\tx31, x3, %s%s" (reg y) (comment_range lines range) in s^
       let s = Printf.sprintf "\tbeq\tx31, x3, 4%s" (comment_range lines range) in s^
-      let s = Printf.sprintf "\tsw\t%s, 0(x3)%s" (reg y) (comment_range lines range) in s^
+      let s = Printf.sprintf "\tsw\t%s, 0(x3)%s" (reg z) (comment_range lines range) in s^
       let s = Printf.sprintf "\taddi\tx3, x3, 1%s" (comment_range lines range) in s^
-      Printf.sprintf "\tjal\tx0, -3%s" (comment_range lines range)
+      let s = Printf.sprintf "\tjal\tx0, -3%s" (comment_range lines range) in s^
+      Printf.sprintf "\taddi\t%s, x30, 0%s" (reg x) (comment_range lines range)
   | NonTail(x), FMv(y) when x = y -> ""
   | NonTail(x), FMv(y) ->
       Printf.sprintf "\tfmv\t%s, %s%s" (freg x) (freg y) (comment_range lines range)
@@ -186,12 +197,14 @@ and g' lines (dest, ((range, body) as exp)) =
   | NonTail(_), FSWA(x, y, z) ->
       let s = Printf.sprintf "\tadd\tx31, %s, %s%s" (reg y) (reg z) (comment_range lines range) in s^
       Printf.sprintf "\tfsw\t%s, 0(x31)%s" (freg x) (comment_range lines range)
-  | NonTail(_), FArray(x, y) ->
-      let s = Printf.sprintf "\tadd\tx31, x3, %s%s" (reg x) (comment_range lines range) in s^
+  | NonTail(x), FArray(y, z) ->
+      let s = Printf.sprintf "\taddi\tx30, x3, 0%s" (comment_range lines range) in s^
+      let s = Printf.sprintf "\tadd\tx31, x3, %s%s" (reg y) (comment_range lines range) in s^
       let s = Printf.sprintf "\tbeq\tx31, x3, 4%s" (comment_range lines range) in s^
-      let s = Printf.sprintf "\tfsw\t%s, 0(x3)%s" (freg y) (comment_range lines range) in s^
+      let s = Printf.sprintf "\tfsw\t%s, 0(x3)%s" (freg z) (comment_range lines range) in s^
       let s = Printf.sprintf "\taddi\tx3, x3, 1%s" (comment_range lines range) in s^
-      Printf.sprintf "\tjal\tx0, -3%s" (comment_range lines range)
+      let s = Printf.sprintf "\tjal\tx0, -3%s" (comment_range lines range) in s^
+      Printf.sprintf "\taddi\t%s, x30, 0%s" (reg x) (comment_range lines range)
   | NonTail(x), Read ->
       let s = Printf.sprintf "\taddi\t%s, x0, 0%s" (reg x) (comment_range lines range) in s^
       let s = Printf.sprintf "\taddi\tx30, x0, 48%s" (comment_range lines range) in s^ (* %x30 = 48 *)
@@ -409,10 +422,6 @@ let f lines (Prog(fundefs, e)) =
     Printf.sprintf "\tjalr\tx0, x31, %d # [1]\n" (lower n)^
     s in s^
   let s =
-    "# entry point\n"^
-    let s = Printf.sprintf "\taddi\tx2, x0, 0 # [%d]\n" (pcincr ()) in s^
-    let s = Printf.sprintf "\tlui\tx3, %d # [%d]\n" (upper H.heap_start) (pcincr ()) in s^
-    Printf.sprintf "\taddi\tx3, x3, %d # [%d]\n" (lower H.heap_start) (pcincr ())^
     "# program begins\n" in s^
   let _ = stackset := S.empty in
   let _ = stackmap := [] in

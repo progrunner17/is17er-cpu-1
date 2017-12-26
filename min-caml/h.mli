@@ -3,6 +3,7 @@
 open Lexing
 
 val heap_start : int
+val stack_start : int
 
 type pos = position
 type range = (pos * pos) option
