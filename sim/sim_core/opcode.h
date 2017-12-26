@@ -65,6 +65,13 @@
 #define F3_FSGNJN	0b001   //fneg
 #define F3_FSGNJX	0b010   //fabs
 
+//  funct3 frm
+
+#define F3_RNE 0b000   //ftoi
+#define F3_RTZ 0b001
+#define F3_RDN 0b010   //floor
+#define F3_RUP 0b011
+
 
 
 // funct5 for fp

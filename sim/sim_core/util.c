@@ -5,7 +5,10 @@
 #include <math.h>
 #include "include.h"
 
+
 extern uint8_t sld_bytes[];
+
+
 
 Runtime runtime = NULL;
 struct timespec ts;
@@ -99,8 +102,6 @@ Instr initialize_instr(void) {
 	i->exec_count = 0;
 	return i;
 }
-
-
 // 命令を実行する。
 void exec_instr(Instr i, Mem memory, Reg reg) {
 	static int input_index = 0;
@@ -137,7 +138,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 		case OP_LOAD: {						//opcode rd, imm(rs1) (immはディスプレースメント)
 				int addr = reg->x[i->rs1] + i->imm;
 				if (i->funct3 == LOAD_WORD && 0 < i->rd && i->rd < 32  ) {
-					if ( addr < MEMORY_SIZE )reg->x[i->rd] = memory[addr].x;
+					if ( addr < MEMORY_SIZE )reg->x[i->rd] = memory[addr].d;
 					else {
 						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_LOAD\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
@@ -154,8 +155,6 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 				if (i->funct3 == STORE_WORD) {
 					if ((unsigned int )addr < MEMORY_SIZE) {
 						memory[addr].x = reg->x[i->rs2];
-						// printf("store x%d(%d) to mem[%d]\n",i->rs2,reg->x[i->rs2],reg->x[i->rs1] + i->imm);
-						// printf("stored data == %d\n",memory[i->rs1 + i->imm].x);
 					} else {
 						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_STORE\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
@@ -168,14 +167,14 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 		case OP_ALUI :						//opcode rd, rs1, imm
 			if ( 0 < i->rd && i->rd < 32  ) {
 				switch (i->funct3) {
-					case ALU_ADD : reg->x[i->rd] =  reg->x[i->rs1] + i->imm ; break;
-					case ALU_SLL : reg->x[i->rd] =  reg->x[i->rs1] << i->imm; break;
-					case ALU_SLT : reg->x[i->rd] =  ((int)reg->x[i->rs1] < i->imm ? 1 : 0) ; break;
+					case ALU_ADD : 	reg->x[i->rd] =  reg->x[i->rs1] + i->imm ; break;
+					case ALU_SLL : 	reg->x[i->rd] =  reg->x[i->rs1] << i->imm; break;
+					case ALU_SLT : 	reg->x[i->rd] =  ((int)reg->x[i->rs1] < i->imm ? 1 : 0) ; break;
 					case ALU_SLTU : reg->x[i->rd] =  ((unsigned int)reg->x[i->rs1] < (unsigned int)i->imm ? 1 : 0 ) ; break;
-					case ALU_XOR : reg->x[i->rd] =  reg->x[i->rs1] ^ i->imm ; break;
-					case ALU_SRX : reg->x[i->rd] =  ( i->is_sra_sub ? reg->x[i->rs1] >> i->imm : (unsigned int)reg->x[i->rs1] >> (unsigned int)i->imm) ; break;
-					case ALU_OR : reg->x[i->rd] =  reg->x[i->rs1] | i->imm ; break;
-					case ALU_AND : reg->x[i->rd] =  reg->x[i->rs1] & i->imm ; break;
+					case ALU_XOR : 	reg->x[i->rd] =  reg->x[i->rs1] ^ i->imm ; break;
+					case ALU_SRX : 	reg->x[i->rd] =  ( i->is_sra_sub ? reg->x[i->rs1] >> i->imm : (unsigned int)reg->x[i->rs1] >> (unsigned int)i->imm) ; break;
+					case ALU_OR : 	reg->x[i->rd] =  reg->x[i->rs1] | i->imm ; break;
+					case ALU_AND : 	reg->x[i->rd] =  reg->x[i->rs1] & i->imm ; break;
 					default: fprintf(stderr, "error in exec alui\n");
 				}
 			}
@@ -186,13 +185,13 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 					case  ALU_ADD :
 						if (i->is_sra_sub) 	reg->x[i->rd] =  reg->x[i->rs1]  - reg->x[i->rs2];
 						else 				reg->x[i->rd] =  reg->x[i->rs1]  + reg->x[i->rs2]; break;
-					case  ALU_SLL : reg->x[i->rd] =  reg->x[i->rs1] << reg->x[i->rs2] ; break;
-					case  ALU_SLT : reg->x[i->rd] =  ((int)reg->x[i->rs1] < reg->x[i->rs2] ? 1 : 0) ; break;
-					case  ALU_SLTU : reg->x[i->rd] =  ((unsigned int)reg->x[i->rs1] < (unsigned int)reg->x[i->rs2] ? 1 : 0 ) ; break;
-					case  ALU_XOR : reg->x[i->rd] =  reg->x[i->rs1] ^ reg->x[i->rs2] ; break;
-					case  ALU_SRX : reg->x[i->rd] =  ( i->is_sra_sub ? reg->x[i->rs1] >> reg->x[i->rs2] : (unsigned int )reg->x[i->rs1] >> (unsigned int )reg->x[i->rs2]) ; break;
-					case  ALU_OR : reg->x[i->rd] =  reg->x[i->rs1] | reg->x[i->rs2] ; break;
-					case  ALU_AND : reg->x[i->rd] =  reg->x[i->rs1] & reg->x[i->rs2] ; break;
+					case  ALU_SLL : 	reg->x[i->rd] =  reg->x[i->rs1] << reg->x[i->rs2] ; break;
+					case  ALU_SLT : 	reg->x[i->rd] =  ((int)reg->x[i->rs1] < reg->x[i->rs2] ? 1 : 0) ; break;
+					case  ALU_SLTU : 	reg->x[i->rd] =  ((unsigned int)reg->x[i->rs1] < (unsigned int)reg->x[i->rs2] ? 1 : 0 ) ; break;
+					case  ALU_XOR : 	reg->x[i->rd] =  reg->x[i->rs1] ^ reg->x[i->rs2] ; break;
+					case  ALU_SRX : 	reg->x[i->rd] =  ( i->is_sra_sub ? reg->x[i->rs1] >> reg->x[i->rs2] : (unsigned int )reg->x[i->rs1] >> (unsigned int )reg->x[i->rs2]) ; break;
+					case  ALU_OR : 		reg->x[i->rd] =  reg->x[i->rs1] | reg->x[i->rs2] ; break;
+					case  ALU_AND : 	reg->x[i->rd] =  reg->x[i->rs1] & reg->x[i->rs2] ; break;
 				}
 			}
 			break;
@@ -214,8 +213,12 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						case F3_FSGNJX: reg->f[i->rd] = fabs(reg->f[i->rs1]);break;
 					}
 					break;
-				case  F5_FTOI:
-					reg->x[i->rd] = (int)reg->f[i->rs1]; break;
+				case  F5_FTOI:{
+					switch(i->funct3){
+						case F3_RNE:reg->x[i->rd] = (int) roundf(reg->f[i->rs1]);break;
+						case F3_RDN:reg->x[i->rd] = (int) reg->f[i->rs1]; break;
+					}
+				}break;
 				case  F5_FTOX: ((float *)reg->x)[i->rd] = reg->f[i->rs1]; break;
 				case  F5_ITOF: reg->f[i->rd] = (float)reg->x[i->rs1]; break;
 				case  F5_XTOF: ((int *) reg->f)[i->rd] = reg->x[i->rs1];break;

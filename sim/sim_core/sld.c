@@ -9,7 +9,6 @@
 #define BYTE_SWAP_16(x) ((uint16_t)( _BYTE1(x)<<8 | _BYTE2(x) ))
 #define BYTE_SWAP_32(x) ((uint32_t)( _BYTE1(x)<<24 | _BYTE2(x)<<16 | _BYTE3(x)<<8 | _BYTE4(x) ))
 
-
 /* for SLD data stream */
 typedef union {
   int i;
@@ -18,15 +17,12 @@ typedef union {
   uint8_t b[4];
 } fi_union;
 
-
 /* the binary image of the input SLD data */
 #define MAX_N_WORDS 4096
 fi_union sld_words[MAX_N_WORDS];
 uint8_t sld_bytes[MAX_N_WORDS * 4];
 unsigned sld_n_words = 0;
 unsigned sld_n_bytes = 0;
-
-
 
 
 /*****************************************************************************

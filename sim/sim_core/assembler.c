@@ -4,12 +4,11 @@
 
 int main(int argc, char const *argv[])
 {
-
 	FILE *fp = NULL;
 	log_fp = stderr;
 	out_fp = stdout;
 	LList llist = initialize_llist();
-	runtime = initialize_runtime(runtime);
+	// runtime = initialize_runtime(runtime);
 	Program program = load_asm_file(argv[1],llist);
 	print_prgram(program);
 

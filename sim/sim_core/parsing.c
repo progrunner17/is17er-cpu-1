@@ -5,7 +5,6 @@
 #include <errno.h>
 #include "include.h"
 #define PROMPT ">> "
-
 FILE *log_fp = NULL;
 FILE *out_fp = NULL;
 FILE *in_fp = NULL;
@@ -187,6 +186,7 @@ int create_opcode(const char* mnemonic) {
             (strcmp(mnemonic, "fneg") == 0) ||  //fsgnjn
             (strcmp(mnemonic, "fabs") == 0) ||  //fsgnjx
             (strcmp(mnemonic, "ftoi") == 0) ||
+            (strcmp(mnemonic, "floor") == 0) ||
             (strcmp(mnemonic, "itof") == 0) ||
             (strcmp(mnemonic, "ftox") == 0) ||
             (strcmp(mnemonic, "xtof") == 0) ? OP_FP :
@@ -247,7 +247,8 @@ int create_funct3(const char * mnemonic) {
             (strcmp(mnemonic, "fmv") == 0) ? F3_FSGNJ :
             (strcmp(mnemonic, "fneg") == 0) ? F3_FSGNJN :
             (strcmp(mnemonic, "fabs") == 0) ? F3_FSGNJX :
-            // (strcmp(mnemonic,"ftoi") == 0) ? F5_FTOI:
+            (strcmp(mnemonic,"ftoi") == 0) ? F3_RNE:
+            (strcmp(mnemonic,"floor") == 0) ? F3_RDN:
             // (strcmp(mnemonic,"itof") == 0) ? F5_ITOF:
             // (strcmp(mnemonic,"ftox") == 0) ? F5_FTOX:
             // (strcmp(mnemonic,"xtof") == 0) ? F5_XTOF:
@@ -263,7 +264,6 @@ int create_funct3(const char * mnemonic) {
 
 int create_funct5(const char *mnemonic) {
   int funct5 = 0;
-
   funct5 = (strcmp(mnemonic, "add") == 0) ||
            (strcmp(mnemonic, "srl") == 0) ||
            (strcmp(mnemonic, "srli") == 0) ? 0 :
@@ -281,6 +281,7 @@ int create_funct5(const char *mnemonic) {
            (strcmp(mnemonic, "fmv") == 0) ||
            (strcmp(mnemonic, "fneg") == 0) ||
            (strcmp(mnemonic, "fabs") == 0) ? F5_FSGNJ :
+           (strcmp(mnemonic, "floor") == 0) ||
            (strcmp(mnemonic, "ftoi") == 0) ? F5_FTOI :
            (strcmp(mnemonic, "itof") == 0) ? F5_ITOF :
            (strcmp(mnemonic, "ftox") == 0) ? F5_FTOX :
@@ -313,8 +314,8 @@ Instr load_asm_line(char * buff) {
 
   strcpy(tmp, buff); //元のデータを壊さないように、ラベルもあるし...
   if ((mnemonic =  strtok(tmp, " \t\n")) == NULL ) return NULL; //空行ならNULL
-  op1 = strtok(NULL, ",");
-  op2 = strtok(NULL, ",");
+  op1 = strtok(NULL, " ,");
+  op2 = strtok(NULL, " ,");
   op3 = strtok(NULL, " \t\n");
 
   // printf("mnemonic:\t%s\n",mnemonic);
@@ -525,67 +526,54 @@ Program load_asm_file(const char* filename,LList llist) {
   int src_break = 0;
   char *p;
 
-
   program = calloc(PROGRAM_SIZE, sizeof(Instr));
-  llist = initialize_llist();
 
   if ((fp = fopen(filename, "r")) == NULL) {
     fprintf(log_fp, "[ERROR]@load_asm_file:\tcannot open file %s\n", filename);
     return NULL ;
   }
+  int line = 0;
+  for (line = 1; fgets(buff, BUF_SIZE, fp) ; line++) {
 
-  for (int line = 1; fgets(buff, BUF_SIZE, fp) ; line++) {
+    // バッファに入りきらなかったぶんは行末まで破棄
+    if(strchr(buff,'\n') == NULL)while(fgetc(fp) != '\n'){}
 
+    //remove comment
+    if ((p = strchr(buff, '#')))*p = '\0';
 
-    if ((p = strchr(buff, '#'))){
-      // printf("strlen:%d\n",strlen(buff));
-      if(strlen(buff) == BUF_SIZE-1){
-            // printf("orver!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-            int c = 0;
-            while(1){
-                c = fgetc(fp);
-                if(c == '\n' || c== EOF ){
-                   ungetc(c,fp);
-                   break;
-                }
-            }
-        }
-      *p = '\0';
-    }   //remove comment
+    //空白文字でない場所までジャンプ
     p = buff + strspn(buff, " \t\n");
+
     if ( p != NULL && strlen(p) == 0 )continue;               //empty line
+
     if(strncmp("(*break*)", buff,9) == 0 ){
       src_break = 1;
       continue;
     }
+
     if ((instr = load_asm_line(p))) {
       instr->src_break = src_break;
       instr->line = line;//行番号保存
-      program[pc] = instr;
-      pc++;
+      program[pc++] = instr;
       src_break = 0;
-    } else { //オペコードが取得できなかったら
+    } else {
+      //オペコードが取得できなかったら
       char label[128];
       char * p2 = NULL;
-      p2 = strtok(p," \t:");
+      p2 = strtok(p," \t");
       sscanf(p, "%s", label);
-      add_label(label, pc, line, llist);
-
-      // fprintf(log_fp, "[ERROR]@load_asm_file:\tinvalid assembly %s\n", p);
+      if(strchr(p,':'))add_label(label, pc, line, llist);
     }
-    // print_instr(instr);
   } //for
+
   printf("label list\n");
   print_labels(llist);
-
   resolve_label(program, llist);
   printf("命令数:\t%d\n", pc);
+  printf("行数:%d\n",line);
+
   fclose(fp);
-  // print_prgram(program);
   fflush(stdout);
-  // runtime->llist = llist;
-  // runtime->max_instr = pc;
-  // printf("max_instr = %d\n",runtime->max_instr);
   return program;
 }
 

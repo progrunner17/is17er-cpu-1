@@ -5,7 +5,6 @@
 #include <errno.h>
 #include "include.h"
 
-
 #define _BYTE1(x) (  x        & 0xFF )
 #define _BYTE2(x) ( (x >>  8) & 0xFF )
 #define _BYTE3(x) ( (x >> 16) & 0xFF )
@@ -24,7 +23,7 @@ int main(int argc, char **argv)
 	Reg reg = initialize_reg(NULL);
     LList llist = initialize_llist();
 	Program program = load_asm_file(source_filename,llist);
-
+	// print_labels(llist);
 	char buff[BUF_SIZE];
 	char prev_buff[BUF_SIZE];
 	char filename[BUF_SIZE];
@@ -60,15 +59,17 @@ int main(int argc, char **argv)
 			fclose(out_fp);
 		}else if(strcmp("next",command) == 0 || strcmp("n",command) == 0){
 			// ステップ数を指定 指定がなければ1をセット
+			n = 1;
 			if(!sscanf(tmp," %d",&n)) n = 1;
 
 			for(int i = 0 ; i < n; i++){
-				if((instr = program[reg->pc]) == NULL || program[reg->pc]->opcode == OP_HLT){
+				if((instr = program[reg->pc]) == NULL || program[reg->pc]->opcode == OP_HLT || program[reg->pc]->opcode == OP_LOAD_IO|| program[reg->pc]->opcode == OP_STORE_IO ){
 					fprintf(stderr,"end of program\n");
 					break;
 				}
 				print_label_of_pc(reg->pc, llist);
-				printf("0x%08x\t",reg->pc);
+				printf("addr:%6d  ",reg->pc);
+				printf("line:%4d\t",instr->line);
 				print_instr(instr);
 				exec_instr(instr,memory,reg);
 				if(instr->src_break){
