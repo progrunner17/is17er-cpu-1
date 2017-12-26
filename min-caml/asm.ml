@@ -166,11 +166,12 @@ let reg_const n = match n with
   | _ -> raise Not_found
 (* %x1 はリンクレジスタ、%x2 はスタックポインタ、%x3 はヒープのポインタに使う *)
 (* %x4 は返り値のレジスタ *)
-(* %x31 は一時変数用に多用途で使い、%x30 はシャッフルと入出力のための一時変数に使い、%x29 はクロージャの保存場所に使う *)
+(* %x31 は一時変数用に多用途で使い、 *)
+(* %x30 はシャッフルと入出力のための一時変数に使い、 *)
+(* %x29 はクロージャの保存場所に使う *)
 
 let fregs =
-  [| "%f1"; "%f2"; "%f3"; "%f4"; "%f5"; "%f6"; "%f7"; "%f8"; "%f9"; "%f10";
-     "%f30" |]
+  [| "%f1"; "%f2"; "%f3"; "%f4"; "%f5"; "%f6"; "%f7"; "%f8"; "%f9"; "%f10"; |]
 module FM = Map.Make(struct
     type t = float
     let compare = compare
@@ -198,7 +199,8 @@ let const_fregs = List.fold_right (fun (a, x) -> FM.add a x) [
   30.0 /. 3.1415927, "%f29"] FM.empty
 let freg_const a = FM.find a const_fregs
 (* %f1 は返り値のレジスタ *)
-(* %f31 はシャッフルの一時変数に使う *)
+(* %f30 は入力の一時変数に、 *)
+(* %f31 はシャッフルと入出力の一時変数に使う *)
 
 let is_reg x = (x.[0] = '%')
 
