@@ -174,7 +174,6 @@ void print_instr(Instr instr) {
 	case OP_HLT:break;
 	default: fprintf(log_fp,"[ERROR]@print_instr: opcode error\n");
 	}
-	putchar('\n');
 	fflush(stdout);
 }
 
@@ -277,7 +276,10 @@ void print_program(Program program,int start,int end) {
 	for (int i = start; program[i] != NULL && i <= end ; i++) {
 		pc = i + BASE_ADDR;
 		printf("0x%08x:\t", pc);
-		if(program[i] != NULL)print_instr(program[i]);
+		if(program[i] != NULL){
+			print_instr(program[i]);
+			putchar('\n');
+		}
 		else printf("hlt\n");
 	}
 }

@@ -13,6 +13,7 @@
 #define BYTE_SWAP_32(x) ((uint32_t)( _BYTE1(x)<<24 | _BYTE2(x)<<16 | _BYTE3(x)<<8 | _BYTE4(x) ))
 extern uint8_t sld_bytes[];
 extern unsigned sld_n_bytes;
+extern int show_all;
 
 int main(int argc, char **argv)
 {
@@ -48,6 +49,7 @@ int main(int argc, char **argv)
 		tmp += strlen(command);
 
 		if(strcmp("run",command) == 0 || strcmp("r",command) == 0){
+			show_all = 0;
 			GETTIME_FROM(ts,t);
 			count = exec_program(program,reg,memory);
 			GETTIME_TO(ts,t);
@@ -59,6 +61,7 @@ int main(int argc, char **argv)
 			fclose(out_fp);
 		}else if(strcmp("next",command) == 0 || strcmp("n",command) == 0){
 			// ステップ数を指定 指定がなければ1をセット
+			show_all = 1;
 			n = 1;
 			if(!sscanf(tmp," %d",&n)) n = 1;
 
@@ -68,9 +71,10 @@ int main(int argc, char **argv)
 					break;
 				}
 				print_label_of_pc(reg->pc, llist);
-				printf("addr:%6d  ",reg->pc);
-				printf("line:%4d\t",instr->line);
+				printf("PC:%5d",reg->pc);
+				printf("(%4d)\n\t",instr->line);
 				print_instr(instr);
+				putchar('\n');
 				exec_instr(instr,memory,reg);
 				if(instr->src_break){
 					printf("ソースコードで指定されたbreak\n");
