@@ -1922,23 +1922,19 @@ let rec write_ppm_header _ =
   (
     print_char 80; (* P *)
     print_char 54; (* 6 *)
-    print_char 10; (*   *)
+    print_char 10; (* \n *)
     print_char 49; (* 1 *)
     print_char 50; (* 2 *)
     print_char 56; (* 8 *)
-    print_char 10; (*   *)
+    print_char 32; (* \s *)
     print_char 49; (* 1 *)
     print_char 50; (* 2 *)
     print_char 56; (* 8 *)
-    print_char 10; (*   *)
+    print_char 10; (* \n *)
     print_char 50; (* 2 *)
     print_char 53; (* 5 *)
     print_char 53; (* 5 *)
-    print_char 10; (*   *)
-    print_char 50; (* 2 *)
-    print_char 53; (* 5 *)
-    print_char 53; (* 5 *)
-    print_char 10; (*   *)
+    print_char 10; (* \n *)
   )
 in
 
@@ -1950,11 +1946,11 @@ in
 
 let rec write_rgb _ =
    write_rgb_element rgb.(0); (* Red   *)
-   print_char 32;
+   print_char 32; (* \s *)
    write_rgb_element rgb.(1); (* Green *)
-   print_char 32;
+   print_char 32; (* \s *)
    write_rgb_element rgb.(2); (* Blue  *)
-   print_char 10
+   print_char 10; (* \n *)
 in
 
 (******************************************************************************
