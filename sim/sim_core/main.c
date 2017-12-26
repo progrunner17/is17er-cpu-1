@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 			if(!sscanf(tmp," %d",&n)) n = 1;
 
 			for(int i = 0 ; i < n; i++){
-				if((instr = program[reg->pc]) == NULL || program[reg->pc]->opcode == OP_HLT || program[reg->pc]->opcode == OP_LOAD_IO|| program[reg->pc]->opcode == OP_STORE_IO ){
+				if((instr = program[reg->pc]) == NULL || program[reg->pc]->opcode == OP_HLT){
 					fprintf(stderr,"end of program\n");
 					break;
 				}
