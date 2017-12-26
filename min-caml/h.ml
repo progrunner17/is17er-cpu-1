@@ -2,7 +2,8 @@
 
 open Lexing
 
-let heap_start = 131071
+let heap_start = 0
+let stack_start = 131071
 
 type pos = position
 type range = (pos * pos) option

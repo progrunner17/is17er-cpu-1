@@ -149,4 +149,6 @@ let h { Closure.range = range; Closure.name = (Id.L(x), t); Closure.args = yts; 
 let f (Closure.Prog(fundefs, e)) =
   let fundefs = List.map h fundefs in
   let (range, _) as e = g M.empty e in
-  Prog(fundefs, e)
+  Prog(fundefs,
+    (range, Let(None, ("%x3", Type.Int), (None, LI H.heap_start),
+      (range, Let(None, ("%x2", Type.Int), (None, LI H.stack_start), e)))))
