@@ -7,8 +7,7 @@
 
 
 extern uint8_t sld_bytes[];
-
-
+int show_all = 1;
 
 Runtime runtime = NULL;
 struct timespec ts;
@@ -102,9 +101,13 @@ Instr initialize_instr(void) {
 	i->exec_count = 0;
 	return i;
 }
+
+
 // 命令を実行する。
 void exec_instr(Instr i, Mem memory, Reg reg) {
 	static int input_index = 0;
+	unsigned  int jump_addr = 0;
+	int jump_en = 0;
 
 	if (i == NULL) {
 		fprintf(log_fp, "[ERROR]@exec_instr:\tinstr is NULL\n");fflush(log_fp);
@@ -116,29 +119,77 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 	}
 
 	switch (i->opcode) {
-		case OP_LUI: if ( 0 < i->rd && i->rd < 32) reg->x[i->rd] = i->imm << 12; break;
-		case OP_AUIPC: if ( 0 < i->rd && i->rd < 32)reg->x[i->rd] = reg->pc + (i->imm<<12); break;
+		case OP_LUI:
+			if(show_all)fprintf(log_fp,"\trd:x%d = %d\n",i->rd,reg->x[i->rd]);
+			if ( 0 < i->rd && i->rd < 32) reg->x[i->rd] = i->imm << 12;
+			if(show_all)fprintf(log_fp,"\tx%d <= %d\n",i->rd,reg->x[i->rd]);
+			break;
+		case OP_AUIPC:
+			if(show_all)fprintf(log_fp,"\trd:x%d = %d\n",i->rd,reg->x[i->rd]);
+			if ( 0 < i->rd && i->rd < 32)reg->x[i->rd] = reg->pc + (i->imm<<12);
+			if(show_all)fprintf(log_fp,"\tx%d <= %d\n",i->rd,reg->x[i->rd]);
+			break;
 		case OP_JAL:						//opcode rd, label
-			if ( 0 < i->rd && i->rd < 32)reg->x[i->rd] = reg->pc + 1;						//rd is usually 1 or 5 risc-v p14
-			reg->pc = reg->pc + i->imm ;
-			return;
+				if ( 0 < i->rd && i->rd < 32){
+						reg->x[i->rd] = reg->pc + 1;
+						if(show_all)fprintf(log_fp,"\tx%d <= %d\n",i->rd,reg->x[i->rd]);
+						if(show_all)fprintf(log_fp,"\trs1: x%d = %d\n",i->rs1,reg->x[i->rs1]);
+						if(show_all)fprintf(log_fp,"\timm:     = %d\n",i->imm);
+				}						//rd is usually 1 or 5 risc-v p14
+				// reg->pc = reg->pc + i->imm ;
+				jump_addr = reg->pc + i->imm ;
+				jump_en = 1;
+			break;
 		case OP_JALR:						//opcode rd, rs1, label
-			if ( 0 < i->rd && i->rd < 32)reg->x[i->rd] = reg->pc  + 1;
-			reg->pc = reg->x[i->rs1] + i->imm ;
-			return;
+			if ( 0 < i->rd && i->rd < 32){
+				reg->x[i->rd] = reg->pc  + 1;
+				if(show_all)fprintf(log_fp,"\t     x%d <= %d\n",i->rd,reg->x[i->rd]);
+			}
+			// reg->pc = reg->x[i->rs1] + i->imm ;
+				jump_addr = reg->x[i->rs1] + i->imm ;
+				jump_en = 1;
+			break;
 		case OP_BRANCH:						//opcode rs1, rs2, imm (immはオフセット)
-			reg->pc = 			(i->funct3 == B_EQ && (int) reg->x[i->rs1] == (int) reg->x[i->rs2]) ||
-			                    (i->funct3 == B_NE && (int) reg->x[i->rs1] != (int) reg->x[i->rs2]) ||
-			                    (i->funct3 == B_LT && (int) reg->x[i->rs1] <  (int) reg->x[i->rs2]) ||
-			                    (i->funct3 == B_GE && (int) reg->x[i->rs1] >= (int) reg->x[i->rs2]) ||
-			                    (i->funct3 == B_LTU && (unsigned int) reg->x[i->rs1] < (unsigned int) reg->x[i->rs2]) ||
-			                    (i->funct3 == B_GEU && (unsigned int) reg->x[i->rs1] >= (unsigned int) reg->x[i->rs2])
-			                    ? reg->pc + i->imm  : reg->pc + 1;
-			return;
+			if(show_all)fprintf(log_fp,"\trs1: x%d = %d,\n\trs2: x%d = %d\n",i->rs1, reg->x[i->rs1],i->rs2, reg->x[i->rs2]);
+			switch(i->funct3){
+					case B_EQ:
+						jump_en = reg->x[i->rs1] ==  reg->x[i->rs2];
+						break;
+					case B_NE:
+						jump_en = reg->x[i->rs1] !=  reg->x[i->rs2];
+						break;
+					case B_LT:
+						jump_en = reg->x[i->rs1] <   reg->x[i->rs2];
+						break;
+					case B_GE:
+						jump_en = reg->x[i->rs1] >=  reg->x[i->rs2];
+						break;
+					case B_LTU:
+						jump_en = (unsigned int) reg->x[i->rs1] < (unsigned int) reg->x[i->rs2]  ;
+						break;
+					case B_GEU:
+						jump_en = (unsigned int) reg->x[i->rs1] >= (unsigned int) reg->x[i->rs2]  ;
+						break;
+					default:
+						jump_en = 0;
+						fprintf(log_fp,"[ERROR]@exec_instr:@pc = %8d OP_STORE\n", reg->pc);
+						fprintf(log_fp,"[ERROR]@exec_instr:branch mode error\n");
+			}
+			if(show_all){
+				if(jump_en)fprintf(log_fp, "\tcondition: TRUE\n");
+				else fprintf(log_fp, "\tcondition: FALSE\n");
+			}
+			jump_addr = reg->pc + i->imm;
+			break;
 		case OP_LOAD: {						//opcode rd, imm(rs1) (immはディスプレースメント)
 				int addr = reg->x[i->rs1] + i->imm;
 				if (i->funct3 == LOAD_WORD && 0 < i->rd && i->rd < 32  ) {
-					if ( addr < MEMORY_SIZE )reg->x[i->rd] = memory[addr].d;
+					if ( addr < MEMORY_SIZE ){
+						reg->x[i->rd] = memory[addr].d;
+						if(show_all)fprintf(log_fp,"\trd:  x%d =  %d\n",i->rd,reg->x[i->rd]);
+						if(show_all)fprintf(log_fp,"\tmem_addr:%d (0x%06x)\n",addr,addr);
+						if(show_all)fprintf(log_fp,"\t     x%d <= %d\n",i->rd,reg->x[i->rd]);
+					}
 					else {
 						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_LOAD\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
@@ -155,6 +206,9 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 				if (i->funct3 == STORE_WORD) {
 					if ((unsigned int )addr < MEMORY_SIZE) {
 						memory[addr].x = reg->x[i->rs2];
+						if(show_all)fprintf(log_fp,"\tmem_addr:%d (0x%06x)\n",addr,addr);
+						if(show_all)fprintf(log_fp,"\tx%d:%d is stored\n",i->rs2,reg->x[i->rs2]);
+
 					} else {
 						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_STORE\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
@@ -165,6 +219,8 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 			}
 			break;
 		case OP_ALUI :						//opcode rd, rs1, imm
+			if(show_all)fprintf(log_fp,"\trs1: x%d = %d\n\timm = %d\n",i->rs1, reg->x[i->rs1],i->imm);
+			if(show_all)fprintf(log_fp,"\trd:  x%d = %d\n",i->rd,reg->x[i->rd]);
 			if ( 0 < i->rd && i->rd < 32  ) {
 				switch (i->funct3) {
 					case ALU_ADD : 	reg->x[i->rd] =  reg->x[i->rs1] + i->imm ; break;
@@ -178,8 +234,11 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 					default: fprintf(stderr, "error in exec alui\n");
 				}
 			}
+			if(show_all)fprintf(log_fp,"\tx%d <= %d\n",i->rd,reg->x[i->rd]);
 			break;
 		case OP_ALU:						//opcode rd, rs1, rs2
+			if(show_all)fprintf(log_fp,"\trd:x%d = %d\n",i->rd,reg->x[i->rd]);
+			if(show_all)fprintf(log_fp,"\trs1:x%d = %d\n\trs2:x%d = %d\n",i->rs1, reg->x[i->rs1],i->rs2, reg->x[i->rs2]);
 			if ( 0 < i->rd && i->rd < 32) {
 				switch (i->funct3) {
 					case  ALU_ADD :
@@ -194,39 +253,95 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 					case  ALU_AND : 	reg->x[i->rd] =  reg->x[i->rs1] & reg->x[i->rs2] ; break;
 				}
 			}
+			if(show_all)fprintf(log_fp,"\tx%d <= %d\n",i->rd,reg->x[i->rd]);
 			break;
 		case OP_FP:
 			switch (i->funct5) {
-				case  F5_FADD: reg->f[i->rd] = reg->f[i->rs1] + reg->f[i->rs2]; break;
-				case  F5_FSUB: reg->f[i->rd] = reg->f[i->rs1] - reg->f[i->rs2]; break;
-				case  F5_FMUL: reg->f[i->rd] = reg->f[i->rs1] * reg->f[i->rs2]; break;
-				case  F5_FDIV: reg->f[i->rd] = reg->f[i->rs1] / reg->f[i->rs2]; break;
-				case  F5_FSQRT: reg->f[i->rd] = sqrtf(fabsf(reg->f[i->rs1])); break;
+				case  F5_FADD:
+					if(show_all)fprintf(log_fp,"\trd: f%d = %f \n",i->rd,reg->f[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
+					if(show_all)fprintf(log_fp,"\trs2:f%d = %f \n",i->rs2,reg->f[i->rs2]);
+					reg->f[i->rd] = reg->f[i->rs1] + reg->f[i->rs2];
+					if(show_all)fprintf(log_fp,"\tf%d  <= %f\n",i->rd, reg->f[i->rd]);
+					break;
+				case  F5_FSUB:
+					if(show_all)fprintf(log_fp,"\trd: f%d = %f \n",i->rd,reg->f[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
+					if(show_all)fprintf(log_fp,"\trs2:f%d = %f \n",i->rs2,reg->f[i->rs2]);
+					reg->f[i->rd] = reg->f[i->rs1] - reg->f[i->rs2];
+					if(show_all)fprintf(log_fp,"\tf%d  <= %f\n",i->rd, reg->f[i->rd]);
+					break;
+				case  F5_FMUL:
+					if(show_all)fprintf(log_fp,"\trd: f%d = %f \n",i->rd,reg->f[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
+					if(show_all)fprintf(log_fp,"\trs2:f%d = %f \n",i->rs2,reg->f[i->rs2]);
+					reg->f[i->rd] = reg->f[i->rs1] * reg->f[i->rs2];
+					if(show_all)fprintf(log_fp,"\tf%d  <= %f\n",i->rd, reg->f[i->rd]);
+					break;
+				case  F5_FDIV:
+					if(show_all)fprintf(log_fp,"\trd: f%d = %f \n",i->rd,reg->f[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
+					if(show_all)fprintf(log_fp,"\trs2:f%d = %f \n",i->rs2,reg->f[i->rs2]);
+					reg->f[i->rd] = reg->f[i->rs1] / reg->f[i->rs2];
+					if(show_all)fprintf(log_fp,"\tf%d  <= %f\n",i->rd, reg->f[i->rd]);
+					break;
+				case  F5_FSQRT:
+					if(show_all)fprintf(log_fp,"\trd:f%d = %f \n",i->rd,reg->f[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
+					reg->f[i->rd] = sqrtf(fabsf(reg->f[i->rs1]));
+					if(show_all)fprintf(log_fp,"\tf%d  <= %f\n",i->rd, reg->f[i->rd]);
+					break;
 				case  F5_FCMP:
+					if(show_all)fprintf(log_fp,"\trd:x%d = %d \n",i->rd,reg->x[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
+					if(show_all)fprintf(log_fp,"\trs2:f%d = %f \n",i->rs2,reg->f[i->rs2]);
 					reg->x[i->rd] = (i->funct3 == F3_FEQ && reg->f[i->rs1] == reg->f[i->rs2] ) ||
 					                (i->funct3 == F3_FLT && reg->f[i->rs1] <  reg->f[i->rs2] ) ||
-					                (i->funct3 == F3_FLE && reg->f[i->rs1] <= reg->f[i->rs2] ); break;
+					                (i->funct3 == F3_FLE && reg->f[i->rs1] <= reg->f[i->rs2] ); 
+					if(show_all)fprintf(log_fp,"\tx%d  <= %d\n",i->rd, reg->x[i->rd]);
+					break;
 				case F5_FSGNJ:
+					if(show_all)fprintf(log_fp,"\trd:f%d = %f \n",i->rd,reg->f[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
 					switch(i->funct3){
 						case F3_FSGNJ: reg->f[i->rd] = reg->f[i->rs1];break;
 						case F3_FSGNJN: reg->f[i->rd] = - (reg->f[i->rs1]);break;
 						case F3_FSGNJX: reg->f[i->rd] = fabs(reg->f[i->rs1]);break;
 					}
+					if(show_all)fprintf(log_fp,"\tf%d  <= %f\n",i->rd, reg->f[i->rd]);
 					break;
 				case  F5_FTOI:{
+					if(show_all)fprintf(log_fp,"\trd:x%d = %d \n",i->rd,reg->x[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
 					switch(i->funct3){
 						case F3_RNE:reg->x[i->rd] = (int) roundf(reg->f[i->rs1]);break;
 						case F3_RDN:reg->x[i->rd] = (int) reg->f[i->rs1]; break;
 					}
+					if(show_all)fprintf(log_fp,"\tx%d  <= %d\n",i->rd, reg->x[i->rd]);
 				}break;
-				case  F5_FTOX: ((float *)reg->x)[i->rd] = reg->f[i->rs1]; break;
-				case  F5_ITOF: reg->f[i->rd] = (float)reg->x[i->rs1]; break;
-				case  F5_XTOF: ((int *) reg->f)[i->rd] = reg->x[i->rs1];break;
+				case  F5_FTOX:
+					if(show_all)fprintf(log_fp,"\trd:x%d = %d \n",i->rd,reg->x[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
+					((float *)reg->x)[i->rd] = reg->f[i->rs1];
+					if(show_all)fprintf(log_fp,"\tx%d  <= %d\n",i->rd, reg->x[i->rd]);
+				break;
+				case  F5_ITOF:
+					if(show_all)fprintf(log_fp,"\trd:f%d = %f \n",i->rd,reg->f[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:x%d = %d \n",i->rs1,reg->x[i->rs1]);
+					reg->f[i->rd] = (float)reg->x[i->rs1];
+					if(show_all)fprintf(log_fp,"\tf%d  <= %f\n",i->rd, reg->f[i->rd]);
+					break;
+				case  F5_XTOF:
+					if(show_all)fprintf(log_fp,"\trd:f%d = %f \n",i->rd,reg->f[i->rd]);
+					if(show_all)fprintf(log_fp,"\trs1:x%d = %d \n",i->rs1,reg->x[i->rs1]);
+					((int *) reg->f)[i->rd] = reg->x[i->rs1];break;
+					if(show_all)fprintf(log_fp,"\tf%d  <= %f\n",i->rd, reg->f[i->rd]);
 
 				default:
 					fprintf(stderr, "invalid operation of F_OP\n");
 					return;
 			}
+
 			break;
 		case  OP_STORE_FP: {
 				int addr  = reg->x[i->rs1] + i->imm;
@@ -234,6 +349,8 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						memory[addr].f = reg->f[i->rs2];
 						// printf("store x%d(%d) to mem[%d]\n",i->rs2,reg->x[i->rs2],reg->x[i->rs1] + i->imm);
 						// printf("stored data == %d\n",memory[i->rs1 + i->imm].x);
+						if(show_all)fprintf(log_fp,"\tmem_addr:%d (0x%06x)\n",addr,addr);
+						if(show_all)fprintf(log_fp,"\tf%d:%f is stored\n",i->rs2,reg->f[i->rs2]);
 					} else {
 						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_STORE_FP\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
@@ -247,6 +364,9 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 				int addr  = reg->x[i->rs1] + i->imm;
 					if ( addr < MEMORY_SIZE )
 						reg->f[i->rd] = memory[addr].f;
+						if(show_all)fprintf(log_fp,"\trd:  f%d =  %f\n",i->rd,reg->f[i->rd]);
+						if(show_all)fprintf(log_fp,"\tmem_addr:%d (0x%06x)\n",addr,addr);
+						if(show_all)fprintf(log_fp,"\t     f%d <= %f\n",i->rd,reg->f[i->rd]);
 					else {
 						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_LOAD\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
@@ -284,7 +404,12 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 				fputc('\n', stderr);
 			}
 	}
-	reg->pc++;
+	if(jump_en){
+		reg->pc =jump_addr;
+		if(show_all)fprintf(log_fp,"\tjump to %d\n",jump_addr);
+	}else{
+		reg->pc++;
+	}
 	// print_reg(reg,PRINT_REG_PC);
 	// printf("imm:%d,x[%d]:%d\n",i->imm,i->rd,reg->x[i->rd]);
 
