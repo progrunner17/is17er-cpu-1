@@ -80,26 +80,35 @@ and g' lines (dest, ((range, body) as exp)) =
   | NonTail(x), LI(n) ->
       let u = upper n in
       let l = lower n in
-      let s = if u = 0 then "" else Printf.sprintf "\tlui\t%s, %d%s" (reg x) u (comment_range lines range) in s^
-      if l = 0 then "" else Printf.sprintf "\taddi\t%s, %s, %d%s" (reg x) (reg x) l (comment_range lines range)
+      if u = 0 then
+        Printf.sprintf "\taddi\t%s, x0, %d%s" (reg x) l (comment_range lines range)
+      else
+        let s = Printf.sprintf "\tlui\t%s, %d%s" (reg x) u (comment_range lines range) in s^
+        if l = 0 then "" else Printf.sprintf "\taddi\t%s, %s, %d%s" (reg x) (reg x) l (comment_range lines range)
   | NonTail(x), FLI(a) ->
       let u = Int32.to_int @@ upper_float a in
       let l = Int32.to_int @@ lower_float a in
-      let s = if u = 0 then "" else Printf.sprintf "\tlui\tx31, %d%s" u (comment_range lines range) in s^
-      let s = if l = 0 then "" else Printf.sprintf "\taddi\tx31, x31, %d%s" l (comment_range lines range) in s^
+      let s = if u = 0 then
+        Printf.sprintf "\taddi\tx31, x0, %d%s" l (comment_range lines range)
+      else
+        let s = Printf.sprintf "\tlui\tx31, %d%s" u (comment_range lines range) in s^
+        if l = 0 then "" else Printf.sprintf "\taddi\tx31, x31, %d%s" l (comment_range lines range) in s^
       Printf.sprintf "\txtof\t%s, x31%s" (freg x) (comment_range lines range)
   | NonTail(x), LIL(Id.L(y)) -> (try
         let n = M.find y !labels in
         let u = upper n in
         let l = lower n in
-        let s = if u = 0 then "" else Printf.sprintf "\tlui\t%s, %d%s" (reg x) u (comment_range lines range) in s^
-        if l = 0 then "" else Printf.sprintf "\taddi\t%s, %s, %d%s" (reg x) (reg x) l (comment_range lines range)
+        if u = 0 then
+          Printf.sprintf "\taddi\t%s, x0, %d%s" (reg x) l (comment_range lines range)
+        else
+          let s = Printf.sprintf "\tlui\t%s, %d%s" (reg x) u (comment_range lines range) in s^
+          if l = 0 then "" else Printf.sprintf "\taddi\t%s, %s, %d%s" (reg x) (reg x) l (comment_range lines range)
       with Not_found -> Printf.sprintf "\tLABEL %s NOT FOUND%s" y (comment_range lines range))
   | NonTail(x), Mv(y) when x = y -> ""
   | NonTail(x), Mv(y) ->
       Printf.sprintf "\taddi\t%s, %s, 0%s" (reg x) (reg y) (comment_range lines range)
   | NonTail(x), Not(y) ->
-      Printf.sprintf "\txori\t%s, %s, -1%s" (reg x) (reg y) (comment_range lines range)
+      Printf.sprintf "\txori\t%s, %s, 1%s" (reg x) (reg y) (comment_range lines range)
   | NonTail(x), Xor(y, z) ->
       Printf.sprintf "\txor\t%s, %s, %s%s" (reg x) (reg y) (reg z) (comment_range lines range)
   | NonTail(x), Neg(y) ->

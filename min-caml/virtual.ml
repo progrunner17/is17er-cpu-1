@@ -149,5 +149,4 @@ let h { Closure.range = range; Closure.name = (Id.L(x), t); Closure.args = yts; 
 let f (Closure.Prog(fundefs, e)) =
   let fundefs = List.map h fundefs in
   let (range, _) as e = g M.empty e in
-  Prog(fundefs,
-    (range, Let(None, ("%x3", Type.Int), (None, LI 0), e)))
+  Prog(fundefs, e)
