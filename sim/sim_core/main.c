@@ -15,6 +15,7 @@ extern uint8_t sld_bytes[];
 extern unsigned sld_n_bytes;
 extern int show_all;
 extern int error;
+extern int input_index;
 int main(int argc, char **argv)
 {
 
@@ -59,6 +60,8 @@ int main(int argc, char **argv)
 			printf("毎秒%3.2f億命令実行\n",count/t/100000000);
 			fflush(out_fp);
 			fclose(out_fp);
+					error = 0;
+
 		}else if(strcmp("next",command) == 0 || strcmp("n",command) == 0){
 			// ステップ数を指定 指定がなければ1をセット
 			show_all = 1;
@@ -67,6 +70,7 @@ int main(int argc, char **argv)
 
 			for(int i = 0 ; i < n; i++){
 				if(error){
+					error = 0;
 					fprintf(stderr,"stop execution\n");
 					break;
 				}
@@ -93,6 +97,7 @@ int main(int argc, char **argv)
 			for(int i = 0 ; i < n; i++){
 				if(error){
 					fprintf(stderr,"stop execution\n");
+					error = 0;
 					break;
 				}
 				if((instr = program[reg->pc]) == NULL || program[reg->pc]->opcode == OP_HLT){
@@ -209,6 +214,13 @@ int main(int argc, char **argv)
 				reg = initialize_reg(reg);
 			}else if(strcmp(command,"memory") == 0){
 				memory = initialize_memory(MEMORY_SIZE,memory);
+			}else if(strcmp(command,"pc") == 0){
+				reg->pc = BASE_ADDR;
+			}else if(strcmp(command,"all") == 0){
+				reg = initialize_reg(reg);
+				memory = initialize_memory(MEMORY_SIZE,memory);
+				reg->pc = BASE_ADDR;
+				input_index = 0;
 			}
 		}else if(strcmp("load",command) == 0 || strcmp("l",command) == 0){
 

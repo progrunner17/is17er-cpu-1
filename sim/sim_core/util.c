@@ -11,6 +11,7 @@ typedef union {
   uint32_t u;
   uint8_t b[4];
 } fi_union;
+int input_index = 0;
 
 
 extern fi_union sld_words[];
@@ -116,7 +117,6 @@ Instr initialize_instr(void) {
 
 // 命令を実行する。
 void exec_instr(Instr i, Mem memory, Reg reg) {
-	static int input_index = 0;
 	unsigned  int jump_addr = 0;
 	int jump_en = 0;
 
@@ -445,8 +445,10 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 	}
 	// print_reg(reg,PRINT_REG_PC);
 	// printf("imm:%d,x[%d]:%d\n",i->imm,i->rd,reg->x[i->rd]);
-
-
+	i->exec_count++;
+if(show_all){
+	fprintf(log_fp,"\tinstr count:%d \n",i->exec_count++);
+}
 }
 
 
@@ -520,6 +522,7 @@ Reg initialize_reg(Reg reg) {
 		reg = malloc(sizeof(struct _reg));
 		reg->pc = 0;
 	}
+
 	for (int i = 0; i < 32; i++)
 		reg->x[i] = 0;
 
