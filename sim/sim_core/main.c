@@ -14,7 +14,7 @@
 extern uint8_t sld_bytes[];
 extern unsigned sld_n_bytes;
 extern int show_all;
-
+extern int error;
 int main(int argc, char **argv)
 {
 
@@ -66,6 +66,10 @@ int main(int argc, char **argv)
 			if(!sscanf(tmp," %d",&n)) n = 1;
 
 			for(int i = 0 ; i < n; i++){
+				if(error){
+					fprintf(stderr,"stop execution\n");
+					break;
+				}
 				if((instr = program[reg->pc]) == NULL || program[reg->pc]->opcode == OP_HLT){
 					fprintf(stderr,"end of program\n");
 					break;
@@ -82,7 +86,25 @@ int main(int argc, char **argv)
 				}
 			}
 		}else if(strcmp("countinue",command) == 0 || strcmp("c",command) == 0){
+			show_all = 0;
+			n = 1;
+			if(!sscanf(tmp," %d",&n)) n = 1;
 
+			for(int i = 0 ; i < n; i++){
+				if(error){
+					fprintf(stderr,"stop execution\n");
+					break;
+				}
+				if((instr = program[reg->pc]) == NULL || program[reg->pc]->opcode == OP_HLT){
+					fprintf(stderr,"end of program\n");
+					break;
+				}
+				exec_instr(instr,memory,reg);
+				if(instr->src_break){
+					printf("ソースコードで指定されたbreak\n");
+					break;
+				}
+			}
 			// continue_program(program,reg,memory);
 
 		}else if(strcmp("set",command) == 0 || strcmp("s",command) == 0){
@@ -120,7 +142,6 @@ int main(int argc, char **argv)
 					printf("出力ファイルを再設定してください\n");
 				}
 			}
-
 		}else if(strcmp("info",command) == 0 || strcmp("i",command) == 0){
 			sscanf(tmp,"%s",command);
 			if(strcmp(command,"x") == 0){
@@ -139,7 +160,6 @@ int main(int argc, char **argv)
 				print_reg(reg,PRINT_REG_F | PRINT_REG_X_X | PRINT_REG_PC);
 			}else if(strcmp(command,"p") == 0 || strcmp(command,"program") == 0){
 				tmp +=  strlen(command) + 1;
-				// printf("%s",tmp);
 				n = PROGRAM_SIZE;
 				sscanf(tmp,"%d",&n);
 				print_program(program,0,n);
@@ -162,7 +182,7 @@ int main(int argc, char **argv)
 				word w;
 				for(int i = 0; i<n; i++){
 					w.x = BYTE_SWAP_32(p[i]);
-					printf("%5d:%d,%f\n",i,w.x,w.f);
+					printf("%5d:%12d,%10.5f\n",i,w.x,w.f);
 				}
 			}
 

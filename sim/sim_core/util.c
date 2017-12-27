@@ -5,9 +5,20 @@
 #include <math.h>
 #include "include.h"
 
+typedef union {
+  int i;
+  float f;
+  uint32_t u;
+  uint8_t b[4];
+} fi_union;
 
+
+extern fi_union sld_words[];
 extern uint8_t sld_bytes[];
+extern unsigned sld_n_bytes;
+
 int show_all = 1;
+int error  = 0;
 
 Runtime runtime = NULL;
 struct timespec ts;
@@ -111,10 +122,12 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 
 	if (i == NULL) {
 		fprintf(log_fp, "[ERROR]@exec_instr:\tinstr is NULL\n");fflush(log_fp);
+						error = 1;
 		return;
 	}
 	if (reg == NULL) {
 		fprintf(log_fp, "[ERROR]@exec_instr:\treg is NULL\n");fflush(log_fp);
+						error = 1;
 		return;
 	}
 
@@ -172,6 +185,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						break;
 					default:
 						jump_en = 0;
+						error = 1;
 						fprintf(log_fp,"[ERROR]@exec_instr:@pc = %8d OP_STORE\n", reg->pc);
 						fprintf(log_fp,"[ERROR]@exec_instr:branch mode error\n");
 			}
@@ -185,15 +199,15 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 				int addr = reg->x[i->rs1] + i->imm;
 				if (i->funct3 == LOAD_WORD && 0 < i->rd && i->rd < 32  ) {
 					if ( addr < MEMORY_SIZE ){
-						reg->x[i->rd] = memory[addr].d;
 						if(show_all)fprintf(log_fp,"\trd:  x%d =  %d\n",i->rd,reg->x[i->rd]);
+						reg->x[i->rd] = memory[addr].d;
 						if(show_all)fprintf(log_fp,"\tmem_addr:%d (0x%06x)\n",addr,addr);
 						if(show_all)fprintf(log_fp,"\t     x%d <= %d\n",i->rd,reg->x[i->rd]);
-					}
-					else {
-						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_LOAD\n",reg->pc,reg->pc);
+					}else {
+						error = 1;
+						fprintf(log_fp, "[ERROR]@exec_instr:@pc:%d (0x%08x) OP_LOAD\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
-						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is  0x%08x\n", addr );
+						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is \t0x%08x\n", addr );
 						fprintf(log_fp, "[ERROR]@exec_instr:\tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
 					}
 				} else {
@@ -210,6 +224,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						if(show_all)fprintf(log_fp,"\tx%d:%d is stored\n",i->rs2,reg->x[i->rs2]);
 
 					} else {
+						error = 1;
 						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_STORE\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
 						fprintf(log_fp, "                   \taccess addr is  0x%08x\n", addr );
@@ -339,6 +354,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 
 				default:
 					fprintf(stderr, "invalid operation of F_OP\n");
+					error = 1;
 					return;
 			}
 
@@ -361,16 +377,20 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 			}
 			break;
 		case OP_LOAD_FP : {
+				if(show_all)fprintf(log_fp,"\trs1: x%d = %d\n\timm = %d\n",i->rs1, reg->x[i->rs1],i->imm);
 				int addr  = reg->x[i->rs1] + i->imm;
-					if ( addr < MEMORY_SIZE )
-						reg->f[i->rd] = memory[addr].f;
-						if(show_all)fprintf(log_fp,"\trd:  f%d =  %f\n",i->rd,reg->f[i->rd]);
-						if(show_all)fprintf(log_fp,"\tmem_addr:%d (0x%06x)\n",addr,addr);
-						if(show_all)fprintf(log_fp,"\t     f%d <= %f\n",i->rd,reg->f[i->rd]);
-					else {
-						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_LOAD\n",reg->pc,reg->pc);
+					if ( addr < MEMORY_SIZE ){
+							if(show_all)fprintf(log_fp,"\trd:  f%d =  %f\n",i->rd,reg->f[i->rd]);
+							reg->f[i->rd] = memory[addr].f;
+							if(show_all)fprintf(log_fp,"\tmem_addr:%d (0x%06x)\n",addr,addr);
+							if(show_all)fprintf(log_fp,"\t     f%d <= %f\n",i->rd,reg->f[i->rd]);
+					}else {
+						error = 1;
+						// fprintf(log_fp,"\trs1: x%d = %d\n\timm = %d\n",i->rs1, reg->x[i->rs1],i->imm);
+						// fprintf(log_fp,"\trs1: x%d = %08x\n\timm = %08x\n",i->rs1, reg->x[i->rs1],i->imm);
+						fprintf(log_fp, "[ERROR]@exec_instr:@pc = %8d (0x%08x) OP_LOAD_FP\n",reg->pc,reg->pc);
 						fprintf(log_fp, "[ERROR]@exec_instr:\tmemory size error\n");
-						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is  0x%08x\n", addr );
+						fprintf(log_fp, "[ERROR]@exec_instr:\taccess addr is        0x%08x\n", addr );
 						fprintf(log_fp, "[ERROR]@exec_instr:\tbut valid addr is 0 ~ 0x%08x\n", MEMORY_SIZE - 1);
 					}
 			}
@@ -384,21 +404,34 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						scanf("%s",filename);
 						out_fp = fopen(filename,"w");
 					}
+					if(show_all)fprintf(log_fp,"\trs2:x%d = %d(0x%08x) \n",i->rs2,reg->x[i->rs2],reg->x[i->rs2]);
 					fwrite(&(reg->x[i->rs2]),1,1,out_fp);
 					// printf("%d\n",reg->x[i->rs2]);
 				}else{
+					error = 1;
 					fprintf(log_fp,"[ERROR]@exec_instr\t:funct3 of ob should be STORE_BYTE\n");
 				}
 
 			}
 			break;
 		case OP_LOAD_IO :{
-			uint32_t data =  (uint32_t)sld_bytes[input_index++];
-				fprintf(log_fp,"input[%d]: %02x\n", input_index-1,data);
-				reg->f[i->rd] =data;
+			if(input_index <sld_n_bytes){
+						if(show_all)fprintf(log_fp,"\trd:x%d = %d(0x%08x) \n",i->rd,reg->x[i->rd],reg->x[i->rd]);
+							word w;
+							w.x = sld_words[input_index/4].i;
+							uint32_t data =  (uint32_t)sld_bytes[input_index++];
+							fprintf(log_fp,"\tinput[%d]: %02x\t", input_index-1,data);
+							printf("(%12d or %10.5f)\n",w.x,w.f);
+							reg->x[i->rd] = data;
+							if(show_all)fprintf(log_fp,"\tx%d  <= %d(0x%08x)\n",i->rd, reg->x[i->rd], reg->x[i->rd]);
+			}else{
+					fprintf(log_fp,"[ERROR]@exec_instr\t:lack of input data\n");
+						error = 1;
+			}
 			}
 			break;
 		default: {
+						error = 1;
 				fprintf(stderr, "invalid opcode:\t0b");
 				fprint_bin(stderr, i->opcode, 6, 0);
 				fputc('\n', stderr);
@@ -425,6 +458,11 @@ int  exec_program(Program program, Reg reg, Mem mem) {
 	int instr_count = 0;
 	while ((instr = program[reg->pc]) != NULL && instr->opcode != OP_HLT) {
 		exec_instr(instr, mem, reg);
+		if(error){
+		print_instr(instr);
+		putchar('\n');
+					break;
+		}
 		instr_count++;
 	}
 	return instr_count;
