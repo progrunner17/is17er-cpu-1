@@ -309,7 +309,7 @@ and g' lines (dest, ((range, body) as exp)) =
         let s = Printf.sprintf "\taddi\tx2, x2, %d%s" (-ss) (comment_range lines range) in s^
         let s = Printf.sprintf "\tlw\tx1, %d(x2)%s" (ss - 1) (comment_range lines range) in s^
         match String.sub a 0 2 with
-          | "%x" -> if a = "%x4" then "" else Printf.sprintf "\taddi\t%s, x4, 0%s" (reg a) (comment_range lines range)
+          | "%x" -> if a = "%x4" || a = "%x0" then "" else Printf.sprintf "\taddi\t%s, x4, 0%s" (reg a) (comment_range lines range)
           | "%f" -> if a = "%f1" then "" else Printf.sprintf "\tfmv\t%s, f1%s" (freg a) (comment_range lines range)
           | _ -> failwith @@ "invalid register"^a
       with Not_found -> Printf.sprintf "\tLABEL %s NOT FOUND%s" x (comment_range lines range))

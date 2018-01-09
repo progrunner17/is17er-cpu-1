@@ -41,7 +41,7 @@ type alloc_result = (* allocにおいてspillingがあったかどうかを表�
 let rec alloc dest cont regenv x t =
   (* allocate a register or spill a variable *)
   assert (not (M.mem x regenv));
-  if t = Type.Unit then Alloc (reg_const 0) else (* [XX] ad hoc optimization *)
+  if t = Type.Unit then Alloc "%x0" else (* [XX] ad hoc optimization *)
   let all = if t = Type.Float then Array.to_list fregs else Array.to_list regs in
   if is_reg x then Alloc(x) else
   let free = fv cont in
