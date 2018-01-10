@@ -312,7 +312,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 					if(show_all)fprintf(log_fp,"\trs2:f%d = %f \n",i->rs2,reg->f[i->rs2]);
 					reg->x[i->rd] = (i->funct3 == F3_FEQ && reg->f[i->rs1] == reg->f[i->rs2] ) ||
 					                (i->funct3 == F3_FLT && reg->f[i->rs1] <  reg->f[i->rs2] ) ||
-					                (i->funct3 == F3_FLE && reg->f[i->rs1] <= reg->f[i->rs2] ); 
+					                (i->funct3 == F3_FLE && reg->f[i->rs1] <= reg->f[i->rs2] );
 					if(show_all)fprintf(log_fp,"\tx%d  <= %d\n",i->rd, reg->x[i->rd]);
 					break;
 				case F5_FSGNJ:
@@ -329,7 +329,7 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 					if(show_all)fprintf(log_fp,"\trd:x%d = %d \n",i->rd,reg->x[i->rd]);
 					if(show_all)fprintf(log_fp,"\trs1:f%d = %f \n",i->rs1,reg->f[i->rs1]);
 					switch(i->funct3){
-						case F3_RNE:reg->x[i->rd] = (int) roundf(reg->f[i->rs1]);break;
+						case F3_RNE:reg->x[i->rd] = (int) floorf(reg->f[i->rs1]);break;
 						case F3_RDN:reg->x[i->rd] = (int) reg->f[i->rs1]; break;
 					}
 					if(show_all)fprintf(log_fp,"\tx%d  <= %d\n",i->rd, reg->x[i->rd]);
