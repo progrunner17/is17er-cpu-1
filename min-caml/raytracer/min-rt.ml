@@ -1946,11 +1946,8 @@ in
 
 let rec write_rgb _ =
    write_rgb_element rgb.(0); (* Red   *)
-   print_char 32; (* \s *)
    write_rgb_element rgb.(1); (* Green *)
-   print_char 32; (* \s *)
    write_rgb_element rgb.(2); (* Blue  *)
-   print_char 10; (* \n *)
 in
 
 (******************************************************************************
