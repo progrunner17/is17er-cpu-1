@@ -142,7 +142,9 @@ and g' lines (dest, ((range, body) as exp)) =
       let s = Printf.sprintf "\tadd\tx31, %s, %s%s" (reg y) (reg z) (comment_range lines range) in s^
       Printf.sprintf "\tsw\t%s, 0(x31)%s" (reg x) (comment_range lines range)
   | NonTail(x), Array(y, z) ->
-      let s = Printf.sprintf "\taddi\tx30, x3, 0%s" (comment_range lines range) in s^
+      let s = Printf.sprintf "\taddi\tx30, x3, 1%s" (comment_range lines range) in s^
+      let s = Printf.sprintf "\tsw\t%s, 0(x3)%s" (reg y) (comment_range lines range) in s^
+      let s = Printf.sprintf "\taddi\tx3, x3, 1%s" (comment_range lines range) in s^
       let s = Printf.sprintf "\tadd\tx31, x3, %s%s" (reg y) (comment_range lines range) in s^
       let s = Printf.sprintf "\tbeq\tx31, x3, 4%s" (comment_range lines range) in s^
       let s = Printf.sprintf "\tsw\t%s, 0(x3)%s" (reg z) (comment_range lines range) in s^
@@ -198,7 +200,9 @@ and g' lines (dest, ((range, body) as exp)) =
       let s = Printf.sprintf "\tadd\tx31, %s, %s%s" (reg y) (reg z) (comment_range lines range) in s^
       Printf.sprintf "\tfsw\t%s, 0(x31)%s" (freg x) (comment_range lines range)
   | NonTail(x), FArray(y, z) ->
-      let s = Printf.sprintf "\taddi\tx30, x3, 0%s" (comment_range lines range) in s^
+      let s = Printf.sprintf "\taddi\tx30, x3, 1%s" (comment_range lines range) in s^
+      let s = Printf.sprintf "\tsw\t%s, 0(x3)%s" (reg y) (comment_range lines range) in s^
+      let s = Printf.sprintf "\taddi\tx3, x3, 1%s" (comment_range lines range) in s^
       let s = Printf.sprintf "\tadd\tx31, x3, %s%s" (reg y) (comment_range lines range) in s^
       let s = Printf.sprintf "\tbeq\tx31, x3, 4%s" (comment_range lines range) in s^
       let s = Printf.sprintf "\tfsw\t%s, 0(x3)%s" (freg z) (comment_range lines range) in s^
@@ -228,6 +232,10 @@ and g' lines (dest, ((range, body) as exp)) =
       let s = Printf.sprintf "\tib\tx31%s" (comment_range lines range) in s^
       let s = Printf.sprintf "\tor\tx30, x30, x31%s" (comment_range lines range) in s^
       Printf.sprintf "\txtof\t%s, x30%s" (freg x) (comment_range lines range)
+  | NonTail(_), Check(x, y) ->
+      let s = Printf.sprintf "\tlw\tx31, -1(%s)%s" (reg x) (comment_range lines range) in s^
+      let s = Printf.sprintf "\tblt\t%s, x31, 2%s" (reg y) (comment_range lines range) in s^
+      Printf.sprintf "\thlt%s" (comment_range lines range)
   | NonTail(_), Write(x) ->
       Printf.sprintf "\tob\t%s%s" (reg x) (comment_range lines range)
   (* 退避の仮想命令の実装 (caml2html: emit_save) *)
@@ -244,7 +252,7 @@ and g' lines (dest, ((range, body) as exp)) =
   | NonTail(x), FRestore(y) ->
       Printf.sprintf "\tflw\t%s, %d(x2)%s" (freg x) (offset y) (comment_range lines range)
   (* 末尾だったら計算結果を第一レジスタにセットしてリターン (caml2html: emit_tailret) *)
-  | Tail, (Nop | SW _ | SWA _ | FSW _ | FSWA _ | Write _ | Save _ | FSave _) ->
+  | Tail, (Nop | SW _ | SWA _ | FSW _ | FSWA _ | Check _ | Write _ | Save _ | FSave _) ->
       let s = g' lines (NonTail(Id.genunit ()), exp) in
       s^Printf.sprintf "\tjalr x0, x1, 0%s" (comment_range lines range)
   | Tail, (LI _ | LIL _ | Mv _ | Not _ | Xor _
@@ -418,4 +426,4 @@ let f lines (Prog(fundefs, e)) =
   let _ = stackmap := [] in
   let s = g lines (NonTail("%x4"), e) in s^
   "# program ends\n"^
-  Printf.sprintf "\thlt\t# [%d]\n" (pcincr ())
+  Printf.sprintf "\thlt # [%d]\n" (pcincr ())

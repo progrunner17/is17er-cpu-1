@@ -144,6 +144,7 @@ and g' dest cont regenv (range, body) = match body with (* 各命令のレジス
   | FSW(x, y, n) -> (range, Ans(range, FSW(find x Type.Float regenv, find y Type.Int regenv, n))), regenv
   | FSWA(x, y, z) -> (range, Ans(range, FSWA(find x Type.Float regenv, find y Type.Int regenv, find z Type.Int regenv))), regenv
   | FArray(x, y) -> (range, Ans(range, FArray(find x Type.Int regenv, find y Type.Float regenv))), regenv
+  | Check(x, y) -> (range, Ans(range, Check(find x Type.Int regenv, find y Type.Int regenv))), regenv
   | Read -> (range, Ans(range, Read)), regenv
   | FRead -> (range, Ans(range, FRead)), regenv
   | Write x -> (range, Ans(range, Write (find x Type.Int regenv))), regenv

@@ -4,13 +4,13 @@ let rec g env fenv (range, body) = match body with (* 命令列の即値最適化 (caml2h
   | Ans(exp) -> range, Ans(g' env fenv exp)
   | Let(range', (x, t), (range'', LI(n)), e) ->
       let e' = g (M.add x n env) fenv e in
-      if x <> "%x2" && not (List.mem x (fv e')) then e' else
+      if x <> "%x2" && x <> "%x3" && not (List.mem x (fv e')) then e' else
       range, Let(range', (x, t), (range'', LI(n)), e')
   | Let(range', (x, t), (range'', FLI(a)), e) ->
       let e' = g env (M.add x a fenv) e in
       if not (List.mem x (fv e')) then e' else
       range, Let(range', (x, t), (range'', FLI(a)), e')
-  | Let(range', xt, (range'', AddI(y, n)), e) when M.mem y env ->
+  | Let(range', xt, (range'', AddI(y, n)), e) when y <> "%x2" && y <> "%x3" && M.mem y env ->
       g env fenv (range, Let(range', xt, (range'', LI(M.find y env + n)), e))
   | Let(range', xt, exp, e) -> range, Let(range', xt, g' env fenv exp, g env fenv e)
 and g' env fenv ((range, body) as e) = match body with (* 各命令の即値最適化 (caml2html: simm13_gprime) *)

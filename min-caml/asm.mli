@@ -46,6 +46,7 @@ and ebody =
   | FSW of Id.t * Id.t * int
   | FSWA of Id.t * Id.t * Id.t
   | FArray of Id.t * Id.t
+  | Check of Id.t * Id.t
   | Read
   | Write of Id.t
   | FRead

@@ -48,6 +48,7 @@ and ebody =
   | FSW of Id.t * Id.t * int
   | FSWA of Id.t * Id.t * Id.t
   | FArray of Id.t * Id.t
+  | Check of Id.t * Id.t
   | Read
   | Write of Id.t
   | FRead
@@ -117,6 +118,7 @@ and show_ebody lines range = function
   | FSW (x, y, n) -> "fsw "^x^" "^string_of_int n^"("^y^")"^H.comment_from_range lines range
   | FSWA (x, y, z) -> "fswa "^x^" ("^y^", "^z^")"^H.comment_from_range lines range
   | FArray (x, y) -> "farray "^x^" "^y^H.comment_from_range lines range
+  | Check (x, y) -> "check "^x^" "^y^H.comment_from_range lines range
   | Read -> "read"^H.comment_from_range lines range
   | FRead -> "fread"^H.comment_from_range lines range
   | Write x -> "write "^x^H.comment_from_range lines range
@@ -210,14 +212,23 @@ let rec remove_and_uniq xs = function
 
 (* free variables in the order of use (for spilling) (caml2html: sparcasm_fv) *)
 let rec fv_exp (range, ebody) = match ebody with
-  | Nop | LI(_) | FLI(_) | LIL(_) | Restore(_) | FRestore(_) | Read | FRead -> []
-  | LW(x, _) | FLW(x, _) | Mv(x) | Not(x) | Neg(x) | AddI(x, _) | SllI(x, _) | SraI(x, _) | AndI(x, _)
+  | Nop | LI(_) | FLI(_) | LIL(_) | Restore(_) | FRestore(_) | Read | FRead
+      -> []
+  | LW(x, _) | FLW(x, _) | Mv(x) | Not(x) | Neg(x)
+  | AddI(x, _) | SllI(x, _) | SraI(x, _) | AndI(x, _)
   | FMv(x) | FNeg(x) | FAbs(x) | FFloor(x) | IToF(x) | FToI(x)
-  | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x) | Write(x) | Save(x, _) | FSave(x, _) -> [x]
+  | FSqrt(x) | FCos(x) | FSin(x) | FTan(x) | FAtan(x)
+  | Write(x) | Save(x, _) | FSave(x, _)
+      -> [x]
   | Xor(x, y) | Add(x, y) | Sub(x, y) | LWA(x, y) | SW(x, y, _) | Array(x, y)
-  | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y) | FLWA(x, y) | FSW(x, y, _) | FArray(x, y) -> [x; y]
-  | SWA(x, y, z) | FSWA(x, y, z) -> [x; y; z]
-  | IfEq(_, x, y, e1, e2) | IfLT(_, x, y, e1, e2) ->  x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
+  | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | FEq(x, y) | FLT(x, y)
+  | FLWA(x, y) | FSW(x, y, _) | FArray(x, y)
+  | Check(x, y)
+      -> [x; y]
+  | SWA(x, y, z) | FSWA(x, y, z)
+      -> [x; y; z]
+  | IfEq(_, x, y, e1, e2) | IfLT(_, x, y, e1, e2)
+      ->  x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2)
   | CallCls(x, ys, zs) -> x :: ys @ zs
   | CallDir(_, ys, zs) -> ys @ zs
 and fv (range, ebody) = match ebody with

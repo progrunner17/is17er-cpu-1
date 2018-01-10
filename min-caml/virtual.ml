@@ -118,13 +118,17 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
       | _ -> range, Ans(range, Array(x, y)))
   | Closure.Get(x, y) -> (match M.find x env with
       | Type.Array(Type.Unit) -> range, Ans(range, Nop)
-      | Type.Array(Type.Float) -> range, Ans(range, FLWA(x, y))
-      | Type.Array(_) -> range, Ans(range, LWA(x, y))
+      | Type.Array(Type.Float) ->
+          seq(range, (range, Check(x, y)), (range, Ans(range, FLWA(x, y))))
+      | Type.Array(_) ->
+          seq(range, (range, Check(x, y)), (range, Ans(range, LWA(x, y))))
       | _ -> assert false)
   | Closure.Put(x, y, z) -> (match M.find x env with
       | Type.Array(Type.Unit) -> range, Ans(range, Nop)
-      | Type.Array(Type.Float) -> range, Ans(range, FSWA(z, x, y))
-      | Type.Array(_) -> range, Ans(range, SWA(z, x, y))
+      | Type.Array(Type.Float) ->
+          seq(range, (range, Check(x, y)), (range, Ans(range, FSWA(z, x, y))))
+      | Type.Array(_) ->
+          seq(range, (range, Check(x, y)), (range, Ans(range, SWA(z, x, y))))
       | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> range, Ans(range, LIL(Id.L("min_caml_" ^ x)))
   | Closure.Read -> range, Ans(range, Read)
