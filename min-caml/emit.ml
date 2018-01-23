@@ -235,7 +235,7 @@ and g' lines (dest, ((range, body) as exp)) =
   | NonTail(_), Check(x, y) ->
       let s = Printf.sprintf "\tlw\tx31, -1(%s)%s" (reg x) (comment_range lines range) in s^
       let s = Printf.sprintf "\tblt\t%s, x31, 2%s" (reg y) (comment_range lines range) in s^
-      Printf.sprintf "\thlt%s" (comment_range lines range)
+      Printf.sprintf "\tabort%s" (comment_range lines range)
   | NonTail(_), Write(x) ->
       Printf.sprintf "\tob\t%s%s" (reg x) (comment_range lines range)
   (* 退避の仮想命令の実装 (caml2html: emit_save) *)
