@@ -370,7 +370,7 @@ let rec g toplevel addrenv lines env (range, body) = match body with (* KÀµµ¬²½¥
           insert_let range g_e2
             (fun y -> (range, Array(x, y)), Type.Array t2)) in
       let _ = if toplevel then
-        let d = if !H.boundary_check then 1 else 1 in
+        let d = if !H.boundary_check then 1 else 0 in
         let _ = resaddr := !heap + d in heap := !heap + d + deInt e1 in
       res
   | Syntax.Get(e1, e2) ->
