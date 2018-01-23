@@ -18,4 +18,4 @@ assembler: $(OBJS) assembler.o
 
 
 clean:
-	$(RM) $(TARGET) $(OBJS) main.o test.o assembler.o test assembler  *~
+	$(RM) $(TARGET) $(OBJS) main.o test.o assembler.o test assembler *.ppm *~
