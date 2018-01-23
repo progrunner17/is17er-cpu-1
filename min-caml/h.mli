@@ -2,6 +2,9 @@
 
 open Lexing
 
+val inline_threshold : int ref
+val boundary_check : bool ref
+
 val heap_start : int
 val stack_start : int
 

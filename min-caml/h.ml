@@ -2,6 +2,9 @@
 
 open Lexing
 
+let inline_threshold = ref 0 (* Mainで-inlineオプションによりセットされる *)
+let boundary_check = ref false
+
 let heap_start = 0
 let stack_start = 131071
 

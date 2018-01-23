@@ -119,16 +119,28 @@ let rec g env (range, body) = match body with (* 式の仮想マシンコード�
   | Closure.Get(x, y) -> (match M.find x env with
       | Type.Array(Type.Unit) -> range, Ans(range, Nop)
       | Type.Array(Type.Float) ->
-          seq(range, (range, Check(x, y)), (range, Ans(range, FLWA(x, y))))
+          if !H.boundary_check then
+            seq(range, (range, Check(x, y)), (range, Ans(range, FLWA(x, y))))
+          else
+            range, Ans(range, FLWA(x, y))
       | Type.Array(_) ->
-          seq(range, (range, Check(x, y)), (range, Ans(range, LWA(x, y))))
+          if !H.boundary_check then
+            seq(range, (range, Check(x, y)), (range, Ans(range, LWA(x, y))))
+          else
+            range, Ans(range, LWA(x, y))
       | _ -> assert false)
   | Closure.Put(x, y, z) -> (match M.find x env with
       | Type.Array(Type.Unit) -> range, Ans(range, Nop)
       | Type.Array(Type.Float) ->
-          seq(range, (range, Check(x, y)), (range, Ans(range, FSWA(z, x, y))))
+          if !H.boundary_check then
+            seq(range, (range, Check(x, y)), (range, Ans(range, FSWA(z, x, y))))
+          else
+            range, Ans(range, FSWA(z, x, y))
       | Type.Array(_) ->
-          seq(range, (range, Check(x, y)), (range, Ans(range, SWA(z, x, y))))
+          if !H.boundary_check then
+            seq(range, (range, Check(x, y)), (range, Ans(range, SWA(z, x, y))))
+          else
+            range, Ans(range, SWA(z, x, y))
       | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> range, Ans(range, LIL(Id.L("min_caml_" ^ x)))
   | Closure.Read -> range, Ans(range, Read)

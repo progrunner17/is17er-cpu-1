@@ -65,7 +65,8 @@ let file f = (* ファイルをコンパイルしてファイルに出力する (caml2html: main_file
 let () = (* ここからコンパイラの実行が開始される (caml2html: main_entry) *)
   let files = ref [] in
   Arg.parse
-    [("-inline", Arg.Int(fun i -> Inline.threshold := i), "maximum size of functions inlined");
+    [("-inline", Arg.Int(fun i -> H.inline_threshold := i), "maximum size of functions inlined");
+     ("-bound", Arg.Set H.boundary_check, "do boundary check");
      ("-globals", Arg.Set_string globals_name, "filename of globals.ml without .ml");
      ("-iter", Arg.Int(fun i -> limit := i), "maximum number of optimizations iterated")]
     (fun s -> files := !files @ [s])
