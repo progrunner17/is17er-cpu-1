@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	char *tmp;
 	char command[BUF_SIZE];
  	Instr instr;
-	int count = 0;
+	long long count = 0;
 	int n = 1;
 	int data = 0;
 	char c = 0;
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 			count = exec_program(program,reg,memory);
 			GETTIME_TO(ts,t);
 			printf("execution:\t%lfsec\n",t);
-			printf("%d\n",count);
+			printf("%lld\n",count);
 			printf("動的命令数:%3.2f億\n",(float)count/100000000.0);
 			printf("毎秒%3.2f億命令実行\n",count/t/100000000);
 			fflush(out_fp);

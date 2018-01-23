@@ -454,10 +454,9 @@ if(show_all){
 
 
 
-
-int  exec_program(Program program, Reg reg, Mem mem) {
+long long  exec_program(Program program, Reg reg, Mem mem) {
 	Instr instr;
-	int instr_count = 0;
+	long long instr_count = 0;
 	while ((instr = program[reg->pc]) != NULL && instr->opcode != OP_HLT) {
 		exec_instr(instr, mem, reg);
 		if(error){

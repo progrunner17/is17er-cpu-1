@@ -561,7 +561,7 @@ Program load_asm_file(const char* filename,LList llist) {
       char label[128];
       char * p2 = NULL;
       p2 = strtok(p," \t");
-      sscanf(p, "%s", label);
+      sscanf(p2, "%s", label);
       if(strchr(p,':'))add_label(label, pc, line, llist);
     }
   } //for

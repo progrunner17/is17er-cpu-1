@@ -6,4 +6,4 @@ vivado*
 *.cmi
 *.cmo
 *.o
-
+*.ppm
