@@ -3,7 +3,7 @@
 
 //opcode
 #define OP_LUI 		   0b0110111
-#define OP_AUIPC       0b0010111
+#define OP_AUIPC	   0b0010111
 #define OP_JAL		   0b1101111
 #define OP_JALR		   0b1100111
 #define OP_BRANCH	   0b1100011
@@ -11,7 +11,6 @@
 #define OP_STORE	   0b0100011
 #define OP_ALUI		   0b0010011
 #define OP_ALU		   0b0110011
-// #define OP_MULDIV	   0b0110011
 #define OP_LOAD_FP     0b0000111
 #define OP_STORE_FP    0b0100111
 #define OP_FP          0b1010011

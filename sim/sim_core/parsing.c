@@ -13,6 +13,7 @@ char *source_filename = NULL;
 char *input_filename = NULL;
 char *output_filename = NULL;
 char *log_filename = NULL;
+int use_coe = 0;
 
 /* 標準入力から最大size-1個の文字を改行またはEOFまで読み込み、sに設定する */
 char* get_line(char *s, int size) {
@@ -38,7 +39,7 @@ Files parse_commandline_arg(int argc, char **argv) {
   bzero(args, sizeof(struct _files));
   int opt;
   opterr = 0;
-  while ((opt = getopt(argc, argv, "m:s:i:o:l:a")) != -1) {
+  while ((opt = getopt(argc, argv, "m:s:i:o:l:ac")) != -1) {
     //コマンドライン引数のオプションがなくなるまで繰り返す
     switch (opt) {
       case 'm':
@@ -65,7 +66,9 @@ Files parse_commandline_arg(int argc, char **argv) {
         output_filename = (char *) malloc(strlen(optarg) + 1);
         strcpy(output_filename, optarg);
         break;
-
+      case 'c':
+        use_coe = 1;
+        break;
 
       default: /* '?' */
         //指定していないオプションが渡された場合
@@ -256,7 +259,7 @@ int create_funct3(const char * mnemonic) {
             (strcmp(mnemonic, "flw") == 0) ? LOAD_WORD :
             (strcmp(mnemonic, "ob") == 0) ? STORE_BYTE :
             (strcmp(mnemonic, "ib") == 0) ? LOAD_BYTE_Z :
-            -1;
+            0;
   return funct3;
 }
 
@@ -288,7 +291,7 @@ int create_funct5(const char *mnemonic) {
            (strcmp(mnemonic, "xtof") == 0) ? F5_XTOF :
            // (strcmp(mnemonic,"fsw") == 0) ? STORE_WORD:
            // (strcmp(mnemonic,"flw") == 0) ? LOAD_WORD:
-           -1;
+           0;
   return funct5;
 }
 
@@ -574,6 +577,60 @@ Program load_asm_file(const char* filename,LList llist) {
 
   fclose(fp);
   fflush(stdout);
+  return program;
+}
+
+Program load_coe_file(const char* filename){
+
+  Program program = calloc(PROGRAM_SIZE, sizeof(Instr));
+  char c[64];
+  int radix = 0;
+  unsigned int code = 0;
+  FILE *fp ;
+  int flag = 1;
+  int n = 0;
+
+  if ((fp = fopen(filename, "r")) == NULL) {
+    fprintf(log_fp, "[ERROR]@load_coe_file:\tcannot open file %s\n", filename);
+    return NULL ;
+  }
+
+
+  fscanf(fp,"memory_initialization_radix=%d;",&radix);
+  // memory_intilaizarion_vector=を読み飛ばし
+
+  while(fgetc(fp) != '='){}
+  while(1){
+    code = 0;
+    if(flag == 0 || *c == ';')break;
+    switch(radix){
+      case 2:
+        flag = fscanf(fp,"%s,", c);
+        for(int i = 0; i < 32;i++){
+            code = code<<1;
+            if(c[i] == '1') code++;
+        }
+        break;
+      case 16:
+        flag = fscanf(fp,"%8x,", &code);
+        break;
+      default:break;
+    }
+    if(flag>0){
+        // printf("%08x\n",code);
+        program[n] = create_instr(code);
+      // print_instr(program[n]);
+      // putchar('\n');
+        program[n] ->machine_code = code;
+        n++;
+    }else{
+      break;
+    }
+
+
+  }
+  printf("命令数:\t%d\n", n);
+
   return program;
 }
 

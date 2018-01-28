@@ -16,6 +16,10 @@ extern unsigned sld_n_bytes;
 extern int show_all;
 extern int error;
 extern int input_index;
+extern int use_coe;
+
+
+
 int main(int argc, char **argv)
 {
 
@@ -24,7 +28,9 @@ int main(int argc, char **argv)
 	Mem memory = initialize_memory(MEMORY_SIZE,NULL);
 	Reg reg = initialize_reg(NULL);
     LList llist = initialize_llist();
-	Program program = load_asm_file(source_filename,llist);
+	Program program =NULL;
+	if(use_coe)program = load_coe_file(source_filename);
+	else program  = load_asm_file(source_filename,llist);
 	// print_labels(llist);
 	char buff[BUF_SIZE];
 	char prev_buff[BUF_SIZE];

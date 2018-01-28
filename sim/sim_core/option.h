@@ -19,8 +19,11 @@
 #define PRINT_REG_F_B   1<<6
 
 
-#define PRINT_CODE_TXT 1<<1
-#define PRINT_CODE_BIN 1<<2
+
+#define PRINT_CODE_TXT_HEX 	1<<1
+#define PRINT_CODE_TXT_BIN 	1<<2
+#define PRINT_CODE_BIN 		1<<3
+
 
 
 #define CODE_OP  		1<<1
