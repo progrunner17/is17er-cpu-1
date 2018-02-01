@@ -118,11 +118,7 @@ void  print_label_of_pc(int pc,LList llist);
 // instr
 Instr    initialize_instr(void);
 void     exec_instr(Instr i, Mem memory, Reg reg);
-<<<<<<< Updated upstream
 long long      exec_program(Program program, Reg reg, Mem mem);
-=======
-long long  exec_program(Program program, Reg reg, Mem mem);
->>>>>>> Stashed changes
 
 // runtime
 Mem      initialize_memory(int memsize, Mem p);
