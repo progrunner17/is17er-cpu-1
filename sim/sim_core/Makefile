@@ -24,4 +24,4 @@ $(foreach prog,$(TESTS),$(eval $(call test_template,$(prog))))
 
 
 clean:
-	$(RM) $(TARGET)  assembler $(addprefix test,$(TESTS)) *.o *~
+	$(RM) $(TARGET)  assembler $(addprefix test,$(TESTS)) *.o *.ppm *~
