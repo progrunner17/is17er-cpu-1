@@ -24,7 +24,6 @@ let rec iter lines n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
 
 (* MATSUSHITA: print intermediate results *)
 let lexbuf e lines = (* バッファをコンパイルしてチャンネルへ出力する (caml2html: main_lexbuf) *)
-  Id.counter := 0;
   Typing.extenv := M.empty;
   Emit.f lines
     ((fun prog -> Printf.printf "[RegAlloc.f]\n%s\n\n" (Asm.show_prog lines prog)) <|| RegAlloc.f *|
@@ -35,8 +34,7 @@ let lexbuf e lines = (* バッファをコンパイルしてチャンネルへ出力する (caml2html:
     ((fun e -> Printf.printf "[Alpha.f]\n%s\n\n" (KNormal.show lines e)) <|| Alpha.f *|
     ((fun e -> Printf.printf "[KNormal.f]\n%s\n\n" (KNormal.show lines e)) <| KNormal.f lines
     ((fun e -> Printf.printf "[Typing.f]\n%s\n\n" (Syntax.show e)) <| Typing.f lines
-    ((fun e -> Printf.printf "[Parser.exp Lexer.token]\n%s\n\n" (Syntax.show e)) <|
-    e)))))))))
+    ((fun e -> Printf.printf "[Parser.exp Lexer.token]\n%s\n\n" (Syntax.show e)) <| e)))))))))
 
 let rec input_lines inchan = try
     let line = input_line inchan in

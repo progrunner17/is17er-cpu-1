@@ -35,7 +35,9 @@ and body =
   | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
   | LetRec of H.range * fundef * t (* MATSUSHITA: added H.range *)
+  | GLetRec of H.range * fundefx ref * t (* MATSUSHITA: added GLetRec *)
   | App of t * t list
+  | SApp of t * fundefx ref option * Type.t list * t list (* MATSUSHITA: added SApp *)
   | Tuple of t list
   | LetTuple of H.range * (Id.t * Type.t) list * t * t (* MATSUSHITA: added H.range *)
   | Array of t * t
@@ -47,6 +49,7 @@ and body =
   | IFAdd of t * t
   | NotNeg of t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
+and fundefx = fundef * (Type.t list * fundef) list (* MATSUSHITA: added fundefx *)
 
 (* MATSUSHITA: added function show *)
 let rec show (_, body) = match body with
@@ -84,7 +87,9 @@ let rec show (_, body) = match body with
   | Let (_, (x, t), e, e') -> "(let "^x^":"^Type.show t^" = "^show e^" in "^show e'^")"
   | Var x -> x
   | LetRec (_, f, e) -> "(let rec"^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" = "^show f.body^" in "^show e^")"
-  | App (e, es) -> "("^show e^H.sep "" (fun e -> " "^show e) es^")"
+  | GLetRec (_, {contents = f, _}, e) -> "(glet rec"^H.sep "" (fun (x, t) -> " ("^x^":"^Type.show t^")") (f.name :: f.args)^" = "^show f.body^" in "^show e^")"
+  | App (e, es) -> "("^show e^" "^H.sep " " show es^")"
+  | SApp (e, _, ts, es) -> "("^show e^" {"^H.sep " " Type.show ts^"} "^H.sep " " show es^")"
   | Tuple es -> "("^H.sep ", " show es^")"
   | LetTuple (_, xts, e, e') -> "(let ("^H.sep ", " (fun (x, t) -> x^":"^Type.show t) xts^") = "^show e^" in "^show e'^")"
   | Array (e, e') -> "(array "^show e^" "^show e'^")"

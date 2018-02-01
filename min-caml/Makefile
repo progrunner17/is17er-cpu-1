@@ -13,7 +13,7 @@ OCAMLLDFLAGS = -warn-error -31
 $(RESULT): debug-code top
 
 # ↓もし実装を改造したら、それに合わせて変える
-SOURCES = float.c h.mli h.ml type.mli type.ml id.mli id.ml m.mli m.ml s.mli s.ml \
+SOURCES = float.c h.mli h.ml id.mli id.ml type.mli type.ml m.mli m.ml s.mli s.ml \
 syntax.mli syntax.ml parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \
 alpha.mli alpha.ml beta.mli beta.ml assoc.mli assoc.ml \
 inline.mli inline.ml constFold.mli constFold.ml elim.mli elim.ml cse.mli cse.ml \

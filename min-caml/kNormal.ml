@@ -325,6 +325,7 @@ let rec g toplevel addrenv lines env (range, body) = match body with (* KÀµµ¬²½¥
       let e2', t2 = g false addrenv lines env' e2 in
       let e1', t1 = g false addrenv lines (M.add_list yts env') e1 in
       (range, LetRec(range', { name = (x, t); args = yts; body = e1' }, e2')), t2
+  | Syntax.GLetRec _ -> failwith "Unexpected gletrec"
   | Syntax.App((_, Syntax.Var(f)), e2s) when not (M.mem f env) ->
       (match M.find f !Typing.extenv with
       | Type.Fun(_, t) ->
@@ -347,6 +348,7 @@ let rec g toplevel addrenv lines env (range, body) = match body with (* KÀµµ¬²½¥
                       (fun x -> bind (xs @ [x]) e2s) in
               bind [] e2s) (* left-to-right evaluation *)
       | _ -> assert false)
+  | Syntax.SApp _ -> failwith "Unexpected sapp"
   | Syntax.Tuple(es) ->
       let rec bind xs ts = function (* "xs" and "ts" are identifiers and types for the elements *)
         | [] -> (range, Tuple(xs)), Type.Tuple(ts)

@@ -5,6 +5,7 @@ open Asm
          そのために「Callがあったかどうか」を返り値の第1要素に含める。 *)
 let rec target' src (dest, t) (_, body) = match body with
   | Mv(x) when x = src && is_reg dest ->
+      Printf.printf "@@@ target' x = src = %s, dest = %s, t = %s\n" x dest (Type.show t);
       assert (t <> Type.Unit);
       assert (t <> Type.Float);
       false, [dest]

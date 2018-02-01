@@ -1,5 +1,5 @@
 (* MATSUSHITA: added to t H.range *)
-type t = H.range * body (* MinCamlの構文を表現するデータ型 (caml2html: syntax_t) *)
+type t = H.range * body
 and body =
   | Unit
   | Bool of bool
@@ -35,7 +35,9 @@ and body =
   | Let of H.range * (Id.t * Type.t) * t * t (* MATSUSHITA: added H.range *)
   | Var of Id.t
   | LetRec of H.range * fundef * t (* MATSUSHITA: added H.range *)
+  | GLetRec of H.range * fundefx ref * t (* MATSUSHITA: added GLetRec *)
   | App of t * t list
+  | SApp of t * fundefx ref option * Type.t list * t list (* MATSUSHITA: added SApp *)
   | Tuple of t list
   | LetTuple of H.range * (Id.t * Type.t) list * t * t (* MATSUSHITA: added H.range *)
   | Array of t * t
@@ -47,6 +49,7 @@ and body =
   | IFAdd of t * t
   | NotNeg of t
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
+and fundefx = fundef * (Type.t list * fundef) list (* MATSUSHITA: added fundefx *)
 
 (* MATSUSHITA: added function show *)
 val show : t -> string
