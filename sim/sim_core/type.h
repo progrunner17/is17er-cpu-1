@@ -94,10 +94,11 @@ int   create_funct5(const char* mnemonic);
 int   create_is_sra_sub(const char* mnemonic);
 Files parse_commandline_arg(int argc, char **argv);
 char* get_line(char *s, int size);
+Program load_coe_file(const char* filename);
 
 // print.c
 void  print_labels(LList label_list);
-void  print_mnemonic(Instr i);
+int   print_mnemonic(Instr i);
 void  print_instr(Instr instr);
 void  print_program(Program program,int start, int end);
 void  print_memory(word *memory, int base_addr, unsigned int n,int option);
@@ -117,7 +118,11 @@ void  print_label_of_pc(int pc,LList llist);
 // instr
 Instr    initialize_instr(void);
 void     exec_instr(Instr i, Mem memory, Reg reg);
+<<<<<<< Updated upstream
 long long      exec_program(Program program, Reg reg, Mem mem);
+=======
+long long  exec_program(Program program, Reg reg, Mem mem);
+>>>>>>> Stashed changes
 
 // runtime
 Mem      initialize_memory(int memsize, Mem p);
@@ -126,6 +131,7 @@ Reg      initialize_reg(Reg p);
 // assemble.c
 uint32_t  create_machine_code(Instr i);
 void      generate_binary(Program program, char *filename);
+Instr     create_instr(uint32_t code);
 
 // 以下 ユーティリティ関数。
 int         get_b_form(int d);

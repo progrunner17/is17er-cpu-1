@@ -8,9 +8,8 @@ int main(int argc, char const *argv[])
 	log_fp = stderr;
 	out_fp = stdout;
 	LList llist = initialize_llist();
-	// runtime = initialize_runtime(runtime);
 	Program program = load_asm_file(argv[1],llist);
-	print_prgram(program);
+	print_program(program,-1,-1);
 
 	if((fp = fopen(argv[2],"w")) == NULL){
 		fprintf(log_fp,"[ERROR]@assembler:\terror of opening output file:%s\n",argv[2]);
@@ -37,11 +36,11 @@ int main(int argc, char const *argv[])
 				if(code & 1<<j)fputc('1',fp);
 				else fputc('0',fp);
 			}
-		print_instr(program[i+1]);
+		if(program[i+1] != NULL)print_instr(program[i+1]);
 		putchar('\n');
 
 	}
-	fprintf(fp,";");
+	fprintf(fp,";\n");
 	fclose(fp);
 	return 0;
 }

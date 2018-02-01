@@ -454,6 +454,10 @@ if(show_all){
 
 
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 long long  exec_program(Program program, Reg reg, Mem mem) {
 	Instr instr;
 	long long instr_count = 0;
