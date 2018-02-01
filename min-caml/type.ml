@@ -8,11 +8,11 @@ type t = (* MinCamlの型を表現するデータ型 (caml2html: type_t) *)
   | Array of t
   | Var of v
   | Forall of v list * t (* MATSUSHITA: added forall *)
-and v = (t option * string) ref
+and v = (t option * string) ref (* MATSUSHITA: added label to type variable *)
 
 let gentyp () = Var (ref (None, Id.genid "'t")) (* 新しい型変数を作る *)
 
-(* MATSUSHITA: added function show *)
+(* MATSUSHITA: added functions *)
 let rec show = function
   | Unit -> "unit"
   | Bool -> "bool"

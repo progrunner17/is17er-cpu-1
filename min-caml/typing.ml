@@ -142,7 +142,6 @@ and subst_fundef table onx {name = xt; args = yts; body = e} = {
   name = subst_id_typ table onx xt;
   args = List.map (subst_id_typ table onx) yts;
   body = subst_exp table onx e}
-
 let dequantify = function
   | Type.Forall (vs, t) ->
       let table = List.map (fun v -> (v, Type.gentyp ())) vs in
@@ -425,7 +424,7 @@ let rec expand (range, body) = range, match body with
       let x = try
         fst (List.assoc ts tsfs).name
       with Not_found ->
-        let newx = x^"{"^H.sep ";" Type.show ts^"}" in
+        let newx = if ts = [] then x else x^"{"^H.sep ";" Type.show ts^"}" in
         let table = List.map2 (fun v t -> v, t) vs ts in
         let onx = x, newx in
         let newf = {name = newx, subst_typ table t; args = List.map (subst_id_typ table onx) yts; body = expand (subst_exp table onx e)} in

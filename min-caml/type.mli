@@ -8,7 +8,7 @@ type t = (* MinCamlの型を表現するデータ型 (caml2html: type_t) *)
   | Array of t
   | Var of v
   | Forall of v list * t (* MATSUSHITA: added forall *)
-and v = (t option * string) ref
+and v = (t option * string) ref (* MATSUSHITA: added label to type variable *)
 
 val gentyp : unit -> t
 
