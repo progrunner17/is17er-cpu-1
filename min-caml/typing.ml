@@ -91,7 +91,7 @@ let rec subst_typ table = function
   | Type.Var({contents = None, _} as v) -> List.assq v (table @ [(v, Type.Var v)])
   | Type.Var({contents = Some t, _}) -> subst_typ table t
   | Type.Unit | Type.Bool | Type.Int | Type.Float as t -> t
-  | Type.Forall _ -> failwith "Unexpected forall"
+  | Type.Forall (vs, t) -> Type.Forall (vs, subst_typ table t)
 let subst_id_typ table (oldx, newx) (x, t) = (if x = oldx then newx else x), subst_typ table t
 let rec subst_exp table ((oldx, newx) as onx) (range, body) = range, match body with
   | Not(e) -> Not(subst_exp table onx e)
@@ -471,9 +471,9 @@ let rec clean (range, body) = range, match body with
   | FLT(e1, e2) -> FLT(clean e1, clean e2)
   | If(e1, e2, e3) -> If(clean e1, clean e2, clean e3)
   | Let(range, xt, e1, e2) -> Let(range, xt, clean e1, clean e2)
-  | LetRec _ -> failwith "Unexpected letrec"
-  | GLetRec(range', {contents = f, tsfs}, e) ->
-      snd (List.fold_right (fun (_, f) e -> range, LetRec (range', f, e)) tsfs (clean e))
+  | LetRec(range', ({body = e1} as f), e2) -> LetRec(range', {f with body = clean e1}, clean e2)
+  | GLetRec(range', {contents = _, tsfs}, e) ->
+      snd (List.fold_right (fun (_, ({body = e1} as f)) e2 -> range, LetRec (range', {f with body = clean e1}, clean e2)) tsfs (clean e))
   | App(e, es) -> App(clean e, List.map clean es)
   | SApp _ -> failwith "Unexpected sapp"
   | Tuple(es) -> Tuple(List.map clean es)
@@ -495,5 +495,7 @@ let f lines e =
     extenv := M.map (deref_typ []) !extenv;
     let e = deref_exp [] e in
     let e = expand e in
+    Printf.printf "???\n%s\n???\n" (show e);
+    print_endline "$$$";
     clean e
   with Unify _ -> failwith "Top level does not have type unit"
