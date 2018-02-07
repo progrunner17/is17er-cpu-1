@@ -334,7 +334,7 @@ let rec g lines env fenv ((range, body) as e) = (* 型推論ルーチン (caml2h
         let ts, t = dequantify t in
         let tes = List.map (g lines env fenv) es in
         unify t (Type.Fun (List.map fst tes, rt));
-        rt, (range, SApp (e, M.find_opt x fenv, ts, List.map snd tes))
+        rt, (range, SApp (e, (try Some (M.find x fenv) with Not_found -> None), ts, List.map snd tes))
     | App _ -> failwith "Unsupported type of app"
     | SApp _ -> failwith "Unexpected sapp"
     | Tuple es ->
