@@ -25,3 +25,14 @@ $(foreach prog,$(TESTS),$(eval $(call test_template,$(prog))))
 
 clean:
 	$(RM) $(TARGET)  assembler $(addprefix test,$(TESTS)) *.o *.ppm *~
+
+
+../../min-caml/raytracer/min-rt.s:
+	$(MAKE) -C ../../min-caml  min-rt
+
+contest:simulator ../../min-caml/raytracer/min-rt.s 
+	./simulator -s ../../min-caml/raytracer/min-rt.s -i ../../min-caml/raytracer/sld/contest.sld -o contest.ppm
+
+coe:../../min-caml/raytracer/min-rt.s assembler
+	./assembler ../../min-caml/raytracer/min-rt.s ./min-rt.coe
+
