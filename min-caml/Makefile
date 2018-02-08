@@ -24,3 +24,7 @@ main.mli main.ml
 TRASH = test/*.s raytracer/*.s raytracer/min-rt-globals.ml
 
 include OCamlMakefile
+
+
+min-rt:min-caml
+	./min-caml raytracer/min-rt -globals raytracer/globals
