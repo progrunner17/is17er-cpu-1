@@ -401,7 +401,9 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 						fprintf(log_fp,"[LOG]@exec_instr:\toutput file is not declared\n");
 						printf("please input output file name\n>> ");
 						char filename[BUF_SIZE];
-						scanf("%s",filename);
+						if(scanf("%s",filename) == EOF ){
+                printf("scanf reach EOF\n");
+            }
 						out_fp = fopen(filename,"w");
 					}
 					if(show_all)fprintf(log_fp,"\trs2:x%d = %d(0x%08x) \n",i->rs2,reg->x[i->rs2],reg->x[i->rs2]);

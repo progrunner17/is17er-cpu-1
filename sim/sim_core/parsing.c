@@ -84,7 +84,9 @@ Files parse_commandline_arg(int argc, char **argv) {
   if (!source_filename) {
     char buff[BUF_SIZE];
     printf("please input source file name\n>> ");
-    fgets(buff, BUF_SIZE, stdin);
+    if(fgets(buff, BUF_SIZE, stdin) == NULL){
+        printf("fgets error\n");
+    }
     source_filename =(char *)  malloc(BUF_SIZE);
     sscanf(buff, "%s", source_filename);
   }
@@ -596,7 +598,9 @@ Program load_coe_file(const char* filename){
   }
 
 
-  fscanf(fp,"memory_initialization_radix=%d;",&radix);
+  if(fscanf(fp,"memory_initialization_radix=%d;",&radix) == EOF){
+    printf("fscanf error\n");
+  }
   // memory_intilaizarion_vector=を読み飛ばし
 
   while(fgetc(fp) != '='){}

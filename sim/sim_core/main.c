@@ -242,7 +242,9 @@ int main(int argc, char **argv)
 			}
 
 		}else if(strcmp("help",command) == 0 || strcmp("h",command) == 0){
-				system("less ./readme.txt");
+				if(system("less ./readme.txt") == -1){
+            printf("system error\n");    
+            }
 
 		}else if(strcmp("quit",command) == 0 || strcmp("q",command) == 0){
 			exit(EXIT_SUCCESS);
