@@ -64,10 +64,10 @@ int main(int argc, char **argv)
 			printf("%lld\n",count);
 			printf("動的命令数:%3.2f億\n",(float)count/100000000.0);
 			printf("毎秒%3.2f億命令実行\n",count/t/100000000);
-			printf("スタック使用量:%6dword\n",reg->stack_max);
-			printf("           :%08xword\n",reg->stack_max);
-			printf("ヒープ使用量:%6dword\n",reg->heap_max-(1<<17));
-			printf("          :%08xword\n",reg->heap_max-(1<<17));
+			printf("スタック使用量:%6dword\n",reg->stack_max-(1<<17));
+			printf("           :%08xword\n",reg->stack_max-(1<<17));
+			printf("ヒープ使用量:%6dword\n",reg->heap_max);
+			printf("          :g%08xword\n",reg->heap_max);
 			fflush(out_fp);
 			fclose(out_fp);
 					error = 0;
