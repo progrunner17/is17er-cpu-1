@@ -6,7 +6,7 @@ let inline_threshold = ref 0 (* Mainで-inlineオプションによりセット�
 let boundary_check = ref false
 
 let heap_start = 0
-let stack_start = 131071
+let stack_start = 131072
 
 type pos = position
 type range = (pos * pos) option
