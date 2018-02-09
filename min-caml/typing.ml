@@ -495,7 +495,5 @@ let f lines e =
     extenv := M.map (deref_typ []) !extenv;
     let e = deref_exp [] e in
     let e = expand e in
-    Printf.printf "???\n%s\n???\n" (show e);
-    print_endline "$$$";
     clean e
   with Unify _ -> failwith "Top level does not have type unit"
