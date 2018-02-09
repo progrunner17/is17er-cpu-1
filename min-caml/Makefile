@@ -27,4 +27,4 @@ include OCamlMakefile
 
 
 min-rt:min-caml
-	./min-caml raytracer/min-rt -globals raytracer/globals
+	./min-caml raytracer/min-rt -globals raytracer/globals -inline 100
