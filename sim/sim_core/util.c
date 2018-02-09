@@ -451,6 +451,9 @@ void exec_instr(Instr i, Mem memory, Reg reg) {
 if(show_all){
 	fprintf(log_fp,"\tinstr count:%d \n",i->exec_count++);
 }
+
+	if(reg->x[2] > reg->stack_max) reg->stack_max = reg->x[2];
+	if(reg->x[3] > reg->heap_max) reg->heap_max = reg->x[3];
 }
 
 
@@ -523,6 +526,9 @@ Reg initialize_reg(Reg reg) {
 		reg = malloc(sizeof(struct _reg));
 		reg->pc = 0;
 	}
+
+	reg->stack_max = 0;
+	reg->heap_max = 0;
 
 	for (int i = 0; i < 32; i++)
 		reg->x[i] = 0;

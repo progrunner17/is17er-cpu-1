@@ -46,6 +46,8 @@ struct _reg {
   int x[32];
   float f[32];
   unsigned int pc;
+  int heap_max;
+  int stack_max;
 };
 
 typedef struct _files *Files;
