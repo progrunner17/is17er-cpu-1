@@ -168,7 +168,8 @@ and g' lines (dest, ((range, body) as exp)) =
   | NonTail(x), FAbs(y) ->
       Printf.sprintf "\tfabs\t%s, %s%s" (freg x) (freg y) (comment_range lines range)
   | NonTail(x), FFloor(y) ->
-      Printf.sprintf "\tfloor\t%s, %s%s" (freg x) (freg y) (comment_range lines range)
+      let s = Printf.sprintf "\tfloor\tx31, %s%s" (freg y) (comment_range lines range) in s^
+      Printf.sprintf "\titof\t%s, x31%s" (freg x) (comment_range lines range)
   | NonTail(x), FToI(y) ->
       Printf.sprintf "\tftoi\t%s, %s%s" (reg x) (freg y) (comment_range lines range)
   | NonTail(x), IToF(y) ->
