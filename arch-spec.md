@@ -1,7 +1,9 @@
 # RISC-V仕様書解説
 IS17erCPU実験第1班コア係 五反田正太郎
 
-## 変更履歴
+## 変更履歴 
+- 2017-02-14
+	- 即値等補足の追加や、無駄な説明の破棄
 - 2017-12-5
 	- fmv.x.fやfmv.f.xをftoxやxtofにニーモニックを変更
 	- 末尾に入出力用命令ib(input byte)及びob(output byte)の説明を追加
@@ -34,6 +36,18 @@ IS17erCPU実験第1班コア係 五反田正太郎
 ### 注意点
 
 - オペコードの下位2bitは32bit命令なので0b11で固定
+
+### 即値について
+
+|type | format |range |
+|:-:|:-:|:-:|
+|U|20bit unsigned|0~524287|
+|J|20bit signed| -262144~262143|
+|B,S,I| 12bit signed |-2048~2047|
+
+※B(S),Iは即値のエンコーディングが異なる。
+
+
 
 ### 命令一覧
 
@@ -80,6 +94,11 @@ IS17erCPU実験第1班コア係 五反田正太郎
 ##### ※細かい仕様の変更をした方が良さそう。
 
 
+
+
+
+
+
 #### LUI命令
 - オペコード:0b0010111
 - 命令(即値)フォーマット: U
@@ -96,7 +115,7 @@ jalr命令(即値12bit)と組み合わせて遠方への相対ジャンプがで
 - オペコード:0b0010111
 - 命令(即値)フォーマット: U
 - 命令形式: _auipc rd, imm_
-- 意味: rd = pc + imm << 12
+- 意味: rd = pc + (imm << 12)
 
 
 #### JAL命令
@@ -155,11 +174,11 @@ immは命令単位の差分を設定
 - 命令(即値)フォーマット: I
 - 命令形式:	_lxx rd, imm(rs1)_
 
-	#### lb
+	#### lb (未実装)
 	- funct3 0b000
 	- 意味: rd =
 
-	#### lh
+	#### lh (未実装)
 	- funct3 0b001
 	- 意味: rd =
 
@@ -167,11 +186,11 @@ immは命令単位の差分を設定
 	- funct3 0b010
 	- 意味: rd = {mem[rs1+imm]}
 
-	#### lbu
+	#### lbu (未実装)
 	- funct3 0b100
 	- 意味: rd = {0,mem[rs1+imm]}
 
-	#### lhu
+	#### lhu (未実装)
 	- funct3 0b101
 	- 意味: rd = {0,mem[rs1+imm]}
 
@@ -179,12 +198,12 @@ immは命令単位の差分を設定
 - オペコード:	0b0100011
 - 命令(即値)フォーマット: S
 - リトルエンディアン
-	#### sb
+	#### sb (未実装)
 	- funct3 0b000
 	- 命令形式: _sb rs2, imm(rs1)_
 	- 意味:	mem[rs1+imm] = rs2[7:0]
 
-	#### sh
+	#### sh (未実装)
 	- funct3 0b001
 	- 命令形式: _sh rs2, imm(rs1)_
 	- 意味:	mem[rs1+imm] = rs2[15:0]
@@ -321,28 +340,28 @@ immは命令単位の差分を設定
 
 ### 命令一覧
 
-| 命令      | 形式                  | 解釈疑似コード              |      レジスタ規定      | 実装の有無 | 備考 |
-|:--------|:--------------------|:---------------------|:----------------:|:-----:|:---|
-| flw     | _flw rd, imm(rs1)_  | rd = mem\[rs1+imm\]  |   rd:fn,rs1:xn   |   ○   |    |
-| fsw     | _fsw rs2, imm(rs1)_ | mem\[rs1+imm\] = rs2 |  rs2:fn,rs1:xn   |   ○   |    |
-| fadd    | _fadd rd, rs1, rs2_ | rd = rs1 +. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
-| fsub    | _fsub rd, rs1, rs2_ | rd = rs1 -. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
-| fmul    | _fmul rd, rs1, rs2_ | rd = rs1 *. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
-| fdiv    | _fdiv rd, rs1, rs2_ | rd = rs1 /. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
-| fsqrt   | _fsqrt rd, rs1_     | rd = sqrt(rs)        |     rd,rs:fn     |   ○   |    |
-| fabs    | _fabs rd, rs1_      | rd = ｜rs｜            |     rd,rs:fn     |   ○   |    |
-| fneg    | _fneg rd, rs1_      | rd = -rs             |     rd,rs:fn     |   ○   |    |
-| feq     | _feq rd, rs1, rs2_  | rd = (rs1==rs2)?1:0  | rd:xn,rs1,rs2:fn |   ○   |    |
-| flt     | _flt rd, rs1, rs2_  | rd = (rs1<rs2)?1:0   | rd:xn,rs1,rs2:fn |   ○   |    |
-| fle     | _fle rd, rs1, rs2_  | rd = (rs1<=rs2)?1:0  | rd:xn,rs1,rs2:fn |   ○   |    |
-| itof    | _itof rd, rs1_      | rd = (float) rs1     |   rd:fn,rs1:xn   |   ○   |    |
-| ftoi    | _ftoi rd, rs1_      | rd = (int) rs2       |   rd:xn,rs1:fn   |   ○   |    |
-| floor   | _floor rd, rs1_     | rd = [rs1]           |   rd:xn,rs1:fn   |   ○   |    |
-| fmv.f.x | _fmv.f.x rd, rs1_   | rd = rs1             |   rd:fn,rs1:xn   |   ○   |    |
-| fmv.x.f | _fmv.f.x rd, rs1_   | rd = rs1             |   rd:xn,rs1:fn   |   ○   |    |
-| sin     | _sin rd, rs1_       | rd = sin(rs1)        |     rd,rs:fn     |   ×   |    |
-| cos     | _cos rd, rs1_       | rd = cos(rs1)        |     rd,rs:fn     |   ×   |    |
-| atan    | _atan rd, rs1_      | rd = atan(rs1)       |     rd,rs:fn     |   ×   |    |
+| 命令    | 形式                  | 解釈疑似コード              |      レジスタ規定      | 実装の有無 | 備考 |
+|:------|:--------------------|:---------------------|:----------------:|:-----:|:---|
+| flw   | _flw rd, imm(rs1)_  | rd = mem\[rs1+imm\]  |   rd:fn,rs1:xn   |   ○   |    |
+| fsw   | _fsw rs2, imm(rs1)_ | mem\[rs1+imm\] = rs2 |  rs2:fn,rs1:xn   |   ○   |    |
+| fadd  | _fadd rd, rs1, rs2_ | rd = rs1 +. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
+| fsub  | _fsub rd, rs1, rs2_ | rd = rs1 -. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
+| fmul  | _fmul rd, rs1, rs2_ | rd = rs1 *. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
+| fdiv  | _fdiv rd, rs1, rs2_ | rd = rs1 /. rs2      |  rd,rs1,rs2:fn   |   ○   |    |
+| fsqrt | _fsqrt rd, rs1_     | rd = sqrt(rs)        |     rd,rs:fn     |   ○   |    |
+| fabs  | _fabs rd, rs1_      | rd = ｜rs｜            |     rd,rs:fn     |   ○   |    |
+| fneg  | _fneg rd, rs1_      | rd = -rs             |     rd,rs:fn     |   ○   |    |
+| feq   | _feq rd, rs1, rs2_  | rd = (rs1==rs2)?1:0  | rd:xn,rs1,rs2:fn |   ○   |    |
+| flt   | _flt rd, rs1, rs2_  | rd = (rs1<rs2)?1:0   | rd:xn,rs1,rs2:fn |   ○   |    |
+| fle   | _fle rd, rs1, rs2_  | rd = (rs1<=rs2)?1:0  | rd:xn,rs1,rs2:fn |   ○   |    |
+| itof  | _itof rd, rs1_      | rd = (float) rs1     |   rd:fn,rs1:xn   |   ○   |    |
+| ftoi  | _ftoi rd, rs1_      | rd = (int) rs2       |   rd:xn,rs1:fn   |   ○   |    |
+| floor | _floor rd, rs1_     | rd = [rs1]           |   rd:xn,rs1:fn   |   ○   |    |
+| xtof  | _fmv.f.x rd, rs1_   | rd = rs1             |   rd:fn,rs1:xn   |   ○   |    |
+| ftox  | _fmv.f.x rd, rs1_   | rd = rs1             |   rd:xn,rs1:fn   |   ○   |    |
+| sin   | _sin rd, rs1_       | rd = sin(rs1)        |     rd,rs:fn     |   ×   |    |
+| cos   | _cos rd, rs1_       | rd = cos(rs1)        |     rd,rs:fn     |   ×   |    |
+| atan  | _atan rd, rs1_      | rd = atan(rs1)       |     rd,rs:fn     |   ×   |    |
 
 
 #### FLW命令
@@ -408,21 +427,19 @@ immは命令単位の差分を設定
 	- funct3: 0b010
 	- 意味: rd = \|rs1\|
 
-#### ftoi(u)
+#### ftoi
 - funct5: 0b11000
 - 命令形式: _ftoi(u) rd, rs1_
 - レジスタ: rd:xn, rs1:fn
-- 意味: rd = ((unsigned) int) rs1
-- 補足:
-	rs2 == 0b00000でsigned
-	rs2 == 0b00001でunsigned(未実装)
+- 意味: rd = (int) rs1
+- 補足:基本最近接だが、ちょうど小数部が0.5の時の丸めはCとは逆になる(IPコアのしよう)
 
 #### ftox
 - funct5: 0b11100
 - funct3: 0b000
 - rs2: 0b00000
 - 命令形式: _ftox rd, rs1_
-- レジスタ: rd:xn, rs1:fn
+- レジスタ: float -> int
 - 意味: rd = rs1 (xn = fn)
 	(ビット列コピー)
 
@@ -443,24 +460,20 @@ immは命令単位の差分を設定
 	- funct3: 0b000
 	- 意味: rd = (rs1 <= rs2) ? 1 : 0
 
-#### fclass
-(未実装)
-
-#### itof(u)
+#### itof
 - funct5: 0b11010
-- 命令形式: _itof(u) rd, rs1_
-- レジスタ: rd:fn, rs1:xn
+- 命令形式: _itof rd, rs1_
+- 型: float -> int
 - 意味: rd = float rs1
 - 補足:
-	rs2 == 0b00000で rs1をsignedとして
-	rs2 == 0b00001で rs1をunsignedとして(未実装)
+	rs2 == 0b00000
 
 #### xtof
 - funct5: 0b11110
 - funct3: 0b000
 - rs2: 0b00000
 - 命令形式: _xtof rd, rs1_
-- レジスタ: rd:fn, rs1:xn
+- レジスタ: int -> float
 - 意味: rd = rs1 (fn = xn)
 	(ビット列コピー)
 
