@@ -100,7 +100,7 @@ static void setup_comm_parameters(int fdCom, const com_settings *cs)
 
 void setup_comm(const com_settings* cs){
 	int i = 0;
-	for (i = 0; i < 5; ++i){
+	for (i = 1; i < 5; ++i){
 		char comport_name[32];
 		sprintf(comport_name, "/dev/ttyUSB%d", i);
 	
