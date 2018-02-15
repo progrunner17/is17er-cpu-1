@@ -1,3 +1,14 @@
+print_char 80;
+print_char 49;
+print_char 10;
+print_char 52;
+print_char 48;
+print_char 48;
+print_char 10;
+print_char 52;
+print_char 48;
+print_char 48;
+print_char 10;
 (*MINCAML*) let rec dbl f = f +. f in
 (*NOMINCAML let dbl f = 2. *. f in *)
 (*NOMINCAML for y = 0 to 399 do *)
@@ -9,14 +20,14 @@
                 let  cr = dbl (float_of_int x) /. 400.0 -. 1.5 in
                 let  ci = dbl (float_of_int y) /. 400.0 -. 1.0 in
                 let rec iloop i zr zi zr2 zi2 cr ci =
-                  if i = 0 then print_char 1 else
+                  if i = 0 then print_char 49 else
                   let tr = zr2 -. zi2 +. cr in
                   let ti = dbl zr *. zi +. ci in
                   let zr = tr in
                   let zi = ti in
                   let zr2 = zr *. zr in
                   let zi2 = zi *. zi in
-                  if fless (2.0 *. 2.0) (zr2 +. zi2) then print_char 0 else
+                  if fless (2.0 *. 2.0) (zr2 +. zi2) then print_char 48 else
                   iloop (i - 1) zr zi zr2 zi2 cr ci in
                 iloop 1000 0.0 0.0 0.0 0.0 cr ci ;
 (*
