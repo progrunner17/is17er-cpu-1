@@ -116,6 +116,9 @@ uint32_t create_machine_code(Instr i) {
 			break;
 		case OP_HLT:
 			code = 0;break;
+		case OP_ABORT:
+			code = 1;break;
+
 		default: fprintf(stderr, "[ERROR]@create_machine_code:\tinvalid opcode\n");
 	}
 
@@ -157,6 +160,7 @@ Instr create_instr(uint32_t code) {
 	uint32_t opcode  = 0;
 	opcode = (code & 0b1111111);
 	instr->opcode = opcode;
+	if(opcode == OP_HLT || opcode == OP_ABORT)return instr;
 // opcode check
 	switch (opcode) {
 		case OP_LUI:
@@ -174,6 +178,7 @@ Instr create_instr(uint32_t code) {
 		case OP_LOAD_IO:
 		case OP_STORE_IO:
 		case OP_HLT:
+		case OP_ABORT:
 			break;
 		default: fprintf(stderr, "[ERROR]@create_instr:\tinvalid opcode\n");
 			break;
