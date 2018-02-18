@@ -28,10 +28,10 @@ int ctob(char c){
 }
 
 BinaryCode initialize_binary_code(void){
-BinaryCode bin_code;
-bin_code=calloc(MEMORY_SIZE,sizeof(instruction));
+	BinaryCode bin_code;
+	bin_code=calloc(PROGRAM_SIZE,sizeof(instruction)*32);
 
-return bin_code;
+	return bin_code;
 };
 
 BinaryCode file_load(FILE *fp){
@@ -52,7 +52,7 @@ BinaryCode file_load(FILE *fp){
 	int count;
 	int b;//読み取っているファイル内容の一文字（0or1orナル文字）
 	
-	s=calloc(PROGRAM_SIZE,sizeof(char)*32);
+	s=calloc(PROGRAM_SIZE,sizeof(char));
 	while(fscanf(fp,"%s",s) != EOF){
 		count=0;
 		b=ctob(s[count]);	//0,1のとき0,1、停止するとき（\0のとき）-1、その他の文字のとき2となるようにctoiが変換している
@@ -184,8 +184,8 @@ Machine initialize_machine(void){
 	mac->f[29] = 30.0 / M_PI;
 	mac->f[30] = 0;
 	mac->f[31] = 0;
-	mac->mem=malloc(sizeof(int));
-	mac->fmem=malloc(sizeof(float));
+	mac->mem=calloc(MEMORY_SIZE,sizeof(int));
+	mac->fmem=calloc(MEMORY_SIZE,sizeof(float));
 	mac->stack_max=0;
 	mac->heap_max=0;
 

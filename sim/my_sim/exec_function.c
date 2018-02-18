@@ -84,32 +84,50 @@ void exec(FILE* fp,Machine mac){
 			case OP_BRANCH:
 				switch(funct3){
 					case B_EQ:
-						if(mac->x[rs1]==mac->x[rs2])
+						if(mac->x[rs1]==mac->x[rs2]){
 							mac->pc=imm;
+						}else{
+							mac->pc=nextpc(mac->pc);
+						}
 					break;
 					case B_NE:
-						if(mac->x[rs1]!=mac->x[rs2])
-							mac->pc=imm;				
+						if(mac->x[rs1]!=mac->x[rs2]){
+							mac->pc=imm;
+						}else{
+							mac->pc=nextpc(mac->pc);
+						}
 					break;
 					case B_LT:
-						if(mac->x[rs1]<mac->x[rs2])
-							mac->pc=imm;				
+						if(mac->x[rs1]<mac->x[rs2]){
+							mac->pc=imm;
+						}else{
+							mac->pc=nextpc(mac->pc);
+						}				
 					break;
 					case B_GE:
-						if(mac->x[rs1]>=mac->x[rs2])
+						if(mac->x[rs1]>=mac->x[rs2]){
 							mac->pc=imm;			
+						}else{
+							mac->pc=nextpc(mac->pc);
+						}
 					break;
 					case B_LTU:
 						u1=mac->x[rs1];
 						u2=mac->x[rs2];
-						if(u1<u2)
+						if(u1<u2){
 							mac->pc=imm;				
+						}else{
+							mac->pc=nextpc(mac->pc);
+						}
 					break;
 					case B_GEU:
 						u1=mac->x[rs1];
 						u2=mac->x[rs2];
-						if(u1>=u2)	
+						if(u1>=u2){	
 							mac->pc=imm;
+						}else{
+							mac->pc=nextpc(mac->pc);
+						}
 					break;
 					default:
 				          perror("error:funct3\n");				
