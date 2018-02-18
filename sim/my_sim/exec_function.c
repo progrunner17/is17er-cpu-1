@@ -55,8 +55,8 @@ void exec(FILE* fp,Machine mac){
 		imm = immtonm(bin_code[mac->pc],opcode);
 //デバッグ↓
 		if(debug){
-			printf("pc=%d,opcode=%u,funct3=%d,funct7=%d\n",mac->pc,opcode,funct3,funct7);
-			printf("imm=%d,rs1=%d, rs2=%d,rd=%d,shamt=%d\n",imm,rs1,rs2,rd,shamt);
+			printf("pc=%d ",mac->pc*4);
+			print_asm(opcode,funct3,funct7,imm,rs1,rs2,rd,shamt);
 		}
 //デバッグ↑
 		switch(opcode){
@@ -64,44 +64,44 @@ void exec(FILE* fp,Machine mac){
 				mac->x[rd]=imm;//"上位"に注意！
 				mac->pc=nextpc(mac->pc);
 			break;
-			case OP_AUIPC:
-				mac->x[rd]=mac->pc + imm;//"上位"に注意
+			case OP_AUIPC://mac->pcはプログラムカウンタの1/4であることに注意すること
+				mac->x[rd]=(mac->pc)*4 + imm;//"上位"に注意
 				mac->pc=nextpc(mac->pc);
 			break;
-			case OP_JAL:
+			case OP_JAL://mac->pcはプログラムカウンタの1/4であることに注意すること
 				mac->x[rd]=nextpc(mac->pc);
-				mac->pc=mac->pc+imm;//mac->pc足す！
+				mac->pc=mac->pc+(imm/4);//mac->pc足す！
 			break;
-			case OP_JALR:
+			case OP_JALR://mac->pcはプログラムカウンタの1/4であることに注意すること
 				mac->x[rd]=nextpc(mac->pc);
-				mac->pc=mac->x[rs1]+imm;
+				mac->pc=(mac->x[rs1]+imm)/4;
 			break;
-			case OP_BRANCH:
+			case OP_BRANCH://mac->pcはプログラムカウンタの1/4であることに注意すること
 				switch(funct3){
 					case B_EQ:
 						if(mac->x[rs1]==mac->x[rs2]){
-							mac->pc=imm;
+							mac->pc=(imm/4);
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
 					break;
 					case B_NE:
 						if(mac->x[rs1]!=mac->x[rs2]){
-							mac->pc=imm;
+							mac->pc=(imm/4);
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
 					break;
 					case B_LT:
 						if(mac->x[rs1]<mac->x[rs2]){
-							mac->pc=imm;
+							mac->pc=(imm/4);
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}				
 					break;
 					case B_GE:
 						if(mac->x[rs1]>=mac->x[rs2]){
-							mac->pc=imm;			
+							mac->pc=(imm/4);		
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
@@ -110,7 +110,7 @@ void exec(FILE* fp,Machine mac){
 						u1=mac->x[rs1];
 						u2=mac->x[rs2];
 						if(u1<u2){
-							mac->pc=imm;				
+							mac->pc=(imm/4);		
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
@@ -119,7 +119,7 @@ void exec(FILE* fp,Machine mac){
 						u1=mac->x[rs1];
 						u2=mac->x[rs2];
 						if(u1>=u2){	
-							mac->pc=imm;
+							mac->pc=(imm/4);
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
@@ -336,7 +336,7 @@ void exec(FILE* fp,Machine mac){
 						mac->f[rd]=(float) mac->x[rs1];
 					break;
 					case F7_XTOF:
-						((int *)mac->f)[rd]=mac->f[rs1]+mac->f[rs2];
+						((int *)mac->f)[rd]=mac->f[rs1];
 					break;
 					default:
 				          perror("error:funct7\n");				

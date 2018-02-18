@@ -72,8 +72,10 @@ BinaryCode file_load(FILE *fp){
 //デバッグ用↓
 			if(check_bin_code){
 				fprintf(fp_hoge,"bin_code[%d][%d]=%d\n",i,j,bin_code[i][j]);
-//デバッグ用↑
+				fflush(stdout);
 			}
+//デバッグ用↑
+			
 		}
 	}
 	return bin_code;
@@ -112,7 +114,7 @@ int immtonm(instruction instr,int opcode){
 			retval=bintonm(instr,31,31)*pow(2,12)
 				+bintonm(instr,25,30)*pow(2,5)
 				+bintonm(instr,8,11)*pow(2,1)
-				+bintonm(instr,7,7)*pow(2,11));
+				+bintonm(instr,7,7)*pow(2,11);
 		break;
 		case OP_LOAD:
 			retval=bintonm(instr,20,31);
@@ -309,3 +311,261 @@ void parse_commandline_arg(int argc, char **argv) {
 
   fprintf(log_fp, "------------------------------------------------------------------------\n");
 }
+
+void print_asm(int opcode,int funct3,int funct7,int imm,int rs1,int rs2,int rd,int shamt){
+		switch(opcode){
+			case OP_LUI:
+				printf("lui x%d, %d\n",rd,imm);
+			break;
+			case OP_AUIPC:
+				printf("auipc x%d, %d\n",rd,imm);
+			break;
+			case OP_JAL:
+				printf("jal x%d, %d\n",rd,imm);
+			break;
+			case OP_JALR:
+				printf("jalr x%d, x%d, %d\n",rd,rs1,imm);
+			break;
+			case OP_BRANCH:
+				switch(funct3){
+					case B_EQ:
+						printf("beq x%d, x%d, %d\n",rs1,rs2,imm);
+					break;
+					case B_NE:
+						printf("bne x%d, x%d, %d\n",rs1,rs2,imm);
+					break;
+					case B_LT:
+						printf("blt x%d, x%d, %d\n",rs1,rs2,imm);
+					break;
+					case B_GE:
+						printf("bge x%d, x%d, %d\n",rs1,rs2,imm);
+					break;
+					case B_LTU:
+						printf("bltu x%d, x%d, %d\n",rs1,rs2,imm);
+					break;
+					case B_GEU:
+						printf("bgeu x%d, x%d, %d\n",rs1,rs2,imm);
+					break;
+					default:
+				          perror("error:funct3\n");				
+				}
+			break;
+			case OP_LOAD:
+				switch(funct3){				
+					case LOAD_BYTE_S:
+						printf("lb x%d, %d(x%d)\n",rd,imm,rs1);
+					break;
+					case LOAD_HALF_S:
+						printf("lh x%d, %d(x%d)\n",rd,imm,rs1);
+					break;
+					case LOAD_WORD:
+						printf("lu x%d, %d(x%d)\n",rd,imm,rs1);
+					break;
+					case LOAD_BYTE_Z:
+						printf("lbu x%d, %d(x%d)\n",rd,imm,rs1);
+					break;
+					case LOAD_HALF_Z:
+						printf("lhu x%d, %d(x%d)\n",rd,imm,rs1);
+					break;
+					default:
+				          perror("error:funct3\n");				
+				}
+			break;
+			case OP_STORE://rs2に注意！
+				switch(funct3){
+					case STORE_BYTE:
+						printf("sb x%d, %d(x%d)\n",rs2,imm,rs1);
+					break;
+					case STORE_HALF:	
+						printf("sh x%d, %d(x%d)\n",rs2,imm,rs1);
+					break;
+					case STORE_WORD:
+						printf("sw x%d, %d(x%d)\n",rs2,imm,rs1);
+					break;
+					default:
+				          perror("error:funct3\n");				
+
+				}
+			break;
+			case OP_ALUI:
+				switch(funct3){
+					case ALU_ADD:
+						printf("addi x%d, x%d, %d\n",rd,rs1,imm);
+					break;
+					case ALU_SLL:
+						printf("slli x%d, x%d, %d\n",rd,rs1,imm);
+					break;
+					case ALU_SLT:
+						printf("slti x%d, x%d, %d\n",rd,rs1,imm);
+					break;
+					case ALU_SLTU:
+						printf("sltiu x%d, x%d, %d\n",rd,rs1,imm);
+					break;
+					case ALU_XOR:
+						printf("xori x%d, x%d, %d\n",rd,rs1,imm);
+					break;
+					case ALU_SRX:
+						switch(funct7){
+							case F7_SRL:
+							 printf("srli x%d, x%d, %d\n",rd,rs1,imm);
+							break;
+							case F7_SRA:
+							 printf("srai x%d, x%d, %d\n",rd,rs1,imm);
+							break;
+							default:
+					      			perror("error:funct7\n");
+						}
+					break;
+					case ALU_OR:
+						printf("ori x%d, x%d, %d\n",rd,rs1,imm);
+					break;
+					case ALU_AND:
+						printf("andi x%d, x%d, %d\n",rd,rs1,imm);
+					break;
+					default:
+				          perror("error:funct3\n");				
+
+				}
+			break;
+			case OP_ALU://OP_ALUをコピペ＋α（ただし、SUBはない）
+				switch(funct3){
+					case ALU_ADD:
+						switch(funct7){
+							case F7_ADD:
+								printf("add x%d, x%d, x%d\n",rd,rs1,rs2);
+							break;
+							case F7_SUB:
+								printf("sub x%d, x%d, x%d\n",rd,rs1,rs1);
+							break;
+							default:
+					      			perror("error:funct7\n");
+						}
+					break;
+					case ALU_SLL:
+						printf("sll x%d, x%d, x%d\n",rd,rs1,rs2);
+					break;
+					case ALU_SLT:
+						printf("slt x%d, x%d, x%d\n",rd,rs1,rs2);
+					break;
+					case ALU_SLTU:
+						printf("sltu x%d, x%d, x%d\n",rd,rs1,rs2);
+					break;
+					case ALU_XOR:
+						printf("xor x%d, x%d, x%d\n",rd,rs1,rs2);
+					break;
+					case ALU_SRX:
+						switch(funct7){
+							case F7_SRL:
+								printf("srl x%d, x%d, x%d\n",rd,rs1,rs2);
+							break;
+							case F7_SRA:
+								printf("sra x%d, x%d, x%d\n",rd,rs1,rs2);
+							break;
+							default:
+					      			perror("error:funct7\n");
+						}
+					break;
+					case ALU_OR:
+						printf("or x%d, x%d, x%d\n",rd,rs1,rs2);
+					break;
+					case ALU_AND:
+						printf("and x%d, x%d, x%d\n",rd,rs1,rs2);
+					break;
+					default:
+					  perror("error:funct3\n");				
+
+				}
+			break;
+			case OP_LOAD_FP:
+				printf("flb f%d, %d(x%d)\n",rd,imm,rs1);
+			break;
+			case OP_STORE_FP:
+				printf("fsb f%d, %d(x%d)\n",rs2,imm,rs1);
+			break;
+			case OP_FP:
+				switch(funct7){
+					case F7_FADD:
+						printf("fadd f%d, f%d, f%d\n",rd,rs1,rs2);
+					break;
+					case F7_FSUB:
+						printf("fsub f%d, f%d, f%d\n",rd,rs1,rs2);
+					break;
+					case F7_FMUL:
+						printf("fmul f%d, f%d, f%d\n",rd,rs1,rs2);
+					break;
+					case F7_FDIV:
+						printf("fdiv f%d, f%d, f%d\n",rd,rs1,rs2);
+					break;
+					case F7_FSQRT:
+						printf("fsqrt f%d, f%d\n",rd,rs1);
+					break;
+					case F7_FSGNJ:
+						switch(funct3){
+							case F3_FSGNJ:
+								printf("fmv f%d, f%d\n",rd,rs1);
+							break;
+							case F3_FSGNJN:
+								printf("fneg f%d, f%d\n",rd,rs1);
+							break;
+							case F3_FSGNJX:
+								printf("fabs f%d, f%d\n",rd,rs1);
+							break;
+							default:
+					      			perror("error:funct3\n");
+						}
+					break;
+					case F7_FTOI:
+						switch(funct3){
+							case F3_RDN://floorに注意した
+							 printf("floor x%d, f%d\n",rd,rs1);
+							break;
+							case F3_RNE://ftoiに注意した
+							 printf("ftoi x%d, f%d\n",rd,rs1);
+							break;
+							default:
+					      			perror("error:funct3\n");
+						}	
+					break;
+					case F7_FTOX:
+						printf("ftox x%d, f%d\n",rd,rs1);
+					break;
+					case F7_FCMP:
+						switch(funct3){
+							case F3_FEQ:
+	 						 printf("feq x%d, f%d, f%d\n",rd,rs1,rs2);
+
+							case F3_FLT:
+							 printf("flt x%d, f%d, f%d\n",rd,rs1,rs2);
+							case F3_FLE:
+							 printf("fle x%d, f%d, f%d\n",rd,rs1,rs2);
+							default:
+					      			perror("error:funct3\n");
+						}	
+					break;
+					case F7_ITOF:
+						printf("itof f%d, x%d\n",rd,rs1);
+					break;
+					case F7_XTOF:
+						printf("xtof f%d, x%d, f%d\n",rd,rs1,rs2);
+					break;
+					default:
+				          perror("error:funct7\n");				
+						
+				}
+			break;			
+			case OP_LOAD_IO:
+				printf("load_IO\n");
+			break;
+			case OP_STORE_IO:
+				printf("store_IO\n");
+			break;
+			case OP_HLT:
+				printf("hlt\n");
+			break;
+			default:
+				perror("error:opcode\n");
+				exit(1);
+								
+		}
+}
+
