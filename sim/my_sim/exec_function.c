@@ -60,11 +60,6 @@ void exec(FILE* fp,Machine mac){
 		}
 //デバッグ↑
 		switch(opcode){
-//デバッグ↓
-			if(debug){
-				printf("in switch\n");
-			}
-//デバッグ↑
 			case OP_LUI:
 				mac->x[rd]=imm;//"上位"に注意！
 				mac->pc=nextpc(mac->pc);
@@ -75,7 +70,7 @@ void exec(FILE* fp,Machine mac){
 			break;
 			case OP_JAL:
 				mac->x[rd]=nextpc(mac->pc);
-				mac->pc=imm;
+				mac->pc=mac->pc+imm;//mac->pc足す！
 			break;
 			case OP_JALR:
 				mac->x[rd]=nextpc(mac->pc);

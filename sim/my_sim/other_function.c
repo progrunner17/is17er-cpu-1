@@ -112,7 +112,7 @@ int immtonm(instruction instr,int opcode){
 			retval=bintonm(instr,31,31)*pow(2,12)
 				+bintonm(instr,25,30)*pow(2,5)
 				+bintonm(instr,8,11)*pow(2,1)
-				+bintonm(instr,7,7)*pow(2,11);
+				+bintonm(instr,7,7)*pow(2,11));
 		break;
 		case OP_LOAD:
 			retval=bintonm(instr,20,31);
