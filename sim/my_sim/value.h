@@ -3,6 +3,8 @@
 #ifndef _VALUE
 #define _VALUE
 
+#define MEMORY_SIZE  (1024 * 1024 * 4)	
+#define PROGRAM_SIZE (1024 * 1024)
 #define BUF_SIZE 256
 extern FILE *log_fp;
 extern FILE *out_fp;

@@ -29,26 +29,36 @@ int ctob(char c){
 
 BinaryCode initialize_binary_code(void){
 BinaryCode bin_code;
-bin_code=malloc(sizeof(instruction));
+bin_code=calloc(MEMORY_SIZE,sizeof(instruction));
 
 return bin_code;
 };
 
 BinaryCode file_load(FILE *fp){
+//デバッグ用↓
+	FILE *fp_hoge;
+	if(check_bin_code){
+		if((fp_hoge=fopen("hoge.txt","w"))==NULL){
+			fprintf(stderr,"check_bin_codeファイルオープン失敗");
+		}
+	}
+//デバッグ用↑
+
 	BinaryCode bin_code;
 	bin_code=initialize_binary_code();
 	char *s;
-	s=malloc(sizeof(char));
 	int i=0;
 	int j=0;
-	int count=0;
+	int count;
 	int b;//読み取っているファイル内容の一文字（0or1orナル文字）
 	
+	s=calloc(PROGRAM_SIZE,sizeof(char)*32);
 	while(fscanf(fp,"%s",s) != EOF){
+		count=0;
 		b=ctob(s[count]);	//0,1のとき0,1、停止するとき（\0のとき）-1、その他の文字のとき2となるようにctoiが変換している
 		while(b>-1){	//ナル文字でなければ
 			if(b==0||b==1){	//b==2は無視することに注意
-				bin_code[i][j]=b;
+				bin_code[i][31-j]=b;
 				if(j<31){
 					j++;
 				}else{
@@ -58,8 +68,11 @@ BinaryCode file_load(FILE *fp){
 			}
 			count++;
 			b=ctob(s[count]);	//0,1のとき0,1、停止するとき（\0のとき）-1、その他の文字のとき2となるようにctoiが変換している
+
+//デバッグ用↓
 			if(check_bin_code){
-				printf("bin_code[%d][%d]=%d\n",i,j,bin_code[i][j]);
+				fprintf(fp_hoge,"bin_code[%d][%d]=%d\n",i,j,bin_code[i][j]);
+//デバッグ用↑
 			}
 		}
 	}

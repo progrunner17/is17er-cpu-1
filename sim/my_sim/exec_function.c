@@ -18,7 +18,7 @@ extern uint8_t sld_bytes[];
 extern unsigned sld_n_bytes;
 int w;
 //デバッグ用フラグ
-int debug=0;//pc,opcode,funct3(7)を出力。switch文の中に入れば、"in switch"を出力
+int debug=1;//pc,opcode,funct3(7)を出力。switch文の中に入れば、"in switch"を出力
 
 
 void exec(FILE* fp,Machine mac){
@@ -40,9 +40,11 @@ void exec(FILE* fp,Machine mac){
 	
 	//int型配列で表された２進数の比較はint型に直して行う。
 	//（例）0b110と"{1,1,0,1,1}"の上3桁の比較は{1,1,0}を6(=0b110)に直し比較する。この場合、0b110=6なのでtrue。
-	int opcode,funct3,funct7,rd,rs1,rs2,imm,shamt;
+	unsigned int opcode,funct3,funct7;
+	int rd,rs1,rs2,imm,shamt;
 	unsigned int u1,u2;//unsignedに変換するときに用いる
-	while(bin_code[mac->pc]!=NULL){
+	opcode=OP_HLT+1;//とりあえずOP_HLTと異なるようにする
+	while(bin_code[mac->pc]!=NULL&&opcode!=OP_HLT){
 		opcode = bintonm(bin_code[mac->pc],0,6);
 		funct3 = bintonm(bin_code[mac->pc],12,14);
 		funct7 = bintonm(bin_code[mac->pc],25,31);
@@ -53,7 +55,8 @@ void exec(FILE* fp,Machine mac){
 		imm = immtonm(bin_code[mac->pc],opcode);
 //デバッグ↓
 		if(debug){
-			printf("pc=%d,opcode=%d,funct3=%d,funct7=%d\n",mac->pc,opcode,funct3,funct7);
+			printf("pc=%d,opcode=%u,funct3=%d,funct7=%d\n",mac->pc,opcode,funct3,funct7);
+			printf("imm=%d,rs1=%d, rs2=%d,rd=%d,shamt=%d\n",imm,rs1,rs2,rd,shamt);
 		}
 //デバッグ↑
 		switch(opcode){
@@ -76,7 +79,7 @@ void exec(FILE* fp,Machine mac){
 			break;
 			case OP_JALR:
 				mac->x[rd]=nextpc(mac->pc);
-				mac->pc=mac->x[rs1];
+				mac->pc=mac->x[rs1]+imm;
 			break;
 			case OP_BRANCH:
 				switch(funct3){
@@ -367,12 +370,11 @@ void exec(FILE* fp,Machine mac){
 				mac->pc=nextpc(mac->pc);				
 			break;
 //とりあえずコピペ↑		
+			case OP_HLT:break;//while()内で役割を果たしている
 			default:
-				if(opcode==OP_HLT){
-					break;//switchで書きたかったがbreakが重複するので
-				}else{
-					perror("error:opcode\n");
-				}				
+				perror("error:opcode\n");
+				exit(0);
+								
 		}
 	if(mac->x[2] > mac->stack_max) mac->stack_max = mac->x[2];
 	if(mac->x[3] > mac->heap_max) mac->heap_max = mac->x[3];
