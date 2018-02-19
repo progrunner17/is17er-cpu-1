@@ -55,7 +55,7 @@ void exec(FILE* fp,Machine mac){
 		imm = immtonm(bin_code[mac->pc],opcode);
 //デバッグ↓
 		if(debug){
-			printf("pc=%d ",mac->pc*4);
+			printf("pc=%d ",mac->pc);
 			print_asm(opcode,funct3,funct7,imm,rs1,rs2,rd,shamt);
 		}
 //デバッグ↑
@@ -65,43 +65,43 @@ void exec(FILE* fp,Machine mac){
 				mac->pc=nextpc(mac->pc);
 			break;
 			case OP_AUIPC://mac->pcはプログラムカウンタの1/4であることに注意すること
-				mac->x[rd]=(mac->pc)*4 + imm;//"上位"に注意
+				mac->x[rd]=mac->pc + imm;//"上位"に注意
 				mac->pc=nextpc(mac->pc);
 			break;
 			case OP_JAL://mac->pcはプログラムカウンタの1/4であることに注意すること
 				mac->x[rd]=nextpc(mac->pc);
-				mac->pc=mac->pc+(imm/4);//mac->pc足す！
+				mac->pc=(mac->pc+imm)^1;//mac->pc足す！
 			break;
 			case OP_JALR://mac->pcはプログラムカウンタの1/4であることに注意すること
 				mac->x[rd]=nextpc(mac->pc);
-				mac->pc=(mac->x[rs1]+imm)/4;
+				mac->pc=(mac->x[rs1]+imm);
 			break;
 			case OP_BRANCH://mac->pcはプログラムカウンタの1/4であることに注意すること
 				switch(funct3){
 					case B_EQ:
 						if(mac->x[rs1]==mac->x[rs2]){
-							mac->pc=(imm/4);
+							mac->pc=imm;
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
 					break;
 					case B_NE:
 						if(mac->x[rs1]!=mac->x[rs2]){
-							mac->pc=(imm/4);
+							mac->pc=imm;
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
 					break;
 					case B_LT:
 						if(mac->x[rs1]<mac->x[rs2]){
-							mac->pc=(imm/4);
+							mac->pc=imm;
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}				
 					break;
 					case B_GE:
 						if(mac->x[rs1]>=mac->x[rs2]){
-							mac->pc=(imm/4);		
+							mac->pc=imm;		
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
@@ -110,7 +110,7 @@ void exec(FILE* fp,Machine mac){
 						u1=mac->x[rs1];
 						u2=mac->x[rs2];
 						if(u1<u2){
-							mac->pc=(imm/4);		
+							mac->pc=imm;		
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
@@ -119,7 +119,7 @@ void exec(FILE* fp,Machine mac){
 						u1=mac->x[rs1];
 						u2=mac->x[rs2];
 						if(u1>=u2){	
-							mac->pc=(imm/4);
+							mac->pc=imm;
 						}else{
 							mac->pc=nextpc(mac->pc);
 						}
@@ -389,7 +389,9 @@ void exec(FILE* fp,Machine mac){
 				exit(0);
 								
 		}
+	mac->x[0]=0;//0レジスタは常に0
 	if(mac->x[2] > mac->stack_max) mac->stack_max = mac->x[2];
 	if(mac->x[3] > mac->heap_max) mac->heap_max = mac->x[3];
+
 	}
 }

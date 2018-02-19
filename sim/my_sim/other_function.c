@@ -36,12 +36,12 @@ BinaryCode initialize_binary_code(void){
 
 BinaryCode file_load(FILE *fp){
 //デバッグ用↓
-	FILE *fp_hoge;
-	if(check_bin_code){
-		if((fp_hoge=fopen("hoge.txt","w"))==NULL){
-			fprintf(stderr,"check_bin_codeファイルオープン失敗");
-		}
-	}
+//	FILE *fp_hoge;
+//	if(check_bin_code){
+//		if((fp_hoge=fopen("hoge.txt","w"))==NULL){
+//			fprintf(stderr,"check_bin_codeファイルオープン失敗");
+//		}
+//	}
 //デバッグ用↑
 
 	BinaryCode bin_code;
@@ -70,10 +70,10 @@ BinaryCode file_load(FILE *fp){
 			b=ctob(s[count]);	//0,1のとき0,1、停止するとき（\0のとき）-1、その他の文字のとき2となるようにctoiが変換している
 
 //デバッグ用↓
-			if(check_bin_code){
-				fprintf(fp_hoge,"bin_code[%d][%d]=%d\n",i,j,bin_code[i][j]);
-				fflush(stdout);
-			}
+//			if(check_bin_code){
+//				fprintf(fp_hoge,"bin_code[%d][%d]=%d\n",i,j,bin_code[i][j]);
+//				fflush(stdout);
+//			}
 //デバッグ用↑
 			
 		}
