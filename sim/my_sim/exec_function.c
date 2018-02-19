@@ -6,6 +6,14 @@
 #include "include.h"
 #include "other_function.h"
 
+typedef union _word word;
+union _word {
+  float f;
+  unsigned int x;
+  int d;
+  uint8_t u8;
+};
+
 typedef union {
   int i;
   float f;
@@ -16,9 +24,9 @@ int input_index=0;
 extern fi_union sld_words[];
 extern uint8_t sld_bytes[];
 extern unsigned sld_n_bytes;
-int w;
+word w;
 //デバッグ用フラグ
-int debug=1;//pc,opcode,funct3(7)を出力。switch文の中に入れば、"in switch"を出力
+int debug=0;//pc,opcode,funct3(7)を出力。switch文の中に入れば、"in switch"を出力
 
 
 void exec(FILE* fp,Machine mac){
@@ -40,7 +48,7 @@ void exec(FILE* fp,Machine mac){
 	
 	//int型配列で表された２進数の比較はint型に直して行う。
 	//（例）0b110と"{1,1,0,1,1}"の上3桁の比較は{1,1,0}を6(=0b110)に直し比較する。この場合、0b110=6なのでtrue。
-	unsigned int opcode,funct3,funct7;
+	int opcode,funct3,funct7;
 	int rd,rs1,rs2,imm,shamt;
 	unsigned int u1,u2;//unsignedに変換するときに用いる
 	opcode=OP_HLT+1;//とりあえずOP_HLTと異なるようにする
@@ -70,7 +78,7 @@ void exec(FILE* fp,Machine mac){
 			break;
 			case OP_JAL://mac->pcはプログラムカウンタの1/4であることに注意すること
 				mac->x[rd]=nextpc(mac->pc);
-				mac->pc=(mac->pc+imm)^1;//mac->pc足す！
+				mac->pc=mac->pc+imm;//mac->pc足す！
 			break;
 			case OP_JALR://mac->pcはプログラムカウンタの1/4であることに注意すること
 				mac->x[rd]=nextpc(mac->pc);
@@ -347,10 +355,10 @@ void exec(FILE* fp,Machine mac){
 //とりあえずコピペ↓				
 			case OP_LOAD_IO:
 //			if(input_index <sld_n_bytes){
-							w = sld_words[input_index/4].i;
+							w.x = sld_words[input_index/4].i;
 							uint32_t data =  (uint32_t)sld_bytes[input_index++];
 							fprintf(log_fp,"\tinput[%d]: %02x\t", input_index-1,data);
-							printf("(%12d or %10.5f)\n",w,(float)w);
+							printf("(%12d or %10.5f)\n",w.x,w.f);
 							mac->x[rd] = data;
 /*			}else{
 					fprintf(log_fp,"[ERROR]@exec_instr\t:lack of input data\n");
@@ -390,6 +398,7 @@ void exec(FILE* fp,Machine mac){
 								
 		}
 	mac->x[0]=0;//0レジスタは常に0
+	mac->f[0]=0;//0レジスタは常に0
 	if(mac->x[2] > mac->stack_max) mac->stack_max = mac->x[2];
 	if(mac->x[3] > mac->heap_max) mac->heap_max = mac->x[3];
 

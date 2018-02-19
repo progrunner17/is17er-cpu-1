@@ -16,7 +16,7 @@ char *output_filename = NULL;
 char *log_filename = NULL;
 
 //デバッグ用フラグ
-int check_bin_code=1;//file_load内でbin_codeの各要素をプリントさせる。
+int check_bin_code=0;//file_load内でbin_codeの各要素をプリントさせる。
 
 int ctob(char c){
 	switch(c){
@@ -94,6 +94,7 @@ int bintonm(instruction instr,int i0,int i1){
 
 int immtonm(instruction instr,int opcode){
 	int retval;
+	int unsigned_rv;
 	switch(opcode){
 		case OP_LUI:
 			retval=bintonm(instr,12,31)*pow(2,12);
@@ -102,10 +103,19 @@ int immtonm(instruction instr,int opcode){
 			retval=bintonm(instr,12,31)*pow(2,12);
 		break;
 		case OP_JAL:
-			retval=bintonm(instr,31,31)*pow(2,20)
+/*
+			unsigned_rv=bintonm(instr,31,31)*pow(2,20)
 				+bintonm(instr,21,30)*pow(2,1)
 				+bintonm(instr,20,20)*pow(2,11)
 				+bintonm(instr,12,19)*pow(2,12);
+*/
+			unsigned_rv=bintonm(instr,12,31);
+			if(unsigned_rv<pow(2,19)){
+				retval=unsigned_rv;
+			}else{
+				retval=-(pow(2,20)-unsigned_rv);
+			}
+
 		break;
 		case OP_JALR:
 			retval=bintonm(instr,20,31);
