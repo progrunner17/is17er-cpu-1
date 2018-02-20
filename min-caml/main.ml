@@ -1,8 +1,10 @@
 (* MATSUSHITA: added operator <|, <|| and *| *)
 
-let (<|) print x = print x; x
+let (<|) print x =
+  let _ = if !H.verbose then print x in x
 
-let (<||) print (f, x) = let x' = f x in if x' <> x then print x'; x'
+let (<||) print (f, x) =
+  let x' = f x in let _ = if !H.verbose && x' <> x then print x' in x'
 let ( *|) x y = x, y
 
 let globals_name = ref ""
@@ -12,14 +14,14 @@ let limit = ref 1000
 let rec iter lines n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
   if n = 0 then e else
   (* MATSUSHITA: print intermediate results *)
-  let _ = Printf.printf "Iteration %d\n\n" n in
+  let _ = if !H.verbose then Printf.printf "Iteration %d\n\n" n in
   let e' =
     (fun e -> Printf.printf "[Elim.f]\n%s\n\n" (KNormal.show lines e)) <|| Elim.f *| (
     (fun e -> Printf.printf "[ConstFold.f]\n%s\n\n" (KNormal.show lines e)) <|| ConstFold.f *| (
     (fun e -> Printf.printf "[Inline.f]\n%s\n\n" (KNormal.show lines e)) <|| Inline.f *| (
     (fun e -> Printf.printf "[Assoc.f]\n%s\n\n" (KNormal.show lines e)) <|| Assoc.f *| (
     (fun e -> Printf.printf "[Beta.f]\n%s\n\n" (KNormal.show lines e)) <|| Beta.f *| e)))) in
-  if e = e' then let _ = print_string "No update: ended iteration\n\n" in e else
+  if e = e' then let _ = if !H.verbose then print_string "No update: ended iteration\n\n" in e else
   iter lines (n - 1) e'
 
 (* MATSUSHITA: print intermediate results *)
@@ -63,7 +65,8 @@ let file f = (* ファイルをコンパイルしてファイルに出力する (caml2html: main_file
 let () = (* ここからコンパイラの実行が開始される (caml2html: main_entry) *)
   let files = ref [] in
   Arg.parse
-    [("-inline", Arg.Int(fun i -> H.inline_threshold := i), "maximum size of functions inlined");
+    [("-v", Arg.Set H.verbose, "verbose");
+     ("-inline", Arg.Int(fun i -> H.inline_threshold := i), "maximum size of functions inlined");
      ("-bound", Arg.Set H.boundary_check, "do boundary check");
      ("-globals", Arg.Set_string globals_name, "filename of globals.ml without .ml");
      ("-iter", Arg.Int(fun i -> limit := i), "maximum number of optimizations iterated")]

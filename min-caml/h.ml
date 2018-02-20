@@ -2,6 +2,8 @@
 
 open Lexing
 
+let verbose = ref false
+
 let inline_threshold = ref 0 (* Mainで-inlineオプションによりセットされる *)
 let boundary_check = ref false
 

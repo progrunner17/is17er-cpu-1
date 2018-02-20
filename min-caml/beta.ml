@@ -35,7 +35,7 @@ let rec g env (range, body) = match body with (* β簡約ルーチン本体 (caml2html: 
   | Let(range', (x, t), e1, e2) -> (* letのβ簡約 (caml2html: beta_let) *)
       (match g env e1 with
       | _, Var(y) ->
-          Printf.printf "Beta-reducing %s = %s\n" x y;
+          if !H.verbose then Printf.printf "Beta-reducing %s = %s\n" x y;
           g (M.add x y env) e2
       | e1' ->
           let e2' = g env e2 in

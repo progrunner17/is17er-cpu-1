@@ -61,7 +61,7 @@ let rec alloc dest cont regenv x t =
         (prefer @ all) in
     Alloc(r)
   with Not_found ->
-    Printf.printf "Register allocation failed for %s\n" x;
+    if !H.verbose then Printf.printf "Register allocation failed for %s\n" x;
     let y = (* 型の合うレジスタ変数を探す *)
       List.find
         (fun y ->
@@ -69,7 +69,7 @@ let rec alloc dest cont regenv x t =
           try List.mem (M.find y regenv) all
           with Not_found -> false)
         (List.rev free) in
-    Printf.printf "Spilling %s from %s\n" y (M.find y regenv);
+    if !H.verbose then Printf.printf "Spilling %s from %s\n" y (M.find y regenv);
     Spill(y)
 
 (* auxiliary function for g and g'_and_restore *)

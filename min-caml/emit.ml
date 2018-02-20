@@ -428,7 +428,7 @@ let h lines { range = range; name = Id.L(x); args = _; fargs = _; body = e; ret 
   g lines (Tail, e)
 
 let f lines (Prog(fundefs, e)) =
-  Printf.printf "Generating assembly...\n";
+  if !H.verbose then Printf.printf "Generating assembly...\n";
   pc := 2; (* 後のジャンプ命令のため *)
   labels := M.empty;
   let s = List.fold_left (fun s fundef -> s^h lines fundef) "" fundefs in

@@ -2,6 +2,8 @@
 
 open Lexing
 
+val verbose : bool ref
+
 val inline_threshold : int ref
 val boundary_check : bool ref
 
