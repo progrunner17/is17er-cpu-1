@@ -199,7 +199,8 @@ int create_opcode(const char* mnemonic) {
             (strcmp(mnemonic, "flw") == 0) ? OP_LOAD_FP :
             (strcmp(mnemonic, "ob") == 0) ? OP_STORE_IO :
             (strcmp(mnemonic, "ib") == 0) ? OP_LOAD_IO :
-            (strcmp(mnemonic, "hlt") == 0) ? OP_HLT:
+            (strncmp(mnemonic, "hlt",3) == 0) ? OP_HLT:
+            (strncmp(mnemonic, "abort",5) == 0) ? OP_ABORT:
             -1;
   return opcode;
 }
@@ -332,11 +333,16 @@ Instr load_asm_line(char * buff) {
 
 
   if ((opcode = create_opcode(mnemonic)) != -1 ) { //オペコードを取得できたらtrue
+    instr->opcode = opcode;
+      // printf("\nbuff:%s",buff);
+                                                   //
+    if(opcode == OP_HLT || opcode == OP_ABORT){
+      return instr;
+    }
+
     // 命令用の領域を確保
-    instr = initialize_instr();
     instr->funct3 = create_funct3(mnemonic);
     instr->funct5 = create_funct5(mnemonic);
-    instr->opcode = opcode;
     instr->is_sra_sub = create_is_sra_sub(mnemonic);
 
     // read 1st operand
@@ -503,6 +509,7 @@ Instr load_asm_line(char * buff) {
 
     if (error)fprintf(log_fp, "[ERROR]@load_asm_line:\t%s\n", buff);
   } else {
+    // printf("label:%s",buff );
     // ラベルかもしれないのでエラー表示しない
     // fprintf(log_fp,"[ERROR]@load_asm_line:\tline may be label\n");
     error = 1;
@@ -557,6 +564,8 @@ Program load_asm_file(const char* filename,LList llist) {
     }
 
     if ((instr = load_asm_line(p))) {
+      // print_instr(instr);
+      // printf("\tpc:%d\n",pc);
       instr->src_break = src_break;
       instr->line = line;//行番号保存
       program[pc++] = instr;

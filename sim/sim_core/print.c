@@ -131,6 +131,7 @@ int print_mnemonic(Instr i) {
 	case OP_STORE_IO:printf("ob   ");break;
 	case OP_LOAD_IO:printf("ib   ");break;
 	case OP_HLT:printf("hlt");break;
+	case OP_ABORT:printf("abort");break;
 	default:
 		fprintf(log_fp,"[ERROR]@print_mnemonic:\tinvalid opcode\n");return -1;
 	}
@@ -176,6 +177,7 @@ void print_instr(Instr instr) {
 	case OP_STORE_IO: printf("x%-2d",instr->rs2);break;
 	case OP_LOAD_IO: printf("x%-2d",instr->rd);break;
 	case OP_HLT:break;
+	case OP_ABORT:break;
 	default: fprintf(log_fp,"[ERROR]@print_instr: opcode error\n");
 	}
 	fflush(stdout);

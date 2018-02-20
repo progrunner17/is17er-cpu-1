@@ -17,7 +17,7 @@
 #define OP_LOAD_IO	   0b0001011
 #define OP_STORE_IO	   0b0101011
 #define OP_HLT		   0b0000000
-
+#define OP_ABORT	   0b0000001
 
 
 //funct3_branch
