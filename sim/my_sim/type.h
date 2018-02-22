@@ -3,7 +3,6 @@
 typedef int instruction[32];
 typedef instruction *BinaryCode;
 
-
 struct machine {
 int pc;
 int fcsr;
