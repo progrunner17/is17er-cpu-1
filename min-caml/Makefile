@@ -1,3 +1,4 @@
+INLINE = 80
 min-caml: lexer.mll parser.mly float.c \
 		h.mli h.ml id.mli id.ml type.mli type.ml m.mli m.ml s.mli s.ml \
 		syntax.mli syntax.ml typing.mli typing.ml kNormal.mli kNormal.ml \
@@ -19,7 +20,7 @@ min-caml: lexer.mll parser.mly float.c \
 		main.mli main.ml
 
 raytracer/min-rt.s: min-caml raytracer/min-rt.ml raytracer/globals.ml
-	./min-caml raytracer/min-rt -globals raytracer/globals -inline 100
+	./min-caml raytracer/min-rt -globals raytracer/globals -inline $(INLINE)
 min-rt:
 	make raytracer/min-rt.s
 
