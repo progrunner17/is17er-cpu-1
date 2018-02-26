@@ -2,6 +2,8 @@
 IS17erCPU実験第1班コア係 五反田正太郎
 
 ## 変更履歴 
+- 2017-02-25
+	- ftox等の表記の揺れを修正、三角関数等の未実装の命令を削除
 - 2017-02-14
 	- 即値等補足の追加や、無駄な説明の破棄
 - 2017-12-5
@@ -357,11 +359,8 @@ immは命令単位の差分を設定
 | itof  | _itof rd, rs1_      | rd = (float) rs1     |   rd:fn,rs1:xn   |   ○   |    |
 | ftoi  | _ftoi rd, rs1_      | rd = (int) rs2       |   rd:xn,rs1:fn   |   ○   |    |
 | floor | _floor rd, rs1_     | rd = [rs1]           |   rd:xn,rs1:fn   |   ○   |    |
-| xtof  | _fmv.f.x rd, rs1_   | rd = rs1             |   rd:fn,rs1:xn   |   ○   |    |
-| ftox  | _fmv.f.x rd, rs1_   | rd = rs1             |   rd:xn,rs1:fn   |   ○   |    |
-| sin   | _sin rd, rs1_       | rd = sin(rs1)        |     rd,rs:fn     |   ×   |    |
-| cos   | _cos rd, rs1_       | rd = cos(rs1)        |     rd,rs:fn     |   ×   |    |
-| atan  | _atan rd, rs1_      | rd = atan(rs1)       |     rd,rs:fn     |   ×   |    |
+| xtof  | _xtof rd, rs1_   | rd = rs1             |   rd:fn,rs1:xn   |   ○   |    |
+| ftox  | _ftox rd, rs1_   | rd = rs1             |   rd:xn,rs1:fn   |   ○   |    |
 
 
 #### FLW命令
@@ -483,14 +482,14 @@ immは命令単位の差分を設定
 ___xレジスタを使用___
 
 ### ob
-- オペコード:0b00101
+- オペコード:0b0001011
 - funct3: 0b000 (sbと同じ)
 - 命令形式: _ob rs2_
 
 output byteの略。例えば _ob x1_ とするとx1レジスタの下位8bitを出力
 
 ### ib
-- オペコード:0b00101
+- オペコード:0b0101011
 - funct3: 0b100 (lbuと同じ)
 - 命令形式: _ib rd_
 
