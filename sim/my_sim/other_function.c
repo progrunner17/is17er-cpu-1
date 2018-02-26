@@ -16,7 +16,7 @@ char *output_filename = NULL;
 char *log_filename = NULL;
 
 //デバッグ用フラグ
-int check_bin_code=0;//file_load内でbin_codeの各要素をプリントさせる。
+//int check_bin_code=0;//file_load内でbin_codeの各要素をプリントさせる。
 
 int ctob(char c){
 	switch(c){
@@ -95,10 +95,17 @@ int bintonm(instruction instr,int i0,int i1){
 int immtonm(instruction instr,int opcode){
 	int retval;
 	int unsigned_rv;
+	int retval0;
 	switch(opcode){
 		case OP_LUI:
 		case OP_AUIPC:
-			retval=bintonm(instr,12,31)*pow(2,12);
+			unsigned_rv=bintonm(instr,12,31);
+			if(unsigned_rv<pow(2,19)){
+				retval0=unsigned_rv;
+			}else{
+				retval0=-(pow(2,20)-unsigned_rv);
+			}
+			retval=retval0*pow(2,12);
 		break;
 		case OP_JAL:
 /*
@@ -183,6 +190,7 @@ int immtonm(instruction instr,int opcode){
 			}else{
 				retval=-(pow(2,12)-unsigned_rv);
 			}
+		break;
 		case OP_FP:
 			retval=0;
 		break;
@@ -360,6 +368,14 @@ void parse_commandline_arg(int argc, char **argv) {
 }
 
 void print_asm(instruction instr,Machine mac,int instr_count,FILE *fp){
+	int i;
+	for(i=0;i<32;i++)
+		fprintf(fp,"x[%d]=%d ",i,mac->x[i]);
+	fprintf(fp,"\n");
+	for(i=0;i<32;i++)
+		fprintf(fp,"f[%d]=%f ",i,mac->f[i]);
+	fprintf(fp,"\n");
+
 	fprintf(fp,"%dth command: pc=%d ",instr_count,mac->pc);
 
 	int opcode,funct3,funct7;
@@ -376,10 +392,10 @@ void print_asm(instruction instr,Machine mac,int instr_count,FILE *fp){
 
 	switch(opcode){
 		case OP_LUI:
-			fprintf(fp,"lui x%d, %d\n",rd,imm);
+			fprintf(fp,"lui x%d, %d\n",rd,imm/4096);
 		break;
 		case OP_AUIPC:
-			fprintf(fp,"auipc x%d, %d\n",rd,imm);
+			fprintf(fp,"auipc x%d, %d\n",rd,imm/4096);
 		break;
 		case OP_JAL:
 			fprintf(fp,"jal x%d, %d\n",rd,imm);
@@ -538,10 +554,10 @@ void print_asm(instruction instr,Machine mac,int instr_count,FILE *fp){
 			}
 		break;
 		case OP_LOAD_FP:
-			fprintf(fp,"flb f%d, %d(x%d)\n",rd,imm,rs1);
+			fprintf(fp,"flw f%d, %d(x%d)\n",rd,imm,rs1);
 		break;
 		case OP_STORE_FP:
-			fprintf(fp,"fsb f%d, %d(x%d)\n",rs2,imm,rs1);
+			fprintf(fp,"fsw f%d, %d(x%d)\n",rs2,imm,rs1);
 		break;
 		case OP_FP:
 			switch(funct7){
@@ -609,7 +625,7 @@ void print_asm(instruction instr,Machine mac,int instr_count,FILE *fp){
 					fprintf(fp,"itof f%d, x%d\n",rd,rs1);
 				break;
 				case F7_XTOF:
-					fprintf(fp,"xtof f%d, x%d, f%d\n",rd,rs1,rs2);
+					fprintf(fp,"xtof f%d, x%d\n",rd,rs1);
 				break;
 				default:
 					perror("error:funct7\n");			
@@ -628,11 +644,4 @@ void print_asm(instruction instr,Machine mac,int instr_count,FILE *fp){
 				perror("error:opcode\n");
 				exit(1);			
 		}
-		int i;
-		for(i=0;i<32;i++)
-			fprintf(fp,"x[%d]=%d ",i,mac->x[i]);
-		fprintf(fp,"\n");
-		for(i=0;i<32;i++)
-			fprintf(fp,"f[%d]=%f ",i,mac->f[i]);
-		fprintf(fp,"\n");
 }
