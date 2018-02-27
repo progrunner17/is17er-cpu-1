@@ -1,30 +1,34 @@
 # CPU実験 1班最終レポート
 
 ## メンバー
+
 - コア係 五反田
 - コンパイラ係 松下
 - シミュレータ係 毛利
 - □係 坂本
 
-## ISAおよびマイクロアーキテクチャ(担当コア係五反田)
+## ISAおよびマイクロアーキテクチャ (担当: 五反田)
 
 ### 主な特徴
-- ワードサイズ:	32bit
+
+- ワードサイズ: 32bit
 - ワード単位アドレッシング
 	- 結果、シーケンシャルな命令実行時、PCの増加は4ではなく1
 - ハーバードアーキテクチャ
-	- 命令メモリ:	(2^14Word)	0x0000 ~ 0x3FFF
-	- データメモリ:	(2^18Word)	0x00000 ~ 0x3FFFF
-- UART BaudRate:	115200
+	- 命令メモリ: 0x0000 ~ 0x3FFF (2^14 words)
+	- データメモリ: 0x00000 ~ 0x3FFFF (2^18 words)
+- UART BaudRate: 115200
 
 ### 命令および即値のフォーマット
-RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策定した。
-そのうち、3形式(I,S,U)は即値を持ち、U形式はさらに即値の形式として、U形式およびJ形式の2形式に分類される。
+
+- RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策定した。
+	- そのうち、3形式(I,S,U)は即値を持ち、U形式はさらに即値の形式として、U形式およびJ形式の2形式に分類される。
 
 ![instr_format.jpg](instr_format.jpg)
 ![imm_format.jpg](imm_format.jpg)
 
 ### レジスタ
+
 - プログラムカウンタ:	pc
 - 汎用レジスタ: 32個	(x0~x31)
 	- x0は0で固定される。
@@ -65,11 +69,11 @@ RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策�
 | jal   | 0b1101111 | _jal rd, imm_                | rd = pc + 1, pc += imm                   |      J       |
 | jalr  | 0b1100111 | _jalr rd, rs1, imm_          | rd = pc + 1, pc = rs1 + imm              |      I       |
 | beq   | 0b1100011 | _beq rs1, rs2, pc + (imm<<2)_  | if(rs1 == rs2) then pc += imm else pc++  |      B       |
-| bne   |    同上     | _bne rs1, rs2, pc + (imm<<2)_  | if(rs1 != rs2)then pc += imm else pc++   |      B       |
+| bne   |    同上     | _bne rs1, rs2, pc + (imm<<2)_  | if(rs1 != rs2) then pc += imm else pc++  |      B       |
 | blt   |    同上     | _blt rs1, rs2, pc + (imm<<2)_  | if(rs1 < rs2) then pc += imm else pc++   |      B       |
 | bge   |    同上     | _bge rs1, rs2, pc + (imm<<2)_  | if(rs1 >= rs2) then pc += imm else pc++  |      B       |
 | bltu  |    同上     | _bltu rs1, rs2, pc + (imm<<2)_ | if(rs1 < rs2) then pc += imm else  pc++ |      B       |
-| bgeu  |    同上     | _bgeu rs1, rs2, pc + (imm<<2)_ | if(rs1 >= rs2)then pc += imm else pc++  |      B       |
+| bgeu  |    同上     | _bgeu rs1, rs2, pc + (imm<<2)_ | if(rs1 >= rs2) then pc += imm else pc++ |      B       |
 | lw    | 0b0000011 | _lw rd, imm(rs1)_            | rd = mem[rs1+imm], pc++                 |      I       |
 | sw    | 0b0100011 | _sw rs2, imm(rs1)_           | mem[addr] = rs2, pc++                   |      S       |
 | addi  | 0b0010011 | _addi rd, rs1, imm_          | rd = rs1 + imm, pc++                    |      I       |
@@ -84,8 +88,8 @@ RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策�
 | add   | 0b0110011 | _add rd, rs1, rs2_           | rd = rs1 + rs2, pc++                    |      R       |
 | sub   |    同上     | _sub rd, rs1, rs2_           | rd = rs1 - rs2, pc++                    |      R       |
 | sll   |    同上     | _sll rd, rs1, rs2_           | rd = rs1 << rs2, pc++                   |      R       |
-| slt   |    同上     | _slt rd, rs1, rs2_           | rd = (rs1 < rs2) ? 1:0, pc++            |      R       |
-| sltu  |    同上     | _sltu rd, rs1, rs2_          | rd = (rs1 < rs2) ? 1:0, pc++            |      R       |
+| slt   |    同上     | _slt rd, rs1, rs2_           | rd = (rs1 < rs2) ? 1 : 0, pc++          |      R       |
+| sltu  |    同上     | _sltu rd, rs1, rs2_          | rd = (rs1 < rs2) ? 1 : 0, pc++          |      R       |
 | xor   |    同上     | _xor rd, rs1, rs2_           | rd = rs1 ^ rs2, pc++                    |      R       |
 | srl   |    同上     | _srl rd, rs1, rs2_           | rd = rs1 >> rs2, pc++                   |      R       |
 | sra   |    同上     | _sra rd, rs1, rs2_           | rd = rs1 >>> rs2, pc++                  |      R       |
@@ -114,26 +118,28 @@ RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策�
 | xtof  |    同上     |  _xtof rd, rs1_  |   rd = rs1(bitコピー)    |    F     |   rd:fn,rs1:xn   |           |
 | ftox  |    同上     |  _ftox rd, rs1_  |   rd = rs1(bitコピー)    |    F     |   rd:xn,rs1:fn   |           |
 
-
 ### IO拡張命令
 
-### ob
-- オペコード:0b0101011
+#### ob
+
+- オペコード: 0b0101011
 - funct3: 0b000 (sbと同じ)
 - 命令形式: _ob rs2_
 
 output byteの略。例えば _ob x1_ とするとx1レジスタの下位8bitを出力
 
-### ib
-- オペコード:0b0001011
+#### ib
+
+- オペコード: 0b0001011
 - funct3: 0b100 (lbuと同じ)
 - 命令形式: _ib rd_
 
 input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼロ拡張してx1に入れる。
 
-## シミュレータについて(担当シミュレータ係毛利)
+## シミュレータについて (担当: 毛利)
 
 ### 概要
+
 - １分半ほどで min-rt の実行が終了した。
 
 ### コマンドラインオプション
@@ -149,27 +155,27 @@ input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼ�
 	権限次第で書き込めないかも？らしい
 
 ### コマンド
-- r / run
-	プログラムの全実行
-- p / print X (未完成)
-	X に指定したものの値を表示する
-	X ::= pc/pcx/pcd | x0-x31 | f0-f31 | all (すべて表示) | メモリ (int型/float型は別)
-	pc/pcxは16進数で表示。10進数で表示したいならpcd。
-- l / log n0 n1
-	現在の命令から数えてn0番目からn1番目までの命令とその時のレジスタの中身を"simulator.log"に書き出しながら全実行
-- o / opcode_next n（未完成）  　　
-	指定した次のニーモニックまで実行
-- n / next n
-	命令をn個実行
-- c / continue n (未完成)　　
-	最初から数えてn番目の命令まで実行
-- h / help　　
-	この文章を表示する
-- i or initialize　　
-	初期化
-- q or quit　　
-	シミュレータの終了
 
+- r / run
+	- プログラムの全実行
+- p / print X (未完成)
+	- X に指定したものの値を表示する
+	- X ::= pc/pcx/pcd | x0-x31 | f0-f31 | all (すべて表示) | メモリ (int型/float型は別)
+	- pc/pcxは16進数で表示。10進数で表示したいならpcd。
+- l / log n0 n1
+	- 現在の命令から数えてn0番目からn1番目までの命令とその時のレジスタの中身を"simulator.log"に書き出しながら全実行
+- o / opcode_next n（未完成）  　　
+	- 指定した次のニーモニックまで実行
+- n / next n
+	- 命令をn個実行
+- c / continue n (未完成)　　
+	- 最初から数えてn番目の命令まで実行
+- h / help　　
+	- この文章を表示する
+- i or initialize　　
+	- 初期化
+- q or quit　　
+	- シミュレータの終了
 
 ## 自分が担当した仕事について
 
