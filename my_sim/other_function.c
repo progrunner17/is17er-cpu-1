@@ -15,9 +15,6 @@ char *input_filename = NULL;
 char *output_filename = NULL;
 char *log_filename = NULL;
 
-//デバッグ用フラグ
-int check_bin_code=0;//file_load内でbin_codeの各要素をプリントさせる。
-
 int ctob(char c){
 	switch(c){
 		case '\0':return -1;
@@ -35,14 +32,6 @@ BinaryCode initialize_binary_code(void){
 };
 
 BinaryCode file_load(FILE *fp){
-//デバッグ用↓
-//	FILE *fp_hoge;
-//	if(check_bin_code){
-//		if((fp_hoge=fopen("hoge.txt","w"))==NULL){
-//			fprintf(stderr,"check_bin_codeファイルオープン失敗");
-//		}
-//	}
-//デバッグ用↑
 
 	BinaryCode bin_code;
 	bin_code=initialize_binary_code();
@@ -86,7 +75,7 @@ int bintonm(instruction instr,int i0,int i1){
 	int c=0;
 	int sum=0;
 	for(i=i0;i<=i1;i++){
-		sum=sum+instr[i]*pow(2,c);
+		sum=sum+(instr[i]<<c);
 		c++;
 	}
 	return sum;
@@ -95,12 +84,17 @@ int bintonm(instruction instr,int i0,int i1){
 int immtonm(instruction instr,int opcode){
 	int retval;
 	int unsigned_rv;
+	int retval0;
 	switch(opcode){
 		case OP_LUI:
-			retval=bintonm(instr,12,31)*pow(2,12);
-		break;
 		case OP_AUIPC:
-			retval=bintonm(instr,12,31)*pow(2,12);
+			unsigned_rv=bintonm(instr,12,31);
+			if(unsigned_rv<(1<<19)){
+				retval0=unsigned_rv;
+			}else{
+				retval0=-((1<<20)-unsigned_rv);
+			}
+			retval=retval0<<12;
 		break;
 		case OP_JAL:
 /*
@@ -110,28 +104,28 @@ int immtonm(instruction instr,int opcode){
 				+bintonm(instr,12,19)*pow(2,12);
 */
 			unsigned_rv=bintonm(instr,12,31);
-			if(unsigned_rv<pow(2,19)){
+			if(unsigned_rv<(1<<19)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,20)-unsigned_rv);
+				retval=-((1<<20)-unsigned_rv);
 			}
 
 		break;
 		case OP_JALR:
 			unsigned_rv=bintonm(instr,20,31);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_BRANCH:
- 			unsigned_rv=bintonm(instr,25,31)*pow(2,5)
+ 			unsigned_rv=(bintonm(instr,25,31)<<5)
 				+bintonm(instr,7,11);
 			if(unsigned_rv<pow(2,11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 /*
 			retval=bintonm(instr,31,31)*pow(2,12)
@@ -143,27 +137,27 @@ int immtonm(instruction instr,int opcode){
 		break;
 		case OP_LOAD:
 			unsigned_rv=bintonm(instr,20,31);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_STORE:
- 			unsigned_rv=bintonm(instr,25,31)*pow(2,5)
+ 			unsigned_rv=(bintonm(instr,25,31)<<5)
 				+bintonm(instr,7,11);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_ALUI:
 			unsigned_rv=bintonm(instr,20,31);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}				
 		break;
 		case OP_ALU:
@@ -171,28 +165,29 @@ int immtonm(instruction instr,int opcode){
 		break;
 		case OP_LOAD_FP:
 			unsigned_rv=bintonm(instr,20,31);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_STORE_FP:
-			unsigned_rv=bintonm(instr,25,31)*pow(2,5)
+			unsigned_rv=(bintonm(instr,25,31)<<5)
 				+bintonm(instr,7,11);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
+		break;
 		case OP_FP:
 			retval=0;
 		break;
 		case OP_LOAD_IO:
-			retval=0;//自信ない
+			retval=0;
 		break;
 		case OP_STORE_IO:
-			retval=0;//自信ない
+			retval=0;
 		break;
 		case OP_HLT:
 			retval=0;
@@ -361,262 +356,281 @@ void parse_commandline_arg(int argc, char **argv) {
   fprintf(log_fp, "------------------------------------------------------------------------\n");
 }
 
-void print_asm(int opcode,int funct3,int funct7,int imm,int rs1,int rs2,int rd,int shamt){
-		switch(opcode){
-			case OP_LUI:
-				printf("lui x%d, %d\n",rd,imm);
-			break;
-			case OP_AUIPC:
-				printf("auipc x%d, %d\n",rd,imm);
-			break;
-			case OP_JAL:
-				printf("jal x%d, %d\n",rd,imm);
-			break;
-			case OP_JALR:
-				printf("jalr x%d, x%d, %d\n",rd,rs1,imm);
-			break;
-			case OP_BRANCH:
-				switch(funct3){
-					case B_EQ:
-						printf("beq x%d, x%d, %d\n",rs1,rs2,imm);
-					break;
-					case B_NE:
-						printf("bne x%d, x%d, %d\n",rs1,rs2,imm);
-					break;
-					case B_LT:
-						printf("blt x%d, x%d, %d\n",rs1,rs2,imm);
-					break;
-					case B_GE:
-						printf("bge x%d, x%d, %d\n",rs1,rs2,imm);
-					break;
-					case B_LTU:
-						printf("bltu x%d, x%d, %d\n",rs1,rs2,imm);
-					break;
-					case B_GEU:
-						printf("bgeu x%d, x%d, %d\n",rs1,rs2,imm);
-					break;
-					default:
-				          perror("error:funct3\n");				
-				}
-			break;
-			case OP_LOAD:
-				switch(funct3){				
-					case LOAD_BYTE_S:
-						printf("lb x%d, %d(x%d)\n",rd,imm,rs1);
-					break;
-					case LOAD_HALF_S:
-						printf("lh x%d, %d(x%d)\n",rd,imm,rs1);
-					break;
-					case LOAD_WORD:
-						printf("lw x%d, %d(x%d)\n",rd,imm,rs1);
-					break;
-					case LOAD_BYTE_Z:
-						printf("lbu x%d, %d(x%d)\n",rd,imm,rs1);
-					break;
-					case LOAD_HALF_Z:
-						printf("lhu x%d, %d(x%d)\n",rd,imm,rs1);
-					break;
-					default:
-				          perror("error:funct3\n");				
-				}
-			break;
-			case OP_STORE://rs2に注意！
-				switch(funct3){
-					case STORE_BYTE:
-						printf("sb x%d, %d(x%d)\n",rs2,imm,rs1);
-					break;
-					case STORE_HALF:	
-						printf("sh x%d, %d(x%d)\n",rs2,imm,rs1);
-					break;
-					case STORE_WORD:
-						printf("sw x%d, %d(x%d)\n",rs2,imm,rs1);
-					break;
-					default:
-				          perror("error:funct3\n");				
+void print_asm(instruction instr,Machine mac,int instr_count,FILE *fp){
+	int i;
+	for(i=0;i<32;i++)
+		fprintf(fp,"x[%d]=%d ",i,mac->x[i]);
+	fprintf(fp,"\n");
+	for(i=0;i<32;i++)
+		fprintf(fp,"f[%d]=%f ",i,mac->f[i]);
+	fprintf(fp,"\n");
 
-				}
-			break;
-			case OP_ALUI:
-				switch(funct3){
-					case ALU_ADD:
-						printf("addi x%d, x%d, %d\n",rd,rs1,imm);
-					break;
-					case ALU_SLL:
-						printf("slli x%d, x%d, %d\n",rd,rs1,imm);
-					break;
-					case ALU_SLT:
-						printf("slti x%d, x%d, %d\n",rd,rs1,imm);
-					break;
-					case ALU_SLTU:
-						printf("sltiu x%d, x%d, %d\n",rd,rs1,imm);
-					break;
-					case ALU_XOR:
-						printf("xori x%d, x%d, %d\n",rd,rs1,imm);
-					break;
-					case ALU_SRX:
-						switch(funct7){
-							case F7_SRL:
-							 printf("srli x%d, x%d, %d\n",rd,rs1,imm);
-							break;
-							case F7_SRA:
-							 printf("srai x%d, x%d, %d\n",rd,rs1,imm);
-							break;
-							default:
-					      			perror("error:funct7\n");
-						}
-					break;
-					case ALU_OR:
-						printf("ori x%d, x%d, %d\n",rd,rs1,imm);
-					break;
-					case ALU_AND:
-						printf("andi x%d, x%d, %d\n",rd,rs1,imm);
-					break;
-					default:
-				          perror("error:funct3\n");				
+	fprintf(fp,"%dth command: pc=%d ",instr_count,mac->pc);
 
-				}
-			break;
-			case OP_ALU://OP_ALUをコピペ＋α（ただし、SUBはない）
-				switch(funct3){
-					case ALU_ADD:
-						switch(funct7){
-							case F7_ADD:
-								printf("add x%d, x%d, x%d\n",rd,rs1,rs2);
-							break;
-							case F7_SUB:
-								printf("sub x%d, x%d, x%d\n",rd,rs1,rs1);
-							break;
-							default:
-					      			perror("error:funct7\n");
-						}
-					break;
-					case ALU_SLL:
-						printf("sll x%d, x%d, x%d\n",rd,rs1,rs2);
-					break;
-					case ALU_SLT:
-						printf("slt x%d, x%d, x%d\n",rd,rs1,rs2);
-					break;
-					case ALU_SLTU:
-						printf("sltu x%d, x%d, x%d\n",rd,rs1,rs2);
-					break;
-					case ALU_XOR:
-						printf("xor x%d, x%d, x%d\n",rd,rs1,rs2);
-					break;
-					case ALU_SRX:
-						switch(funct7){
-							case F7_SRL:
-								printf("srl x%d, x%d, x%d\n",rd,rs1,rs2);
-							break;
-							case F7_SRA:
-								printf("sra x%d, x%d, x%d\n",rd,rs1,rs2);
-							break;
-							default:
-					      			perror("error:funct7\n");
-						}
-					break;
-					case ALU_OR:
-						printf("or x%d, x%d, x%d\n",rd,rs1,rs2);
-					break;
-					case ALU_AND:
-						printf("and x%d, x%d, x%d\n",rd,rs1,rs2);
-					break;
-					default:
-					  perror("error:funct3\n");				
+	int opcode,funct3,funct7;
+	int rd,rs1,rs2,imm,shamt;
 
-				}
-			break;
-			case OP_LOAD_FP:
-				printf("flb f%d, %d(x%d)\n",rd,imm,rs1);
-			break;
-			case OP_STORE_FP:
-				printf("fsb f%d, %d(x%d)\n",rs2,imm,rs1);
-			break;
-			case OP_FP:
-				switch(funct7){
-					case F7_FADD:
-						printf("fadd f%d, f%d, f%d\n",rd,rs1,rs2);
-					break;
-					case F7_FSUB:
-						printf("fsub f%d, f%d, f%d\n",rd,rs1,rs2);
-					break;
-					case F7_FMUL:
-						printf("fmul f%d, f%d, f%d\n",rd,rs1,rs2);
-					break;
-					case F7_FDIV:
-						printf("fdiv f%d, f%d, f%d\n",rd,rs1,rs2);
-					break;
-					case F7_FSQRT:
-						printf("fsqrt f%d, f%d\n",rd,rs1);
-					break;
-					case F7_FSGNJ:
-						switch(funct3){
-							case F3_FSGNJ:
-								printf("fmv f%d, f%d\n",rd,rs1);
-							break;
-							case F3_FSGNJN:
-								printf("fneg f%d, f%d\n",rd,rs1);
-							break;
-							case F3_FSGNJX:
-								printf("fabs f%d, f%d\n",rd,rs1);
-							break;
-							default:
-					      			perror("error:funct3\n");
-						}
-					break;
-					case F7_FTOI:
-						switch(funct3){
-							case F3_RDN://floorに注意した
-							 printf("floor x%d, f%d\n",rd,rs1);
-							break;
-							case F3_RNE://ftoiに注意した
-							 printf("ftoi x%d, f%d\n",rd,rs1);
-							break;
-							default:
-					      			perror("error:funct3\n");
-						}	
-					break;
-					case F7_FTOX:
-						printf("ftox x%d, f%d\n",rd,rs1);
-					break;
-					case F7_FCMP:
-						switch(funct3){
-							case F3_FEQ:
-	 						 printf("feq x%d, f%d, f%d\n",rd,rs1,rs2);
-							break;	
-							case F3_FLT:
-							 printf("flt x%d, f%d, f%d\n",rd,rs1,rs2);
-							break;
-							case F3_FLE:
-							 printf("fle x%d, f%d, f%d\n",rd,rs1,rs2);
-							break;
-							default:
-					      			perror("error:funct3\n");
-						}	
-					break;
-					case F7_ITOF:
-						printf("itof f%d, x%d\n",rd,rs1);
-					break;
-					case F7_XTOF:
-						printf("xtof f%d, x%d, f%d\n",rd,rs1,rs2);
-					break;
-					default:
-				          perror("error:funct7\n");				
-						
-				}
+	opcode = bintonm(instr,0,6);
+	funct3 = bintonm(instr,12,14);
+	funct7 = bintonm(instr,25,31);
+	rd = bintonm(instr,7,11);
+	rs1 = bintonm(instr,15,19);
+	rs2 = bintonm(instr,20,24);
+	shamt = bintonm(instr,20,24);
+	imm = immtonm(instr,opcode);
+
+	switch(opcode){
+		case OP_LUI:
+			fprintf(fp,"lui x%d, %d\n",rd,imm/4096);
+		break;
+		case OP_AUIPC:
+			fprintf(fp,"auipc x%d, %d\n",rd,imm/4096);
+		break;
+		case OP_JAL:
+			fprintf(fp,"jal x%d, %d\n",rd,imm);
+		break;
+		case OP_JALR:
+			fprintf(fp,"jalr x%d, x%d, %d\n",rd,rs1,imm);
+		break;
+		case OP_BRANCH:
+			switch(funct3){
+				case B_EQ:
+					fprintf(fp,"beq x%d, x%d, %d\n",rs1,rs2,imm);
+				break;
+				case B_NE:
+					fprintf(fp,"bne x%d, x%d, %d\n",rs1,rs2,imm);
+				break;
+				case B_LT:
+					fprintf(fp,"blt x%d, x%d, %d\n",rs1,rs2,imm);
+				break;
+				case B_GE:
+					fprintf(fp,"bge x%d, x%d, %d\n",rs1,rs2,imm);
+				break;
+				case B_LTU:
+					fprintf(fp,"bltu x%d, x%d, %d\n",rs1,rs2,imm);
+				break;
+				case B_GEU:
+					fprintf(fp,"bgeu x%d, x%d, %d\n",rs1,rs2,imm);
+				break;
+				default:
+			          perror("error:funct3\n");				
+			}
+		break;
+		case OP_LOAD:
+			switch(funct3){	
+				case LOAD_BYTE_S:
+					fprintf(fp,"lb x%d, %d(x%d)\n",rd,imm,rs1);
+				break;
+				case LOAD_HALF_S:
+					fprintf(fp,"lh x%d, %d(x%d)\n",rd,imm,rs1);
+				break;
+				case LOAD_WORD:
+					fprintf(fp,"lw x%d, %d(x%d)\n",rd,imm,rs1);
+				break;
+				case LOAD_BYTE_Z:
+					fprintf(fp,"lbu x%d, %d(x%d)\n",rd,imm,rs1);
+				break;
+				case LOAD_HALF_Z:
+					fprintf(fp,"lhu x%d, %d(x%d)\n",rd,imm,rs1);
+				break;
+				default:
+			          perror("error:funct3\n");				
+			}
+		break;
+		case OP_STORE://rs2に注意！
+			switch(funct3){
+				case STORE_BYTE:
+					fprintf(fp,"sb x%d, %d(x%d)\n",rs2,imm,rs1);
+				break;
+				case STORE_HALF:	
+					fprintf(fp,"sh x%d, %d(x%d)\n",rs2,imm,rs1);
+				break;
+				case STORE_WORD:
+					fprintf(fp,"sw x%d, %d(x%d)\n",rs2,imm,rs1);
+				break;
+				default:
+			          perror("error:funct3\n");				
+
+			}
+		break;
+		case OP_ALUI:
+			switch(funct3){
+				case ALU_ADD:
+					fprintf(fp,"addi x%d, x%d, %d\n",rd,rs1,imm);
+				break;
+				case ALU_SLL:
+					fprintf(fp,"slli x%d, x%d, %d\n",rd,rs1,shamt);
+				break;
+				case ALU_SLT:
+					fprintf(fp,"slti x%d, x%d, %d\n",rd,rs1,imm);
+				break;
+				case ALU_SLTU:
+					fprintf(fp,"sltiu x%d, x%d, %d\n",rd,rs1,imm);
+				break;
+				case ALU_XOR:
+					fprintf(fp,"xori x%d, x%d, %d\n",rd,rs1,imm);
+				break;
+				case ALU_SRX:
+					switch(funct7){
+						case F7_SRL:
+							fprintf(fp,"srli x%d, x%d, %d\n",rd,rs1,shamt);
+						break;
+						case F7_SRA:
+							fprintf(fp,"srai x%d, x%d, %d\n",rd,rs1,shamt);
+						break;
+						default:
+				      			perror("error:funct7\n");
+					}
+				break;
+				case ALU_OR:
+					fprintf(fp,"ori x%d, x%d, %d\n",rd,rs1,imm);
+				break;
+				case ALU_AND:
+					fprintf(fp,"andi x%d, x%d, %d\n",rd,rs1,imm);
+				break;
+				default:
+					perror("error:funct3\n");				
+
+			}
+		break;
+		case OP_ALU://OP_ALUをコピペ＋α（ただし、SUBはない）
+			switch(funct3){
+				case ALU_ADD:
+					switch(funct7){
+						case F7_ADD:
+							fprintf(fp,"add x%d, x%d, x%d\n",rd,rs1,rs2);
+						break;
+						case F7_SUB:
+							fprintf(fp,"sub x%d, x%d, x%d\n",rd,rs1,rs1);
+						break;
+						default:
+							perror("error:funct7\n");
+					}
+				break;
+				case ALU_SLL:
+					fprintf(fp,"sll x%d, x%d, x%d\n",rd,rs1,rs2);
+				break;
+				case ALU_SLT:
+					fprintf(fp,"slt x%d, x%d, x%d\n",rd,rs1,rs2);
+				break;
+				case ALU_SLTU:
+					fprintf(fp,"sltu x%d, x%d, x%d\n",rd,rs1,rs2);
+				break;
+				case ALU_XOR:
+					fprintf(fp,"xor x%d, x%d, x%d\n",rd,rs1,rs2);
+				break;
+				case ALU_SRX:
+					switch(funct7){
+						case F7_SRL:
+							fprintf(fp,"srl x%d, x%d, x%d\n",rd,rs1,rs2);
+						break;
+						case F7_SRA:
+							fprintf(fp,"sra x%d, x%d, x%d\n",rd,rs1,rs2);
+						break;
+						default:
+					      		perror("error:funct7\n");
+					}
+				break;
+				case ALU_OR:
+					fprintf(fp,"or x%d, x%d, x%d\n",rd,rs1,rs2);
+				break;
+				case ALU_AND:
+					fprintf(fp,"and x%d, x%d, x%d\n",rd,rs1,rs2);
+				break;
+				default:
+					perror("error:funct3\n");				
+
+			}
+		break;
+		case OP_LOAD_FP:
+			fprintf(fp,"flw f%d, %d(x%d)\n",rd,imm,rs1);
+		break;
+		case OP_STORE_FP:
+			fprintf(fp,"fsw f%d, %d(x%d)\n",rs2,imm,rs1);
+		break;
+		case OP_FP:
+			switch(funct7){
+				case F7_FADD:
+					fprintf(fp,"fadd f%d, f%d, f%d\n",rd,rs1,rs2);
+				break;
+				case F7_FSUB:
+					fprintf(fp,"fsub f%d, f%d, f%d\n",rd,rs1,rs2);
+				break;
+				case F7_FMUL:
+					fprintf(fp,"fmul f%d, f%d, f%d\n",rd,rs1,rs2);
+				break;
+				case F7_FDIV:
+					fprintf(fp,"fdiv f%d, f%d, f%d\n",rd,rs1,rs2);
+				break;
+				case F7_FSQRT:
+					fprintf(fp,"fsqrt f%d, f%d\n",rd,rs1);
+				break;
+				case F7_FSGNJ:
+					switch(funct3){
+						case F3_FSGNJ:
+							fprintf(fp,"fmv f%d, f%d\n",rd,rs1);
+						break;
+						case F3_FSGNJN:
+							fprintf(fp,"fneg f%d, f%d\n",rd,rs1);
+						break;
+						case F3_FSGNJX:
+							fprintf(fp,"fabs f%d, f%d\n",rd,rs1);
+						break;
+						default:
+				      			perror("error:funct3\n");
+					}
+				break;
+				case F7_FTOI:
+					switch(funct3){
+						case F3_RDN://floorに注意した
+							fprintf(fp,"floor x%d, f%d\n",rd,rs1);
+						break;
+						case F3_RNE://ftoiに注意した
+							fprintf(fp,"ftoi x%d, f%d\n",rd,rs1);
+						break;
+						default:
+					      		perror("error:funct3\n");
+					}	
+				break;
+				case F7_FTOX:
+					fprintf(fp,"ftox x%d, f%d\n",rd,rs1);
+				break;
+				case F7_FCMP:
+					switch(funct3){
+						case F3_FEQ:
+	 						fprintf(fp,"feq x%d, f%d, f%d\n",rd,rs1,rs2);
+						break;	
+						case F3_FLT:
+							fprintf(fp,"flt x%d, f%d, f%d\n",rd,rs1,rs2);
+						break;
+						case F3_FLE:
+							fprintf(fp,"fle x%d, f%d, f%d\n",rd,rs1,rs2);
+						break;
+						default:
+					      		perror("error:funct3\n");
+					}	
+				break;
+				case F7_ITOF:
+					fprintf(fp,"itof f%d, x%d\n",rd,rs1);
+				break;
+				case F7_XTOF:
+					fprintf(fp,"xtof f%d, x%d\n",rd,rs1);
+				break;
+				default:
+					perror("error:funct7\n");			
+			}
 			break;			
 			case OP_LOAD_IO:
-				printf("ib x%d\n",rd);
+				fprintf(fp,"ib x%d\n",rd);
 			break;
 			case OP_STORE_IO:
-				printf("ob x%d\n",rs2);
+				fprintf(fp,"ob x%d\n",rs2);
 			break;
 			case OP_HLT:
-				printf("hlt\n");
+				fprintf(fp,"hlt\n");
 			break;
 			default:
 				perror("error:opcode\n");
-				exit(1);
-								
+				exit(1);			
 		}
 }
-
