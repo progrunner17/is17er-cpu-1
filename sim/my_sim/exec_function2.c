@@ -292,7 +292,7 @@ int instr_exec(Machine mac,instruction instr){
 							mac->x[rd]=(int) floorf(mac->f[rs1]);
 						break;
 						case F3_RNE://ftoiに注意した
-							mac->x[rd]=(int) mac->f[rs1];
+							mac->x[rd]=roundf(mac->f[rs1]);
 						break;
 						default:
 				      			perror("error:funct3ftoi\n");
