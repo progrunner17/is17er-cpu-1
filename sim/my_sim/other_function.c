@@ -15,9 +15,6 @@ char *input_filename = NULL;
 char *output_filename = NULL;
 char *log_filename = NULL;
 
-//デバッグ用フラグ
-//int check_bin_code=0;//file_load内でbin_codeの各要素をプリントさせる。
-
 int ctob(char c){
 	switch(c){
 		case '\0':return -1;
@@ -35,14 +32,6 @@ BinaryCode initialize_binary_code(void){
 };
 
 BinaryCode file_load(FILE *fp){
-//デバッグ用↓
-//	FILE *fp_hoge;
-//	if(check_bin_code){
-//		if((fp_hoge=fopen("hoge.txt","w"))==NULL){
-//			fprintf(stderr,"check_bin_codeファイルオープン失敗");
-//		}
-//	}
-//デバッグ用↑
 
 	BinaryCode bin_code;
 	bin_code=initialize_binary_code();
@@ -86,7 +75,7 @@ int bintonm(instruction instr,int i0,int i1){
 	int c=0;
 	int sum=0;
 	for(i=i0;i<=i1;i++){
-		sum=sum+instr[i]*pow(2,c);
+		sum=sum+(instr[i]<<c);
 		c++;
 	}
 	return sum;
@@ -100,12 +89,12 @@ int immtonm(instruction instr,int opcode){
 		case OP_LUI:
 		case OP_AUIPC:
 			unsigned_rv=bintonm(instr,12,31);
-			if(unsigned_rv<pow(2,19)){
+			if(unsigned_rv<(1<<19)){
 				retval0=unsigned_rv;
 			}else{
-				retval0=-(pow(2,20)-unsigned_rv);
+				retval0=-((1<<20)-unsigned_rv);
 			}
-			retval=retval0*pow(2,12);
+			retval=retval0<<12;
 		break;
 		case OP_JAL:
 /*
@@ -115,28 +104,28 @@ int immtonm(instruction instr,int opcode){
 				+bintonm(instr,12,19)*pow(2,12);
 */
 			unsigned_rv=bintonm(instr,12,31);
-			if(unsigned_rv<pow(2,19)){
+			if(unsigned_rv<(1<<19)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,20)-unsigned_rv);
+				retval=-((1<<20)-unsigned_rv);
 			}
 
 		break;
 		case OP_JALR:
 			unsigned_rv=bintonm(instr,20,31);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_BRANCH:
- 			unsigned_rv=bintonm(instr,25,31)*pow(2,5)
+ 			unsigned_rv=(bintonm(instr,25,31)<<5)
 				+bintonm(instr,7,11);
 			if(unsigned_rv<pow(2,11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 /*
 			retval=bintonm(instr,31,31)*pow(2,12)
@@ -148,27 +137,27 @@ int immtonm(instruction instr,int opcode){
 		break;
 		case OP_LOAD:
 			unsigned_rv=bintonm(instr,20,31);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_STORE:
- 			unsigned_rv=bintonm(instr,25,31)*pow(2,5)
+ 			unsigned_rv=(bintonm(instr,25,31)<<5)
 				+bintonm(instr,7,11);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_ALUI:
 			unsigned_rv=bintonm(instr,20,31);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}				
 		break;
 		case OP_ALU:
@@ -176,19 +165,19 @@ int immtonm(instruction instr,int opcode){
 		break;
 		case OP_LOAD_FP:
 			unsigned_rv=bintonm(instr,20,31);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_STORE_FP:
-			unsigned_rv=bintonm(instr,25,31)*pow(2,5)
+			unsigned_rv=(bintonm(instr,25,31)<<5)
 				+bintonm(instr,7,11);
-			if(unsigned_rv<pow(2,11)){
+			if(unsigned_rv<(1<<11)){
 				retval=unsigned_rv;
 			}else{
-				retval=-(pow(2,12)-unsigned_rv);
+				retval=-((1<<12)-unsigned_rv);
 			}
 		break;
 		case OP_FP:
