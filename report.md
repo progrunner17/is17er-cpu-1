@@ -1,6 +1,13 @@
-# CPU実験レポート
+# CPU実験 1班最終レポート
+
+## メンバー
+- コア係 五反田
+- コンパイラ係 松下
+- シミュレータ係 毛利
+- □係 坂本
 
 ## ISAおよびマイクロアーキテクチャ(担当コア係五反田)
+
 ### 主な特徴
 - ワードサイズ:	32bit
 - ワード単位アドレッシング
@@ -16,8 +23,6 @@ RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策�
 
 ![instr_format.jpg](instr_format.jpg)
 ![imm_format.jpg](imm_format.jpg)
-
-
 
 ### レジスタ
 - プログラムカウンタ:	pc
@@ -51,44 +56,41 @@ RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策�
 | f28   | pi        | 0x40490FDB | //LUI&ADDIで生成可能 |
 | f29   | 30.0 / pi | 0x4118C9EB | //LUI&ADDIで生成可能 |
 
-
-
 ### 基本命令(RV32I改)
 
 | 命令    |  opcode   | 形式                           | 解釈疑似コード                                 | 命令(即値)フォーマット |
 |:------|:---------:|:-----------------------------|:----------------------------------------|:------------:|
-| lui   | 0b0110111 | _lui rd, imm_                | rd = imm << 12,pc++                     |      U       |
-| auipc | 0b0010111 | _auipc rd, imm_              | rd = pc + (imm<<12),pc++                |      U       |
-| jal   | 0b1101111 | _jal rd, imm_                | rd = pc + 1  ,pc += imm                 |      J       |
-| jalr  | 0b1100111 | _jalr rd, rs1, imm_          | rd = pc + 1  ,pc = rs1 + imm            |      I       |
-| beq   | 0b1100011 | _beq rs1, rs2, pc + imm<<2_  | if(rs1 == rs2)then pc += imm else pc++  |      B       |
-| bne   |    同上     | _bne rs1, rs2, pc + imm<<2_  | if(rs1 != rs2)then pc += imm else pc++  |      B       |
-| blt   |    同上     | _blt rs1, rs2, pc + imm<<2_  | if(rs1 < rs2) then pc += imm else pc++  |      B       |
-| bge   |    同上     | _bge rs1, rs2, pc + imm<<2_  | if(rs1 >= rs2)then pc += imm else pc++  |      B       |
-| bltu  |    同上     | _bltu rs1, rs2, pc + imm<<2_ | if(rs1 < rs2) then pc += imm else  pc++ |      B       |
-| bgeu  |    同上     | _bgeu rs1, rs2, pc + imm<<2_ | if(rs1 >= rs2)then pc += imm else pc++  |      B       |
-| lw    | 0b0000011 | _lw rd, imm(rs1)_            | rd = mem[rs1+imm] ,pc++                 |      I       |
-| sw    | 0b0100011 | _sw rs2, imm(rs1)_           | mem[addr] = rs2 ,pc++                   |      S       |
-| addi  | 0b0010011 | _addi rd, rs1, imm_          | rd = rs1 + imm ,pc++                    |      I       |
-| slti  |    同上     | _slti rd, rs1, imm_          | rd = (rs1 < imm) ? 1 : 0 ,pc++          |      I       |
-| sltiu |    同上     | _sltiu rd, rs1, imm_         | rd = (rs1 < imm) ? 1 : 0 ,pc++          |      I       |
-| xori  |    同上     | _xori rd, rs1, imm_          | rd = rs1 ^ imm ,pc++                    |      I       |
-| ori   |    同上     | _ori rd, rs1, imm_           | rd = rs1 ｜imm ,pc++                     |      I       |
-| andi  |    同上     | _andi rd, rs1, imm_          | rd = rs1 & imm ,pc++                    |      I       |
-| slli  |    同上     | _slli rd, rs1, imm_          | rd = rs1 << imm ,pc++                   |   I(5bit)    |
-| srli  |    同上     | _srli rd, rs1, imm_          | rd = rs1 >> imm ,pc++                   |   I(5bit)    |
-| srai  |    同上     | _srai rd, rs1, imm_          | rd = rs1 >>> imm ,pc++                  |   I(5bit)    |
-| add   | 0b0110011 | _add rd, rs1, rs2_           | rd = rs1 + rs2 ,pc++                    |      R       |
-| sub   |    同上     | _sub rd, rs1, rs2_           | rd = rs1 - rs2 ,pc++                    |      R       |
-| sll   |    同上     | _sll rd, rs1, rs2_           | rd = rs1 << rs2 ,pc++                   |      R       |
-| slt   |    同上     | _slt rd, rs1, rs2_           | rd = (rs1 < rs2) ? 1:0 ,pc++            |      R       |
-| sltu  |    同上     | _sltu rd, rs1, rs2_          | rd = (rs1 < rs2) ? 1:0 ,pc++            |      R       |
-| xor   |    同上     | _xor rd, rs1, rs2_           | rd = rs1 ^ rs2 ,pc++                    |      R       |
-| srl   |    同上     | _srl rd, rs1, rs2_           | rd = rs1 >> rs2 ,pc++                   |      R       |
-| sra   |    同上     | _sra rd, rs1, rs2_           | rd = rs1 >>> rs2 ,pc++                  |      R       |
-| or    |    同上     | _or rd, rs1, rs2_            | rd = rs1 ｜rs2 ,pc++                     |      R       |
-| and   |    同上     | _and rd, rs1, rs2_           | rd = rs1 & rs2 ,pc++                    |      R       |
-
+| lui   | 0b0110111 | _lui rd, imm_                | rd = imm<<12, pc++                     |      U       |
+| auipc | 0b0010111 | _auipc rd, imm_              | rd = pc + (imm<<12), pc++              |      U       |
+| jal   | 0b1101111 | _jal rd, imm_                | rd = pc + 1, pc += imm                   |      J       |
+| jalr  | 0b1100111 | _jalr rd, rs1, imm_          | rd = pc + 1, pc = rs1 + imm              |      I       |
+| beq   | 0b1100011 | _beq rs1, rs2, pc + (imm<<2)_  | if(rs1 == rs2) then pc += imm else pc++  |      B       |
+| bne   |    同上     | _bne rs1, rs2, pc + (imm<<2)_  | if(rs1 != rs2)then pc += imm else pc++   |      B       |
+| blt   |    同上     | _blt rs1, rs2, pc + (imm<<2)_  | if(rs1 < rs2) then pc += imm else pc++   |      B       |
+| bge   |    同上     | _bge rs1, rs2, pc + (imm<<2)_  | if(rs1 >= rs2) then pc += imm else pc++  |      B       |
+| bltu  |    同上     | _bltu rs1, rs2, pc + (imm<<2)_ | if(rs1 < rs2) then pc += imm else  pc++ |      B       |
+| bgeu  |    同上     | _bgeu rs1, rs2, pc + (imm<<2)_ | if(rs1 >= rs2)then pc += imm else pc++  |      B       |
+| lw    | 0b0000011 | _lw rd, imm(rs1)_            | rd = mem[rs1+imm], pc++                 |      I       |
+| sw    | 0b0100011 | _sw rs2, imm(rs1)_           | mem[addr] = rs2, pc++                   |      S       |
+| addi  | 0b0010011 | _addi rd, rs1, imm_          | rd = rs1 + imm, pc++                    |      I       |
+| slti  |    同上     | _slti rd, rs1, imm_          | rd = (rs1 < imm) ? 1 : 0, pc++          |      I       |
+| sltiu |    同上     | _sltiu rd, rs1, imm_         | rd = (rs1 < imm) ? 1 : 0, pc++          |      I       |
+| xori  |    同上     | _xori rd, rs1, imm_          | rd = rs1 ^ imm, pc++                    |      I       |
+| ori   |    同上     | _ori rd, rs1, imm_           | rd = rs1 |imm, pc++                     |      I       |
+| andi  |    同上     | _andi rd, rs1, imm_          | rd = rs1 & imm, pc++                    |      I       |
+| slli  |    同上     | _slli rd, rs1, imm_          | rd = rs1 << imm, pc++                   |   I(5bit)    |
+| srli  |    同上     | _srli rd, rs1, imm_          | rd = rs1 >> imm, pc++                   |   I(5bit)    |
+| srai  |    同上     | _srai rd, rs1, imm_          | rd = rs1 >>> imm, pc++                  |   I(5bit)    |
+| add   | 0b0110011 | _add rd, rs1, rs2_           | rd = rs1 + rs2, pc++                    |      R       |
+| sub   |    同上     | _sub rd, rs1, rs2_           | rd = rs1 - rs2, pc++                    |      R       |
+| sll   |    同上     | _sll rd, rs1, rs2_           | rd = rs1 << rs2, pc++                   |      R       |
+| slt   |    同上     | _slt rd, rs1, rs2_           | rd = (rs1 < rs2) ? 1:0, pc++            |      R       |
+| sltu  |    同上     | _sltu rd, rs1, rs2_          | rd = (rs1 < rs2) ? 1:0, pc++            |      R       |
+| xor   |    同上     | _xor rd, rs1, rs2_           | rd = rs1 ^ rs2, pc++                    |      R       |
+| srl   |    同上     | _srl rd, rs1, rs2_           | rd = rs1 >> rs2, pc++                   |      R       |
+| sra   |    同上     | _sra rd, rs1, rs2_           | rd = rs1 >>> rs2, pc++                  |      R       |
+| or    |    同上     | _or rd, rs1, rs2_            | rd = rs1 | rs2, pc++                    |      R       |
+| and   |    同上     | _and rd, rs1, rs2_           | rd = rs1 & rs2, pc++                    |      R       |
 
 ### 浮動小数点命令(RV32F改)
 
@@ -130,39 +132,43 @@ output byteの略。例えば _ob x1_ とするとx1レジスタの下位8bitを
 input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼロ拡張してx1に入れる。
 
 ## シミュレータについて(担当シミュレータ係毛利)
--１分半ほどで実行が終了する
--シミュレーターの使い方
 
-COMAND_LINE_OPTION
-（void parse_commandline_arg(int argc, char \*\*argv); が sim_core からのコピペなので使い方は sim_core と同様）
+### 概要
+- １分半ほどで min-rt の実行が終了した。
 
-	-s ソースファイル名:	    アセンブリファイルを指定
-	-o 出力ファイル名:		出力ファイル名 指定しないとsim.outに出力
-	-i 入力ファイル名:		入力ファイル名 sldを指定する。
-	-l ログファイル名:		ログファイル名 指定しないとstderrに出力
+### コマンドラインオプション
+
+- -s ソースファイル名
+	アセンブリファイルを指定
+- -o 出力ファイル名
+	出力ファイル名 指定しないとsim.outに出力
+- -i 入力ファイル名
+	入力ファイル名 sldを指定する。
+- -l ログファイル名
+	ログファイル名 指定しないとstderrに出力
 	権限次第で書き込めないかも？らしい
 
-COMMAND
--	r or run
-		プログラムの全実行
--	p or print  (未完成)
-		対象に指定した物の値を表示する
-		対象 ::= pc | x0~x31 | f0~f31 |すべて表示all|メモリ（int型float型は別）
-	        (pc(pcxも可)は16進数で表示。10進数で表示したいならpcd）
--	l or log　　
-		log n0 n1 (n0 n1はint型)と書くと現在の命令から数えてn0番目からn1番目までの命令とその時のレジスタの中身を"simulator.log"に書き出しながら全実行。
--	o or opcode_next（未完成）  　　
-		指定した次のニーモニックまで実行。
--	n or next　　
-		next n　(nはint型)と打つと命令をn個実行
--	c or continue(未完成)　　
-		continue n　(nはint型)と打つと最初から数えてn番目の命令まで実行
--	h or help　　
-		この文章を表示する
--	i or initialize　　
-		初期化
--	q or quit　　
-		シミュレータの終了
+### コマンド
+- r / run
+	プログラムの全実行
+- p / print X (未完成)
+	X に指定したものの値を表示する
+	X ::= pc/pcx/pcd | x0-x31 | f0-f31 | all (すべて表示) | メモリ (int型/float型は別)
+	pc/pcxは16進数で表示。10進数で表示したいならpcd。
+- l / log n0 n1
+	現在の命令から数えてn0番目からn1番目までの命令とその時のレジスタの中身を"simulator.log"に書き出しながら全実行
+- o / opcode_next n（未完成）  　　
+	指定した次のニーモニックまで実行
+- n / next n
+	命令をn個実行
+- c / continue n (未完成)　　
+	最初から数えてn番目の命令まで実行
+- h / help　　
+	この文章を表示する
+- i or initialize　　
+	初期化
+- q or quit　　
+	シミュレータの終了
 
 
 ## 自分が担当した仕事について
