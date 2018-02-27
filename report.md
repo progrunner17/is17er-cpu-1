@@ -131,8 +131,8 @@ output byteの略。例えば _ob x1_ とするとx1レジスタの下位8bitを
 input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼロ拡張してx1に入れる。
 
 ## シミュレータについて(担当シミュレータ係毛利)
--１分半ほどで実行が終了する　　
--シミュレーターの使い方　　
+-１分半ほどで実行が終了する  
+-シミュレーターの使い方  
 
 COMAND_LINE_OPTION
 （void parse_commandline_arg(int argc, char **argv);がコピペなので使い方はsim_coreと同様）
@@ -144,25 +144,25 @@ COMAND_LINE_OPTION
 	権限次第で書き込めないかも？らしい
 
 COMMAND
--	r or run　　
+-	r or run  
 		プログラムの全実行
--	p or print  (未完成)　　
-		対象に指定した物の値を表示する
-		対象 ::= pc | x0~x31 | f0~f31 |すべて表示all|メモリ（int型float型は別）
-	        (pc(pcxも可)は16進数で表示。10進数で表示したいならpcd）
--	l or log　　
+-	p or print  (未完成)  
+		対象に指定した物の値を表示する  
+		対象 ::= pc | x0~x31 | f0~f31 |すべて表示all|メモリ（int型float型は別）  
+	        (pc(pcxも可)は16進数で表示。10進数で表示したいならpcd）  
+-	l or log　　  
 		log n0 n1 (n0 n1はint型)と書くと現在の命令から数えてn0番目からn1番目までの命令とその時のレジスタの中身を"simulator.log"に書き出しながら全実行。
--	o or opcode_next（未完成）　　
+-	o or opcode_next（未完成）  　　  
 		指定した次のニーモニックまで実行。
--	n or next　　
+-	n or next　　  
 		next n　(nはint型)と打つと命令をn個実行
--	c or continue(未完成)　　
+-	c or continue(未完成)　　  
 		continue n　(nはint型)と打つと最初から数えてn番目の命令まで実行
--	h or help　　
+-	h or help　　  
 		この文章を表示する
--	i or initialize　　
+-	i or initialize　　  
 		初期化
--	q or quit　　
+-	q or quit　　  
 		シミュレータの終了
 
 
