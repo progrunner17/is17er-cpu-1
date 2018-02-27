@@ -12,9 +12,9 @@
 
 ### 命令および即値のフォーマット
 RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策定した。
-そのうち、3形式(I,S,U)は即値を持ち、U形式はさらに即値の形式として、U形式およびJ形式の2形式に分類される。  
+そのうち、3形式(I,S,U)は即値を持ち、U形式はさらに即値の形式として、U形式およびJ形式の2形式に分類される。
 
-![instr_format.jpg](instr_format.jpg)  
+![instr_format.jpg](instr_format.jpg)
 ![imm_format.jpg](imm_format.jpg)
 
 
@@ -91,7 +91,7 @@ RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策�
 | and   |    同上     | _and rd, rs1, rs2_           | rd = rs1 & rs2 ,pc++                    |      R       |
 
 
-### 不動小数点命令(RV32F改)
+### 浮動小数点命令(RV32F改)
 
 |  命令   |  opcode   |         形式          |        解釈疑似コード        | 命令フォーマット |      レジスタ規定      |    備考     |
 |:-----:|:---------:|:-------------------:|:---------------------:|:--------:|:----------------:|:---------:|
@@ -131,11 +131,11 @@ output byteの略。例えば _ob x1_ とするとx1レジスタの下位8bitを
 input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼロ拡張してx1に入れる。
 
 ## シミュレータについて(担当シミュレータ係毛利)
--１分半ほどで実行が終了する  
--シミュレーターの使い方  
+-１分半ほどで実行が終了する
+-シミュレーターの使い方
 
 COMAND_LINE_OPTION
-（void parse_commandline_arg(int argc, char **argv);がコピペなので使い方はsim_coreと同様）
+（void parse_commandline_arg(int argc, char \*\*argv); が sim_core からのコピペなので使い方は sim_core と同様）
 
 	-s ソースファイル名:	    アセンブリファイルを指定
 	-o 出力ファイル名:		出力ファイル名 指定しないとsim.outに出力
@@ -144,29 +144,29 @@ COMAND_LINE_OPTION
 	権限次第で書き込めないかも？らしい
 
 COMMAND
--	r or run  
+-	r or run
 		プログラムの全実行
--	p or print  (未完成)  
-		対象に指定した物の値を表示する  
-		対象 ::= pc | x0~x31 | f0~f31 |すべて表示all|メモリ（int型float型は別）  
-	        (pc(pcxも可)は16進数で表示。10進数で表示したいならpcd）  
--	l or log　　  
+-	p or print  (未完成)
+		対象に指定した物の値を表示する
+		対象 ::= pc | x0~x31 | f0~f31 |すべて表示all|メモリ（int型float型は別）
+	        (pc(pcxも可)は16進数で表示。10進数で表示したいならpcd）
+-	l or log　　
 		log n0 n1 (n0 n1はint型)と書くと現在の命令から数えてn0番目からn1番目までの命令とその時のレジスタの中身を"simulator.log"に書き出しながら全実行。
--	o or opcode_next（未完成）  　　  
+-	o or opcode_next（未完成）  　　
 		指定した次のニーモニックまで実行。
--	n or next　　  
+-	n or next　　
 		next n　(nはint型)と打つと命令をn個実行
--	c or continue(未完成)　　  
+-	c or continue(未完成)　　
 		continue n　(nはint型)と打つと最初から数えてn番目の命令まで実行
--	h or help　　  
+-	h or help　　
 		この文章を表示する
--	i or initialize　　  
+-	i or initialize　　
 		初期化
--	q or quit　　  
+-	q or quit　　
 		シミュレータの終了
 
 
 ## 自分が担当した仕事について
 
-## さらなる高速化に必要なプロセッサ・コンパイラの最適化と、それについて の定量的な評価ほか
+## さらなる高速化に必要なプロセッサ・コンパイラの最適化と、それについての定量的な評価ほか
 
