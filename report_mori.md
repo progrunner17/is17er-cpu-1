@@ -243,5 +243,5 @@ input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼ�
 
 ## 　参考文献　
 - 同じ班員のレポート・slackの内容
-- David A.Patterson ・ John L.Hennessy
-	- 『コンピュータの構成と設計　第５版［上］～ハードウェアとソフトウェアのインタフェース～』（成田光彦訳）日経BP社　　
+- David　A.Patterson ・ John L.Hennessy
+	- 『コンピュータの構成と設計　第５版［上］　～ハードウェアとソフトウェアのインタフェース～』（成田光彦訳）日経BP社　　
