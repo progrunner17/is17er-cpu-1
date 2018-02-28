@@ -8,7 +8,7 @@
 - ハーバードアーキテクチャ
 	- 命令メモリ:	(2^14Word)	0x0000 ~ 0x3FFF
 	- データメモリ:	(2^18Word)	0x00000 ~ 0x3FFFF
-- UART BaudRate:	115200
+- UART BaudRate:	230400
 
 ### 命令および即値のフォーマット
 RISC-Vの命令形式を元に5つの命令フォーマット(R,I,S,U,F)を策定した。
@@ -135,7 +135,7 @@ input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼ�
 	- 命令メモリはstand aloneのBRAMを使用
 	- データメモリはAXI4-Liteのコントローラを経由してBRAMを使用
 - 動作周波数: 基本180MHz
-	- 最大260MHzまで動作(diff0)を確認。
+	- 最大300MHzまで動作(diff0)を確認。
 - 4ステージ構成
 	- Fetch,Decode,Execute,Write backの4ステージ
 	- 基本各1クロックの合計4クロック構成
@@ -143,7 +143,7 @@ input byteの略。例えば _ib x1_ とすると8bitの入力を上位24bitゼ�
 	- 不動小数点演算(IPコア使用およびfloor)はEステージ2~8クロック
 	- IO拡張命令はEステージでブロッキング
 - IOはUART Lite IPコアを使用
-	- Baud Rate: 115200(適宜変更可)
+	- Baud Rate: 230400(適宜変更可)
 	- パリティ: なし(適宜変更可)
 	- IOのエラー処理および投機的実行を行うIPコアのコントローラモジュールを実装
 	- IPコアのコントローラはAXI4-StreamプロトコルでCPU本体と通信
